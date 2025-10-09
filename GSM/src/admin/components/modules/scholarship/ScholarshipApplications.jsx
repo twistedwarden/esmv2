@@ -1,914 +1,437 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { scholarshipApiService } from '../../../../services/scholarshipApiService';
 import { 
   Search, 
   Filter, 
   Download, 
   Eye, 
-  CheckCircle, 
-  XCircle, 
-  Clock,
   FileText,
-  User,
-  Calendar,
-  PhilippinePeso ,
-  GraduationCap,
-  ChevronDown,
-  ChevronUp
+  CheckCircle,
+  Clock,
+  XCircle,
+  AlertTriangle,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  PhilippinePeso
 } from 'lucide-react';
 
 function ScholarshipApplications() {
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [selectedApplications, setSelectedApplications] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLevel, setSelectedLevel] = useState('all');
-
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [tempFilters, setTempFilters] = useState({
-    status: 'all',
-    category: 'all',
-    level: 'all',
-    dateFrom: '',
-    dateTo: '',
-    minGwa: '',
-    maxGwa: '',
+  const [applications, setApplications] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [stats, setStats] = React.useState({
+    total: 0,
+    pending: 0,
+    underReview: 0,
+    approved: 0,
+    rejected: 0
   });
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [activeApplication, setActiveApplication] = useState(null);
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [approveAmount, setApproveAmount] = useState('');
-  const [rejectReason, setRejectReason] = useState('');
-  const [docDownloadingId, setDocDownloadingId] = useState(null);
 
-  useEffect(() => {
-    const fetchApps = async () => {
-      try {
+  const loadData = async (isRefresh = false, page = 1) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
-        setError('');
-        // Build params from filters
-        const params = {};
-        if (selectedStatus !== 'all') params.status = selectedStatus;
-        // Backend supports search via `search` in controller
-        if (searchTerm) params.search = searchTerm;
-        // Type can map from level/category UI later if needed
+      }
+      setError('');
 
-        const resp = await scholarshipApiService.getApplications(params);
-        const list = Array.isArray(resp.data) ? resp.data : [];
-        const mapped = list.map(a => ({
+      const [appsResponse, byStatus] = await Promise.all([
+        scholarshipApiService.getApplications({ page, per_page: 15 }).catch(() => null),
+        scholarshipApiService.getApplicationsByStatus().catch(() => null),
+      ]);
+
+      if (appsResponse && Array.isArray(appsResponse.data)) {
+        const mapped = appsResponse.data.map(a => ({
           id: a.id,
+          applicationNumber: a.application_number || `APP-${a.id}`,
           name: `${a.student?.first_name ?? ''} ${a.student?.last_name ?? ''}`.trim() || 'Unknown',
-          studentId: a.student?.student_id_number || a.student_id || '',
-          email: a.student?.email_address || '',
-          phone: a.student?.contact_number || '',
-          scholarIdNumber: a.application_number || '',
-          schoolName: a.school?.name || '',
-          gradeYearLevel: a.student?.current_academic_record?.year_level || '',
-          generalWeightedAverage: a.student?.current_academic_record?.general_weighted_average || a.student?.current_academic_record?.gpa || '',
-          scholarshipCategory: a.category?.name || '',
-          scholarshipSubCategory: a.subcategory?.name || '',
-          currentEducationalLevel: a.student?.current_academic_record?.educational_level || '',
-          schoolYear: a.student?.current_academic_record?.school_year || '',
-          schoolTerm: a.student?.current_academic_record?.school_term || '',
+          studentId: a.student?.student_id_number || a.student_id || 'N/A',
+          email: a.student?.email_address || 'N/A',
           status: a.status,
+          type: a.type,
           submittedDate: a.submitted_at || a.created_at,
+          amount: a.requested_amount || 0,
+          approvedAmount: a.approved_amount || 0,
+          category: a.category?.name || 'N/A',
+          subcategory: a.subcategory?.name || 'N/A',
+          school: a.school?.name || 'N/A',
         }));
         setApplications(mapped);
-      } catch (e) {
-        setError('Failed to load applications');
-      } finally {
-        setLoading(false);
+        
+        if (appsResponse.meta) {
+          setTotalPages(appsResponse.meta.last_page || 1);
+          setCurrentPage(appsResponse.meta.current_page || 1);
+        }
       }
-    };
-    fetchApps();
-  }, [selectedStatus, searchTerm]);
+
+      if (byStatus) {
+        setStats({
+          total: (byStatus.draft || 0) + (byStatus.submitted || 0) + (byStatus.pending || 0) + 
+                 (byStatus.under_review || 0) + (byStatus.approved || 0) + (byStatus.rejected || 0) + 
+                 (byStatus.on_hold || 0) + (byStatus.cancelled || 0),
+          pending: byStatus.pending || 0,
+          underReview: byStatus.under_review || 0,
+          approved: byStatus.approved || 0,
+          rejected: byStatus.rejected || 0,
+        });
+      }
+    } catch (e) {
+      console.error('Error loading applications:', e);
+      setError('Failed to load applications. Please try refreshing.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => {
+    loadData(false, currentPage);
+  }, [currentPage]);
+
+  const handleRefresh = () => {
+    loadData(true, currentPage);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'draft':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+      case 'submitted':
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'under_review':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'approved':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'under_review':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'on_hold':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'draft':
+        return <FileText className="w-3.5 h-3.5" />;
+      case 'submitted':
       case 'pending':
-        return <Clock className="w-4 h-4" />;
-      case 'approved':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'rejected':
-        return <XCircle className="w-4 h-4" />;
+        return <Clock className="w-3.5 h-3.5" />;
       case 'under_review':
-        return <FileText className="w-4 h-4" />;
+        return <Search className="w-3.5 h-3.5" />;
+      case 'approved':
+        return <CheckCircle className="w-3.5 h-3.5" />;
+      case 'rejected':
+        return <XCircle className="w-3.5 h-3.5" />;
+      case 'on_hold':
+        return <AlertTriangle className="w-3.5 h-3.5" />;
+      case 'cancelled':
+        return <XCircle className="w-3.5 h-3.5" />;
       default:
-        return <FileText className="w-4 h-4" />;
+        return <FileText className="w-3.5 h-3.5" />;
     }
   };
 
-  const filteredApplications = applications.filter(app => {
-    const matchesStatus = selectedStatus === 'all' || app.status === selectedStatus;
-    const matchesCategory = selectedCategory === 'all' || (app.scholarshipCategory || '').toLowerCase() === selectedCategory.toLowerCase();
-    const matchesLevel = selectedLevel === 'all' || (app.currentEducationalLevel || '').toLowerCase() === selectedLevel.toLowerCase();
-    const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (app.schoolName || app.program || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (app.scholarshipCategory || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesCategory && matchesLevel && matchesSearch;
-  });
-
-  const sortedApplications = [...filteredApplications].sort((a, b) => {
-    let aValue, bValue;
-    
-    switch (sortBy) {
-      case 'name':
-        aValue = a.name;
-        bValue = b.name;
-        break;
-      case 'gwa':
-        aValue = parseFloat(a.generalWeightedAverage || a.gpa || 0);
-        bValue = parseFloat(b.generalWeightedAverage || b.gpa || 0);
-        break;
-      case 'date':
-      default:
-        aValue = new Date(a.submittedDate);
-        bValue = new Date(b.submittedDate);
-        break;
-    }
-
-    if (sortOrder === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
-  });
-
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
-  };
-
-  const openFilterModal = () => {
-    setTempFilters({
-      status: selectedStatus,
-      category: selectedCategory,
-      level: selectedLevel,
-      dateFrom: '',
-      dateTo: '',
-      minGwa: '',
-      maxGwa: '',
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
     });
-    setIsFilterModalOpen(true);
   };
 
-  const clearAllFilters = () => {
-    setSelectedStatus('all');
-    setSelectedCategory('all');
-    setSelectedLevel('all');
-    setSearchTerm('');
+  const formatCurrency = (amount) => {
+    return amount.toLocaleString('en-PH', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
   };
 
-  const applyFilters = () => {
-    setSelectedStatus(tempFilters.status || 'all');
-    setSelectedCategory(tempFilters.category || 'all');
-    setSelectedLevel(tempFilters.level || 'all');
-    setIsFilterModalOpen(false);
-  };
-
-  const handleSelectApplication = (id) => {
-    setSelectedApplications(prev => 
-      prev.includes(id) 
-        ? prev.filter(appId => appId !== id)
-        : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedApplications.length === sortedApplications.length) {
-      setSelectedApplications([]);
-    } else {
-      setSelectedApplications(sortedApplications.map(app => app.id));
-    }
-  };
-
-  const handleBulkAction = (action) => {
-    console.log(`Performing ${action} on applications:`, selectedApplications);
-    setSelectedApplications([]);
-  };
-
-  const openReview = async (app) => {
-    setIsReviewModalOpen(true);
-    setReviewLoading(true);
-    try {
-      // Load full application details
-      const detailed = await scholarshipApiService.getApplication(app.id);
-      setActiveApplication(detailed || app);
-      setApproveAmount(detailed?.approved_amount || '');
-      setRejectReason('');
-    } catch (e) {
-      setActiveApplication(app);
-    } finally {
-      setReviewLoading(false);
-    }
-  };
-
-  const refreshList = async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (selectedStatus !== 'all') params.status = selectedStatus;
-      if (searchTerm) params.search = searchTerm;
-      const resp = await scholarshipApiService.getApplications(params);
-      const list = Array.isArray(resp.data) ? resp.data : [];
-      const mapped = list.map(a => ({
-        id: a.id,
-        name: `${a.student?.first_name ?? ''} ${a.student?.last_name ?? ''}`.trim() || 'Unknown',
-        studentId: a.student?.student_id_number || a.student_id || '',
-        email: a.student?.email_address || '',
-        phone: a.student?.contact_number || '',
-        scholarIdNumber: a.application_number || '',
-        schoolName: a.school?.name || '',
-        gradeYearLevel: a.student?.current_academic_record?.year_level || '',
-        generalWeightedAverage: a.student?.current_academic_record?.general_weighted_average || a.student?.current_academic_record?.gpa || '',
-        scholarshipCategory: a.category?.name || '',
-        scholarshipSubCategory: a.subcategory?.name || '',
-        currentEducationalLevel: a.student?.current_academic_record?.educational_level || '',
-        schoolYear: a.student?.current_academic_record?.school_year || '',
-        schoolTerm: a.student?.current_academic_record?.school_term || '',
-        status: a.status,
-        submittedDate: a.submitted_at || a.created_at,
-      }));
-      setApplications(mapped);
-    } catch (e) {
-      setError('Failed to load applications');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    if (!activeApplication) return;
-    setReviewLoading(true);
-    try {
-      const amt = parseFloat(approveAmount || '0');
-      await scholarshipApiService.approveApplication(activeApplication.id, isNaN(amt) ? 0 : amt);
-      await refreshList();
-      setIsReviewModalOpen(false);
-    } catch (e) {
-      console.error('Approve failed', e);
-      alert('Approve failed. Please try again.');
-    } finally {
-      setReviewLoading(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!activeApplication) return;
-    if (!rejectReason?.trim()) {
-      alert('Please enter a rejection reason.');
-      return;
-    }
-    setReviewLoading(true);
-    try {
-      await scholarshipApiService.rejectApplication(activeApplication.id, rejectReason.trim());
-      await refreshList();
-      setIsReviewModalOpen(false);
-    } catch (e) {
-      console.error('Reject failed', e);
-      alert('Reject failed. Please try again.');
-    } finally {
-      setReviewLoading(false);
-    }
-  };
-
-  const handleDownloadDocument = async (docId, fileName) => {
-    try {
-      setDocDownloadingId(docId);
-      const blob = await scholarshipApiService.downloadDocument(docId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName || `document-${docId}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error('Download failed', e);
-      alert('Failed to download document.');
-    } finally {
-      setDocDownloadingId(null);
-    }
-  };
-
-  const handleViewDocument = async (docId, fileName) => {
-    try {
-      setDocDownloadingId(docId);
-      const blob = await scholarshipApiService.downloadDocument(docId);
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      // Don't revoke immediately; give the new tab time to load
-      setTimeout(() => window.URL.revokeObjectURL(url), 30000);
-    } catch (e) {
-      console.error('View failed', e);
-      alert('Failed to open document.');
-    } finally {
-      setDocDownloadingId(null);
-    }
-  };
+  const filteredApplications = React.useMemo(() => {
+    return applications.filter(app => {
+      const matchesSearch = searchTerm === '' || 
+        app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.applicationNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+      const matchesType = typeFilter === 'all' || app.type === typeFilter;
+      
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [applications, searchTerm, statusFilter, typeFilter]);
 
   return (
-    <div className="">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Scholarship Applications
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Review and manage scholarship applications
+            Manage and review all scholarship applications
           </p>
         </div>
-        <div className="flex space-x-3">
-          <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center">
-            <Download className="w-4 h-4 mr-2" />
+        <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+            <Download className="w-4 h-4" />
             Export
           </button>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-            Review Selected
+          <button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            <Plus className="w-4 h-4" />
+            New Application
           </button>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search applications..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">Error Loading Data</h3>
+            <p className="text-sm text-red-700 dark:text-red-400 mt-1">{error}</p>
           </div>
-
-          {/* Filters trigger */}
-          <button
-            onClick={openFilterModal}
-            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors flex items-center justify-center"
-            aria-label="Open filters"
+          <button 
+            onClick={handleRefresh}
+            className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
           >
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
+            Retry
           </button>
-
-          {/* Status Filter */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="under_review">Under Review</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-
-          {/* Category Filter */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="all">All Categories</option>
-            <option value="Scholarship for Tertiary Students">Scholarship for Tertiary Students</option>
-            <option value="Scholarship for Senior High School Students">Scholarship for Senior High School Students</option>
-            <option value="Scholarship for Technical Vocational Education">Scholarship for Technical Vocational Education</option>
-            <option value="Scholarship for Alternative Learning System (ALS)">Scholarship for Alternative Learning System (ALS)</option>
-          </select>
-
-          {/* Level Filter */}
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="all">All Levels</option>
-            <option value="Senior High School">Senior High School</option>
-            <option value="Tertiary/College">Tertiary/College</option>
-            <option value="Technical Vocational">Technical Vocational</option>
-            <option value="Graduate School">Graduate School</option>
-          </select>
-
-          {/* Sort By */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="date">Sort by Date</option>
-            <option value="name">Sort by Name</option>
-            <option value="gwa">Sort by GWA</option>
-          </select>
-
-          {/* Sort Order */}
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors flex items-center justify-center"
-          >
-            {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-          </button>
-        </div>
-
-        {/* Active filter chips */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {selectedStatus !== 'all' && (
-            <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-              Status: {selectedStatus}
-              <button onClick={() => setSelectedStatus('all')} className="ml-1">×</button>
-            </span>
-          )}
-          {selectedCategory !== 'all' && (
-            <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200">
-              Category: {selectedCategory}
-              <button onClick={() => setSelectedCategory('all')} className="ml-1">×</button>
-            </span>
-          )}
-          {selectedLevel !== 'all' && (
-            <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200">
-              Level: {selectedLevel}
-              <button onClick={() => setSelectedLevel('all')} className="ml-1">×</button>
-            </span>
-          )}
-          {(selectedStatus !== 'all' || selectedCategory !== 'all' || selectedLevel !== 'all' || searchTerm) && (
-            <button onClick={clearAllFilters} className="text-xs text-gray-600 dark:text-gray-300 underline">Clear all</button>
-          )}
-        </div>
-
-        {/* Bulk Actions */}
-        {selectedApplications.length > 0 && (
-          <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-orange-800 dark:text-orange-200">
-                {selectedApplications.length} application(s) selected
-              </span>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleBulkAction('approve')}
-                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleBulkAction('reject')}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={() => handleBulkAction('review')}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                >
-                  Mark for Review
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Filters Modal */}
-      {isFilterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsFilterModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center"><Filter className="w-4 h-4 mr-2" /> Filters</h2>
-              <button onClick={() => setIsFilterModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">✕</button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Status</label>
-                <select
-                  value={tempFilters.status}
-                  onChange={(e) => setTempFilters({ ...tempFilters, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                >
-                  <option value="all">All</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="under_review">Under Review</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Category</label>
-                <select
-                  value={tempFilters.category}
-                  onChange={(e) => setTempFilters({ ...tempFilters, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                >
-                  <option value="all">All</option>
-                  <option value="Scholarship for Tertiary Students">Scholarship for Tertiary Students</option>
-                  <option value="Scholarship for Senior High School Students">Scholarship for Senior High School Students</option>
-                  <option value="Scholarship for Technical Vocational Education">Scholarship for Technical Vocational Education</option>
-                  <option value="Scholarship for Alternative Learning System (ALS)">Scholarship for Alternative Learning System (ALS)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Level</label>
-                <select
-                  value={tempFilters.level}
-                  onChange={(e) => setTempFilters({ ...tempFilters, level: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                >
-                  <option value="all">All</option>
-                  <option value="Senior High School">Senior High School</option>
-                  <option value="Tertiary/College">Tertiary/College</option>
-                  <option value="Technical Vocational">Technical Vocational</option>
-                  <option value="Graduate School">Graduate School</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Date From</label>
-                  <input type="date" value={tempFilters.dateFrom} onChange={(e) => setTempFilters({ ...tempFilters, dateFrom: e.target.value })} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Date To</label>
-                  <input type="date" value={tempFilters.dateTo} onChange={(e) => setTempFilters({ ...tempFilters, dateTo: e.target.value })} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Min GWA</label>
-                  <input type="number" step="0.01" value={tempFilters.minGwa} onChange={(e) => setTempFilters({ ...tempFilters, minGwa: e.target.value })} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Max GWA</label>
-                  <input type="number" step="0.01" value={tempFilters.maxGwa} onChange={(e) => setTempFilters({ ...tempFilters, maxGwa: e.target.value })} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
-              <button onClick={() => { setTempFilters({ status: 'all', category: 'all', level: 'all', dateFrom: '', dateTo: '', minGwa: '', maxGwa: '' }); }} className="text-sm text-gray-600 dark:text-gray-300 underline">Clear</button>
-              <div className="space-x-2">
-                <button onClick={() => setIsFilterModalOpen(false)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200">Cancel</button>
-                <button onClick={applyFilters} className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white">Apply Filters</button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Applications Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-        {loading && (
-          <div className="p-4 text-sm text-blue-700 bg-blue-50 border-b border-blue-200">Loading applications…</div>
-        )}
-        {error && (
-          <div className="p-4 text-sm text-red-700 bg-red-50 border-b border-red-200">{error}</div>
-        )}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-slate-700/50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedApplications.length === sortedApplications.length && sortedApplications.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                  />
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
-                  onClick={() => handleSort('name')}
-                >
-                  <div className="flex items-center">
-                    Student
-                    {sortBy === 'name' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  School
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
-                  onClick={() => handleSort('gwa')}
-                >
-                  <div className="flex items-center">
-                    GWA
-                    {sortBy === 'gwa' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Level</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SY/Term</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Status
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
-                  onClick={() => handleSort('date')}
-                >
-                  <div className="flex items-center">
-                    Submitted
-                    {sortBy === 'date' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-              {sortedApplications.map((application) => (
-                <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedApplications.includes(application.id)}
-                      onChange={() => handleSelectApplication(application.id)}
-                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                          <User className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {application.name}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {application.studentId}{application.scholarIdNumber ? ` • ${application.scholarIdNumber}` : ''}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">{application.schoolName || application.program}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{application.gradeYearLevel || application.year}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    <div className="flex items-center">
-                      <GraduationCap className="w-4 h-4 mr-1 text-gray-400" />
-                      {application.generalWeightedAverage || application.gpa}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{application.scholarshipCategory || '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{application.currentEducationalLevel || '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{(application.schoolYear || '—')} / {(application.schoolTerm || '—')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                      {getStatusIcon(application.status)}
-                      <span className="ml-1 capitalize">{application.status.replace('_', ' ')}</span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {new Date(application.submittedDate).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button className="text-orange-500 hover:text-orange-600 transition-colors" onClick={() => openReview(application)}>
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-500 hover:text-green-600 transition-colors">
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-500 hover:text-red-600 transition-colors">
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</div>
         </div>
-
-        {/* Pagination */}
-        <div className="bg-white dark:bg-slate-800 px-4 py-3 border-t border-gray-200 dark:border-slate-700 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600">
-                Previous
-              </button>
-              <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600">
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Showing <span className="font-medium">1</span> to <span className="font-medium">{sortedApplications.length}</span> of{' '}
-                  <span className="font-medium">{applications.length}</span> results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                  <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-600">
-                    Previous
-                  </button>
-                  <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600">
-                    1
-                  </button>
-                  <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-600">
-                    Next
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Pending</div>
+          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{stats.pending}</div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Under Review</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{stats.underReview}</div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Approved</div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.approved}</div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Rejected</div>
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.rejected}</div>
         </div>
       </div>
 
-      {/* Review Modal */}
-      {isReviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsReviewModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-3xl mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Application Review</h3>
-              <button onClick={() => setIsReviewModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">✕</button>
+      {/* Filters and Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
+        {/* Filter Bar */}
+        <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, ID, or application number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
             </div>
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              {reviewLoading && <div className="text-sm text-gray-500">Loading…</div>}
-              {!reviewLoading && activeApplication && (
-                <div className="space-y-6">
-                  {/* Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Student</div>
-                      <div className="font-medium text-gray-900 dark:text-white">{activeApplication.student?.first_name} {activeApplication.student?.last_name}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{activeApplication.student?.student_id_number} • {activeApplication.student?.email_address}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Application No.</div>
-                      <div className="font-medium text-gray-900 dark:text-white">{activeApplication.application_number || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Category / Subcategory</div>
-                      <div className="font-medium text-gray-900 dark:text-white">{activeApplication.category?.name || '—'}{activeApplication.subcategory?.name ? ` • ${activeApplication.subcategory?.name}` : ''}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Status</div>
-                      <div className="font-medium capitalize">{(activeApplication.status || '').replace('_',' ')}</div>
-                    </div>
-                  </div>
-
-                  {/* Academic */}
-                  <div>
-                    <div className="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Academic Information</div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <div className="text-sm text-gray-500">School</div>
-                        <div className="font-medium">{activeApplication.school?.name || activeApplication.student?.current_academic_record?.school?.name || '—'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Level</div>
-                        <div className="font-medium">{activeApplication.student?.current_academic_record?.educational_level || '—'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">SY / Term</div>
-                        <div className="font-medium">{activeApplication.student?.current_academic_record?.school_year || '—'} / {activeApplication.student?.current_academic_record?.school_term || '—'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">GWA</div>
-                        <div className="font-medium">{activeApplication.student?.current_academic_record?.general_weighted_average || activeApplication.student?.current_academic_record?.gpa || '—'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Financial */}
-                  <div>
-                    <div className="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Financial Information</div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <div className="text-sm text-gray-500">Requested Amount</div>
-                        <div className="font-medium">{activeApplication.requested_amount ?? '—'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Approved Amount</div>
-                        <div className="font-medium">{activeApplication.approved_amount ?? '—'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Submitted</div>
-                        <div className="font-medium">{activeApplication.submitted_at ? new Date(activeApplication.submitted_at).toLocaleString() : '—'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Documents */}
-                  <div>
-                    <div className="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Documents</div>
-                    <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-slate-700/50">
-                          <tr>
-                            <th className="px-4 py-2 text-left">Type</th>
-                            <th className="px-4 py-2 text-left">File</th>
-                            <th className="px-4 py-2 text-left">Status</th>
-                            <th className="px-4 py-2 text-left">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                          {(activeApplication.documents || []).length === 0 && (
-                            <tr><td className="px-4 py-3 text-gray-500" colSpan={4}>No documents uploaded.</td></tr>
-                          )}
-                          {(activeApplication.documents || []).map(doc => (
-                            <tr key={doc.id}>
-                              <td className="px-4 py-2">{doc.document_type?.name || '—'}</td>
-                              <td className="px-4 py-2">{doc.file_name}</td>
-                              <td className="px-4 py-2 capitalize">{doc.status}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleViewDocument(doc.id, doc.file_name)}
-                                    className="p-1.5 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700"
-                                    title="View"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDownloadDocument(doc.id, doc.file_name)}
-                                    className="p-1.5 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700"
-                                    disabled={docDownloadingId === doc.id}
-                                    title="Download"
-                                  >
-                                    <Download className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Decision inputs */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Approved Amount</label>
-                      <input type="number" step="0.01" value={approveAmount} onChange={(e) => setApproveAmount(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Rejection Reason</label>
-                      <input type="text" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
-              <div className="text-xs text-gray-500">Use either Approve or Reject. Approval requires an amount.</div>
-              <div className="space-x-2">
-                <button disabled={reviewLoading} onClick={handleReject} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white disabled:opacity-60">Reject</button>
-                <button disabled={reviewLoading} onClick={handleApprove} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-60">Approve</button>
-              </div>
-            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="pending">Pending</option>
+              <option value="under_review">Under Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="on_hold">On Hold</option>
+            </select>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="all">All Types</option>
+              <option value="new">New Application</option>
+              <option value="renewal">Renewal</option>
+            </select>
           </div>
         </div>
-      )}
+
+        {/* Table */}
+        {loading ? (
+          <div className="p-12 text-center">
+            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+            <p className="text-gray-500">Loading applications...</p>
+          </div>
+        ) : filteredApplications.length === 0 ? (
+          <div className="p-12 text-center">
+            <FileText className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No applications found
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Try adjusting your search or filters
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-slate-700/50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Application
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Student
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Program
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                  {filteredApplications.map((app) => (
+                    <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {app.applicationNumber}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                            {app.type}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {app.name}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {app.studentId}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {app.category}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {app.subcategory}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center text-sm font-medium text-gray-900 dark:text-white">
+                          <PhilippinePeso className="w-4 h-4 mr-1 text-gray-400" />
+                          {formatCurrency(app.amount)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
+                          {getStatusIcon(app.status)}
+                          <span className="capitalize">{app.status.replace('_', ' ')}</span>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {formatDate(app.submittedDate)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button 
+                          className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 transition-colors"
+                          title="View Application"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-export default ScholarshipApplications; 
+export default ScholarshipApplications;
+

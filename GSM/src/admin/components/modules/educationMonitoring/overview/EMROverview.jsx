@@ -4,7 +4,6 @@ import { getAuthServiceUrl } from '../../../../../config/api';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import DashboardHeader from './DashboardHeader';
 import KPICards from './KPICards';
-import AnalyticsCharts from '../analytics/AnalyticsCharts';
 import ReportCategories from './ReportCategories';
 import ReportsList from './ReportsList';
 
@@ -701,7 +700,7 @@ function EMROverview() {
                 chartData={chartData}
             />
 
-            <AnalyticsCharts chartData={chartData} />
+            {/* Analytics charts removed - simplified overview */}
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <ReportCategories 

@@ -1,60 +1,82 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
 
 function StatsCard({ title, value, change, trend, icon: Icon, color }) {
     const colorClasses = {
         blue: {
-            bg: 'bg-blue-50 dark:bg-blue-900/20',
-            icon: 'text-blue-600 dark:text-blue-400',
-            border: 'border-blue-200 dark:border-blue-800'
+            gradient: 'from-[var(--color-secondary)] to-[#3A7BD5]',
+            bg: 'bg-[var(--color-secondary)]/10 dark:bg-[var(--color-secondary)]/20',
+            icon: 'text-[var(--color-secondary)] dark:text-[#3A7BD5]',
+            border: 'border-[var(--color-secondary)]/20',
+            shadow: 'hover:shadow-[var(--color-secondary)]/20'
         },
         green: {
-            bg: 'bg-green-50 dark:bg-green-900/20',
-            icon: 'text-green-600 dark:text-green-400',
-            border: 'border-green-200 dark:border-green-800'
+            gradient: 'from-[var(--color-primary)] to-[#45A049]',
+            bg: 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary)]/20',
+            icon: 'text-[var(--color-primary)] dark:text-[#45A049]',
+            border: 'border-[var(--color-primary)]/20',
+            shadow: 'hover:shadow-[var(--color-primary)]/20'
         },
         purple: {
-            bg: 'bg-purple-50 dark:bg-purple-900/20',
+            gradient: 'from-purple-500 to-purple-600',
+            bg: 'bg-purple-500/10 dark:bg-purple-500/20',
             icon: 'text-purple-600 dark:text-purple-400',
-            border: 'border-purple-200 dark:border-purple-800'
+            border: 'border-purple-500/20',
+            shadow: 'hover:shadow-purple-500/20'
         },
         orange: {
-            bg: 'bg-orange-50 dark:bg-orange-900/20',
-            icon: 'text-orange-600 dark:text-orange-400',
-            border: 'border-orange-200 dark:border-orange-800'
+            gradient: 'from-[var(--color-accent)] to-[#E6940F]',
+            bg: 'bg-[var(--color-accent)]/10 dark:bg-[var(--color-accent)]/20',
+            icon: 'text-[var(--color-accent)] dark:text-[#E6940F]',
+            border: 'border-[var(--color-accent)]/20',
+            shadow: 'hover:shadow-[var(--color-accent)]/20'
+        },
+        red: {
+            gradient: 'from-red-500 to-red-600',
+            bg: 'bg-red-500/10 dark:bg-red-500/20',
+            icon: 'text-red-600 dark:text-red-400',
+            border: 'border-red-500/20',
+            shadow: 'hover:shadow-red-500/20'
         }
     };
 
     const colorClass = colorClasses[color] || colorClasses.blue;
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-                        {title}
-                    </p>
-                    <p className="text-2xl font-bold text-slate-800 dark:text-white">
-                        {value}
-                    </p>
-                    <div className="flex items-center mt-2">
+        <div className={`group relative bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-xl ${colorClass.shadow} transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden`}>
+            {/* Decorative background gradient */}
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass.gradient} opacity-0 group-hover:opacity-10 blur-3xl transition-opacity duration-500`} />
+            
+            <div className="relative">
+                <div className="flex items-start justify-between mb-4">
+                    <div className={`p-3 rounded-xl ${colorClass.bg} border ${colorClass.border} group-hover:scale-110 transition-transform duration-300`}>
+                        <Icon className={`w-6 h-6 ${colorClass.icon}`} />
+                    </div>
+                    <div className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
+                        trend === 'up' 
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                    }`}>
                         {trend === 'up' ? (
-                            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                            <TrendingUp className="w-3 h-3" />
                         ) : (
-                            <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                            <TrendingDown className="w-3 h-3" />
                         )}
-                        <span className={`text-sm font-medium ${
-                            trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                        }`}>
-                            {change}
-                        </span>
-                        <span className="text-sm text-slate-500 dark:text-slate-400 ml-1">
-                            vs last month
-                        </span>
+                        {change}
                     </div>
                 </div>
-                <div className={`p-3 rounded-xl ${colorClass.bg} ${colorClass.border} border`}>
-                    <Icon className={`w-5 h-5 ${colorClass.icon}`} />
+                
+                <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase">
+                        {title}
+                    </h3>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text">
+                        {value}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <span>vs last month</span>
+                        <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </p>
                 </div>
             </div>
         </div>

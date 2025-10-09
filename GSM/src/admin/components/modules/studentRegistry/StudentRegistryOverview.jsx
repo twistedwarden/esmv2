@@ -1,8 +1,5 @@
 import React from 'react';
 import { Users, UserPlus, GraduationCap, School, Search, Filter, MoreVertical, Eye, Edit, Archive, RotateCcw, Trash2, X } from 'lucide-react';
-import AddStudentModal from './AddStudentModal';
-import ViewStudentModal from './ViewStudentModal';
-import EditStudentModal from './EditStudentModal';
 import ConfirmationModal from '../../ui/ConfirmationModal';
 import { API_CONFIG, getScholarshipServiceUrl } from '../../../../config/api';
 
@@ -394,11 +391,11 @@ function StudentRegistryOverview() {
                 </div>
                 <button 
                     onClick={() => {
-                        setShowAddModal(true);
-                        setActionError('');
-                        setActionSuccess('');
+                        setActionError('Add student functionality removed in overview. Use dedicated student management module.');
                     }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                    className="bg-gray-400 cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                    disabled
+                    title="Feature simplified - use dedicated module"
                 >
                     <UserPlus className="w-4 h-4" />
                     <span>Add Student</span>
@@ -524,8 +521,22 @@ function StudentRegistryOverview() {
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900 dark:text-white">{student.email || '—'}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex items-center justify-end space-x-2">
-                                            <button onClick={() => openView(student)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition-colors"><Eye className="w-4 h-4" /></button>
-                                            <button onClick={() => openEdit(student)} className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 p-1 rounded transition-colors"><Edit className="w-4 h-4" /></button>
+                                            <button 
+                                                onClick={() => setActionError('View/Edit functionality simplified in overview')} 
+                                                className="text-gray-400 cursor-not-allowed p-1 rounded transition-colors" 
+                                                disabled
+                                                title="Feature simplified"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => setActionError('View/Edit functionality simplified in overview')} 
+                                                className="text-gray-400 cursor-not-allowed p-1 rounded transition-colors" 
+                                                disabled
+                                                title="Feature simplified"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
                                             {(student.status || '').toLowerCase() === 'archived' ? (
                                                 <>
                                                     <button onClick={() => openRestoreModal(student)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded transition-colors" title="Restore student"><RotateCcw className="w-4 h-4" /></button>
@@ -585,30 +596,7 @@ function StudentRegistryOverview() {
                 </div>
             </div>
 
-            <AddStudentModal 
-                isOpen={showAddModal}
-                onClose={() => {
-                    setShowAddModal(false);
-                    setActionError('');
-                    setActionSuccess('');
-                }}
-                onStudentAdded={handleStudentAdded}
-            />
-            <ViewStudentModal
-                isOpen={showViewModal}
-                onClose={() => setShowViewModal(false)}
-                student={selectedStudent}
-            />
-            <EditStudentModal
-                isOpen={showEditModal}
-                onClose={() => {
-                    setShowEditModal(false);
-                    setActionError('');
-                    setActionSuccess('');
-                }}
-                student={selectedStudent}
-                onUpdated={handleUpdated}
-            />
+            {/* Modal components removed - functionality available in dedicated module pages */}
             
             <ConfirmationModal
                 isOpen={showArchiveModal}
