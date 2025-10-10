@@ -432,15 +432,17 @@ export const RenewalForm: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="">Select Religion</option>
-                  <option value="Roman Catholic">Roman Catholic</option>
-                  <option value="Protestant">Protestant</option>
-                  <option value="Islam">Islam</option>
-                  <option value="Iglesia ni Cristo">Iglesia ni Cristo</option>
-                  <option value="Jehovah's Witness">Jehovah's Witness</option>
-                  <option value="Buddhism">Buddhism</option>
-                  <option value="Hinduism">Hinduism</option>
-                  <option value="Atheist">Atheist</option>
-                  <option value="Others">Others</option>
+                  <option value="ROMAN CATHOLIC">Roman Catholic</option>
+                  <option value="ISLAM">Islam</option>
+                  <option value="CHRISTIAN">Christian</option>
+                  <option value="BORN AGAIN">Born Again</option>
+                  <option value="IGLESIA NI CRISTO (INC)">Iglesia ni Cristo (INC)</option>
+                  <option value="BIBLE BAPTIST">Bible Baptist</option>
+                  <option value="7TH DAY ADVENTIST">7th Day Adventist</option>
+                  <option value="AGLIPAY">Aglipay</option>
+                  <option value="DATING DAAN">Dating Daan</option>
+                  <option value="JEHOVA">Jehova</option>
+                  <option value="OTHERS, PLEASE SPECIFY">Others, please specify</option>
                 </select>
                 {errors.religion && <p className="mt-1 text-sm text-red-600">{errors.religion.message}</p>}
                 <p className="mt-1 text-xs text-gray-500">Your religion will not affect your scholarship application result</p>

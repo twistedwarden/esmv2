@@ -70,6 +70,7 @@ export const NewApplicationForm: React.FC = () => {
   const [accessDenied, setAccessDenied] = useState(false);
   const [existingApplication, setExistingApplication] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showReligionOther, setShowReligionOther] = useState(false);
 
   const {
     control,
@@ -94,6 +95,7 @@ export const NewApplicationForm: React.FC = () => {
       civilStatus: '',
       dateOfBirth: '',
       religion: '',
+      religionOther: '',
       nationality: 'Filipino',
       birthPlace: '',
       heightCm: '',
@@ -496,6 +498,7 @@ export const NewApplicationForm: React.FC = () => {
       setSelectedSchoolId(savedData.formData.schoolName || null);
       setGwaInputFormat(savedData.formData.gwaInputFormat || 'percentage');
       setStudentIdType(savedData.formData.studentIdType || 'school');
+      setShowReligionOther(savedData.formData.religion === 'OTHERS, PLEASE SPECIFY');
     }
   }, [reset]);
 
@@ -705,7 +708,7 @@ export const NewApplicationForm: React.FC = () => {
         birth_date: data.dateOfBirth || null,
         is_pwd: Boolean(data.isPwd),
         pwd_specification: data.pwdSpecification || null,
-        religion: data.religion || null,
+        religion: data.religion === 'OTHERS, PLEASE SPECIFY' ? data.religionOther : data.religion || null,
         height_cm: data.heightCm ? parseFloat(data.heightCm) : null,
         weight_kg: data.weightKg ? parseFloat(data.weightKg) : null,
         contact_number: data.contactNumber || null,
@@ -1472,14 +1475,46 @@ export const NewApplicationForm: React.FC = () => {
                       control={control}
                       rules={{ required: 'Religion is required' }}
                       render={({ field }) => (
-                        <input
+                        <select
                           {...field}
-                          type="text"
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setShowReligionOther(e.target.value === 'OTHERS, PLEASE SPECIFY');
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
+                        >
+                          <option value="">Select Religion</option>
+                          <option value="ROMAN CATHOLIC">Roman Catholic</option>
+                          <option value="ISLAM">Islam</option>
+                          <option value="CHRISTIAN">Christian</option>
+                          <option value="BORN AGAIN">Born Again</option>
+                          <option value="IGLESIA NI CRISTO (INC)">Iglesia ni Cristo (INC)</option>
+                          <option value="BIBLE BAPTIST">Bible Baptist</option>
+                          <option value="7TH DAY ADVENTIST">7th Day Adventist</option>
+                          <option value="AGLIPAY">Aglipay</option>
+                          <option value="DATING DAAN">Dating Daan</option>
+                          <option value="JEHOVA">Jehova</option>
+                          <option value="OTHERS, PLEASE SPECIFY">Others, please specify</option>
+                        </select>
                       )}
                     />
+                    {showReligionOther && (
+                      <Controller
+                        name="religionOther"
+                        control={control}
+                        rules={{ required: showReligionOther ? 'Please specify your religion' : false }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            placeholder="Please specify your religion"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent mt-2"
+                          />
+                        )}
+                      />
+                    )}
                     {errors.religion && <p className="mt-1 text-sm text-red-600">{String(errors.religion.message)}</p>}
+                    {errors.religionOther && <p className="mt-1 text-sm text-red-600">{String(errors.religionOther.message)}</p>}
                   </div>
 
                   <div>

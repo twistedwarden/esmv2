@@ -84,6 +84,7 @@ export const GatewayLogin: React.FC = () => {
 	useEffect(() => {
 		if (!isLoading && currentUser) {
       if (currentUser.role === 'admin' || currentUser.role === 'staff') navigate('/admin', { replace: true })
+      else if (currentUser.role === 'ps_rep') navigate('/partner-school', { replace: true })
       else navigate('/portal', { replace: true })
 		}
 	}, [currentUser, isLoading, navigate])
@@ -166,6 +167,7 @@ export const GatewayLogin: React.FC = () => {
 			setTimeout(() => {
 				const role = useAuthStore.getState().currentUser?.role
 				if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+				else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
 				else navigate('/portal', { replace: true })
 			}, 1500) // Show splash for 1.5 seconds
 		}
@@ -219,6 +221,7 @@ export const GatewayLogin: React.FC = () => {
         setTimeout(() => {
           const role = useAuthStore.getState().currentUser?.role
           if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+          else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
           else navigate('/portal', { replace: true })
         }, 1500) // Show splash for 1.5 seconds
       } else {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown } from 'lucide-react';
+import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 
 export const ScholarshipDashboard: React.FC = () => {
@@ -18,6 +18,11 @@ export const ScholarshipDashboard: React.FC = () => {
   const [isSubmittingApp, setIsSubmittingApp] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  
+  // Notification state
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -35,6 +40,167 @@ export const ScholarshipDashboard: React.FC = () => {
       [section]: !prev[section]
     }));
   };
+
+  // Notification functions
+  const generateMockNotifications = (application: any) => {
+    const mockNotifications = [];
+    
+    if (application) {
+      // Status-based notifications
+      switch (application.status) {
+        case 'submitted':
+          mockNotifications.push({
+            id: 1,
+            type: 'info',
+            title: 'Application Submitted',
+            message: 'Your scholarship application has been successfully submitted and is now under review.',
+            timestamp: new Date(application.submitted_at || Date.now()),
+            isRead: false,
+            priority: 'high'
+          });
+          break;
+        case 'reviewed':
+          mockNotifications.push({
+            id: 2,
+            type: 'success',
+            title: 'Application Reviewed',
+            message: 'Your application has been reviewed by the Student Services Committee.',
+            timestamp: new Date(application.reviewed_at || Date.now()),
+            isRead: false,
+            priority: 'high'
+          });
+          break;
+        case 'approved':
+          mockNotifications.push({
+            id: 3,
+            type: 'success',
+            title: 'Application Approved!',
+            message: `Congratulations! Your scholarship application has been approved for ₱${application.approved_amount?.toLocaleString() || '0'}.`,
+            timestamp: new Date(application.approved_at || Date.now()),
+            isRead: false,
+            priority: 'urgent'
+          });
+          break;
+        case 'rejected':
+          mockNotifications.push({
+            id: 4,
+            type: 'error',
+            title: 'Application Not Approved',
+            message: `Unfortunately, your application was not approved. Reason: ${application.rejection_reason || 'Please contact support for details.'}`,
+            timestamp: new Date(application.rejected_at || Date.now()),
+            isRead: false,
+            priority: 'high'
+          });
+          break;
+      }
+
+      // Document-related notifications
+      if (documents.length > 0) {
+        const rejectedDocs = documents.filter(doc => doc.status === 'rejected');
+        if (rejectedDocs.length > 0) {
+          mockNotifications.push({
+            id: 5,
+            type: 'warning',
+            title: 'Document Issues',
+            message: `${rejectedDocs.length} document(s) were rejected and need to be resubmitted.`,
+            timestamp: new Date(),
+            isRead: false,
+            priority: 'high'
+          });
+        }
+
+        const verifiedDocs = documents.filter(doc => doc.status === 'verified');
+        if (verifiedDocs.length > 0) {
+          mockNotifications.push({
+            id: 6,
+            type: 'success',
+            title: 'Documents Verified',
+            message: `${verifiedDocs.length} document(s) have been successfully verified.`,
+            timestamp: new Date(),
+            isRead: false,
+            priority: 'medium'
+          });
+        }
+      }
+
+      // Compliance notifications
+      if (application.compliance_issues && application.compliance_issues.length > 0) {
+        mockNotifications.push({
+          id: 7,
+          type: 'warning',
+          title: 'Compliance Review Required',
+          message: 'Your application has been flagged for compliance review. Please check the details and make necessary corrections.',
+          timestamp: new Date(),
+          isRead: false,
+          priority: 'urgent'
+        });
+      }
+
+      // General reminders
+      if (application.status === 'draft') {
+        const missingDocs = requiredDocumentsCount - submittedRequiredCount;
+        if (missingDocs > 0) {
+          mockNotifications.push({
+            id: 8,
+            type: 'info',
+            title: 'Complete Your Application',
+            message: `You have ${missingDocs} required document(s) remaining to complete your application.`,
+            timestamp: new Date(),
+            isRead: false,
+            priority: 'medium'
+          });
+        }
+      }
+    }
+
+    // Add some general system notifications
+    mockNotifications.push({
+      id: 9,
+      type: 'info',
+      title: 'System Maintenance',
+      message: 'Scheduled maintenance will occur on Sunday, 2:00 AM - 4:00 AM. Some features may be temporarily unavailable.',
+      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      isRead: true,
+      priority: 'low'
+    });
+
+    return mockNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  };
+
+  const markNotificationAsRead = (notificationId: number) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === notificationId 
+          ? { ...notif, isRead: true }
+          : notif
+      )
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => 
+      prev.map(notif => ({ ...notif, isRead: true }))
+    );
+  };
+
+  const deleteNotification = (notificationId: number) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+  };
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showNotifications && !target.closest('[data-notification-dropdown]')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   // Fetch user applications and documents
   useEffect(() => {
@@ -62,6 +228,12 @@ export const ScholarshipDashboard: React.FC = () => {
             // Don't set error for documents, just log it
           }
         }
+
+        // Generate notifications based on application data
+        const currentApp = userApplications.length > 0 ? userApplications[0] : null;
+        const generatedNotifications = generateMockNotifications(currentApp);
+        setNotifications(generatedNotifications);
+        setUnreadCount(generatedNotifications.filter(n => !n.isRead).length);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load application data');
@@ -587,6 +759,79 @@ export const ScholarshipDashboard: React.FC = () => {
     </div>
   );
 
+  // Notification component
+  const NotificationItem: React.FC<{ notification: any }> = ({ notification }) => {
+    const getNotificationIcon = (type: string) => {
+      switch (type) {
+        case 'success':
+          return <CheckCircle2 className="w-5 h-5 text-green-500" />;
+        case 'error':
+          return <AlertTriangle className="w-5 h-5 text-red-500" />;
+        case 'warning':
+          return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+        case 'info':
+        default:
+          return <Info className="w-5 h-5 text-blue-500" />;
+      }
+    };
+
+    const getPriorityColor = (priority: string) => {
+      switch (priority) {
+        case 'urgent':
+          return 'border-l-red-500 bg-red-50';
+        case 'high':
+          return 'border-l-orange-500 bg-orange-50';
+        case 'medium':
+          return 'border-l-blue-500 bg-blue-50';
+        case 'low':
+        default:
+          return 'border-l-gray-500 bg-gray-50';
+      }
+    };
+
+    return (
+      <div 
+        className={`p-4 border-l-4 ${getPriorityColor(notification.priority)} ${
+          !notification.isRead ? 'bg-opacity-100' : 'bg-opacity-50'
+        } hover:bg-opacity-75 transition-all duration-200 cursor-pointer`}
+        onClick={() => markNotificationAsRead(notification.id)}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3 flex-1">
+            <div className="flex-shrink-0 mt-0.5">
+              {getNotificationIcon(notification.type)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2">
+                <h4 className={`text-sm font-semibold ${!notification.isRead ? 'text-gray-900' : 'text-gray-600'}`}>
+                  {notification.title}
+                </h4>
+                {!notification.isRead && (
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                )}
+              </div>
+              <p className={`text-sm mt-1 ${!notification.isRead ? 'text-gray-700' : 'text-gray-500'}`}>
+                {notification.message}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                {new Date(notification.timestamp).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteNotification(notification.id);
+            }}
+            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Scholarship process stages
   const processStages = [
     {
@@ -687,6 +932,60 @@ export const ScholarshipDashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-2">
+              {/* Notifications Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative flex items-center space-x-2 bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all shadow-sm"
+                >
+                  <Bell className="h-4 w-4" />
+                  <span className="hidden sm:inline">Notifications</span>
+                  {unreadCount > 0 && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </div>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div 
+                    data-notification-dropdown
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                          <Bell className="w-5 h-5 mr-2 text-orange-500" />
+                          Notifications
+                        </h3>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                          >
+                            Mark all as read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <NotificationItem key={notification.id} notification={notification} />
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p className="text-sm">No notifications yet</p>
+                          <p className="text-xs text-gray-400 mt-1">We'll notify you about important updates</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Edit Button for Draft Status */}
               {currentApplication && scholarshipData.rawStatus === 'draft' && (
                 <button

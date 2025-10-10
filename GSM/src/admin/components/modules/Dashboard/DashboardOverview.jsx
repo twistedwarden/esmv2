@@ -10,11 +10,6 @@ import {
 	HandCoins,
 	FileBarChart,
 	UserPlus,
-	Download,
-	Filter,
-	RefreshCw,
-	Sparkles,
-	ArrowUpRight,
 } from 'lucide-react';
 import StatsCard from './components/StatsCard';
 import ChartCard from './components/ChartCard';
@@ -28,6 +23,7 @@ function DashboardOverview() {
 		{ title: 'School Aid Distributed', value: '₱1,245,000', change: '+15.2%', trend: 'up', icon: HandCoins, color: 'blue' },
 		{ title: 'Registered Students', value: '12,847', change: '+5.2%', trend: 'up', icon: Users, color: 'purple' },
 		{ title: 'Partner Schools', value: '156', change: '+2.1%', trend: 'up', icon: School, color: 'orange' },
+		{ title: 'Reports Generated', value: '24', change: '+8.3%', trend: 'up', icon: FileBarChart, color: 'green' },
 	];
 
 	// Mock chart data
@@ -70,115 +66,72 @@ function DashboardOverview() {
 	];
 
 	return (
-		<div className="space-y-6">
+		<div className="">
 			{/* Header */}
-			<div className="relative rounded-3xl p-8 shadow-xl overflow-hidden" style={{
-				background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
-				border: '1px solid rgba(76, 175, 80, 0.2)'
-			}}>
-				{/* Animated background elements */}
-				<div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl" style={{
-					background: 'linear-gradient(135deg, rgba(253, 168, 17, 0.3) 0%, rgba(74, 144, 226, 0.3) 100%)'
-				}} />
-				<div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl" style={{
-					background: 'linear-gradient(45deg, rgba(76, 175, 80, 0.3) 0%, rgba(74, 144, 226, 0.3) 100%)'
-				}} />
-				
-				<div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-					<div className="flex-1">
-						<div className="flex items-center gap-3 mb-3">
-							<div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
-								<Sparkles className="w-6 h-6 text-white" />
-							</div>
-							<h1 className="text-3xl font-bold text-white">
-								Education & Scholarship Dashboard
-							</h1>
-						</div>
-						<p className="text-white dark:text-slate-300 text-lg">
-							Real-time overview of all education and scholarship modules performance
-						</p>
-						<div className="flex items-center gap-2 mt-4 text-sm text-white dark:text-slate-400">
-							<Calendar className="w-4 h-4" />
-							<span>Last updated: {new Date().toLocaleDateString('en-US', { 
-								weekday: 'long', 
-								year: 'numeric', 
-								month: 'long', 
-								day: 'numeric' 
-							})}</span>
-						</div>
+			<div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+				<div className="flex flex-col md:flex-row md:items-center md:justify-between">
+					<div>
+						<h1 className="text-2xl font-bold text-slate-800 dark:text-white">Education and Scholarship Dashboard</h1>
+						<p className="text-slate-600 dark:text-slate-400 mt-1">Overview of all education and scholarship modules performance</p>
 					</div>
-					
-					<div className="flex flex-wrap items-center gap-3">
-						<button className="px-5 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl transition-all duration-300 hover:scale-105 border border-white/30 flex items-center gap-2">
-							<RefreshCw className="w-4 h-4" />
-							<span className="font-medium">Refresh</span>
-						</button>
-						<button className="px-5 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl transition-all duration-300 hover:scale-105 border border-white/30 flex items-center gap-2">
-							<Filter className="w-4 h-4" />
-							<span className="font-medium">Filter</span>
-						</button>
-						<button className="px-5 py-2.5 bg-white rounded-xl transition-all duration-300 hover:scale-105 shadow-lg flex items-center gap-2 font-semibold" style={{
-							color: 'var(--color-primary)',
-							'&:hover': {
-								backgroundColor: 'rgba(76, 175, 80, 0.1)'
-							}
-						}}>
-							<Download className="w-4 h-4" />
-							<span>Export Report</span>
-						</button>
+					<div className="flex items-center space-x-3 mt-4 md:mt-0">
+						<div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+							<Calendar className="w-4 h-4" />
+							<span>Last updated: {new Date().toLocaleDateString()}</span>
+						</div>
+						<button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">Generate Report</button>
 					</div>
 				</div>
 			</div>
 
 			{/* Stats Cards */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
 				{stats.map((stat, index) => (
 					<StatsCard key={index} {...stat} />
 				))}
 			</div>
 
-			{/* Charts Section */}
-			<div className="space-y-6">
-				<div className="flex items-center justify-between">
-					<div>
-						<h2 className="text-xl font-bold text-slate-900 dark:text-white">Analytics Overview</h2>
-						<p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Visual insights and trends</p>
-					</div>
-				</div>
-				
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					<ChartCard
-						title="Scholarship Applications Trend"
-						subtitle="Monthly applications received"
-						icon={TrendingUp}
-						data={scholarshipApplicationsTrend.map(d => ({ month: d.month, students: d.applications }))}
-						type="line"
-					/>
-					<ChartCard
-						title="School Aid Distribution"
-						subtitle="By aid type"
-						icon={PieChart}
-						data={schoolAidDistribution}
-						type="pie"
-					/>
-				</div>
-				
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					<ChartCard
-						title="Student Registry Growth"
-						subtitle="Monthly student registrations"
-						icon={Users}
-						data={studentRegistryGrowth}
-						type="line"
-					/>
-					<ChartCard
-						title="Partner School Types"
-						subtitle="Distribution by type"
-						icon={School}
-						data={partnerSchoolTypes}
-						type="pie"
-					/>
-				</div>
+			{/* Charts Row */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<ChartCard
+					title="Scholarship Applications Trend"
+					subtitle="Monthly applications received"
+					icon={TrendingUp}
+					data={scholarshipApplicationsTrend.map(d => ({ month: d.month, students: d.applications }))}
+					type="line"
+				/>
+				<ChartCard
+					title="School Aid Distribution"
+					subtitle="By aid type"
+					icon={PieChart}
+					data={schoolAidDistribution}
+					type="pie"
+				/>
+			</div>
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<ChartCard
+					title="Student Registry Growth"
+					subtitle="Monthly student registrations"
+					icon={Users}
+					data={studentRegistryGrowth}
+					type="line"
+				/>
+				<ChartCard
+					title="Partner School Types"
+					subtitle="Distribution by type"
+					icon={School}
+					data={partnerSchoolTypes}
+					type="pie"
+				/>
+			</div>
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<ChartCard
+					title="Report Categories"
+					subtitle="Reports by category"
+					icon={FileBarChart}
+					data={reportCategories}
+					type="pie"
+				/>
 			</div>
 
 			{/* Performance Metrics and Activities */}
@@ -192,72 +145,43 @@ function DashboardOverview() {
 			</div>
 
 			{/* Quick Actions */}
-			<div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
-				<div className="flex items-center justify-between mb-6">
-					<div>
-						<h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Quick Actions</h3>
-						<p className="text-sm text-slate-600 dark:text-slate-400">Frequently used tasks and shortcuts</p>
-					</div>
-				</div>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-					<button className="group relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-2xl hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-green-500/20 hover:-translate-y-1">
-						<div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-						<div className="relative p-4 bg-green-500/10 dark:bg-green-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-							<Award className="w-8 h-8 text-green-600 dark:text-green-400" />
+			<div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+				<h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Quick Actions</h3>
+				<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+					<button className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+						<Award className="w-6 h-6 text-green-600 dark:text-green-400" />
+						<div className="text-left">
+							<div className="font-medium text-slate-800 dark:text-white">New Scholarship</div>
+							<div className="text-sm text-slate-600 dark:text-slate-400">Create scholarship program</div>
 						</div>
-						<div className="relative text-center">
-							<div className="font-bold text-slate-900 dark:text-white mb-1">New Scholarship</div>
-							<div className="text-xs text-slate-600 dark:text-slate-400">Create program</div>
-						</div>
-						<ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-green-600 dark:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
 					</button>
-					
-					<button className="group relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-2xl hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500/20 hover:-translate-y-1">
-						<div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-						<div className="relative p-4 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-							<HandCoins className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+					<button className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+						<HandCoins className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+						<div className="text-left">
+							<div className="font-medium text-slate-800 dark:text-white">Distribute Aid</div>
+							<div className="text-sm text-slate-600 dark:text-slate-400">Process school aid</div>
 						</div>
-						<div className="relative text-center">
-							<div className="font-bold text-slate-900 dark:text-white mb-1">Distribute Aid</div>
-							<div className="text-xs text-slate-600 dark:text-slate-400">Process aid</div>
-						</div>
-						<ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
 					</button>
-					
-					<button className="group relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-2xl hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-purple-500/20 hover:-translate-y-1">
-						<div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-						<div className="relative p-4 bg-purple-500/10 dark:bg-purple-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-							<UserPlus className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+					<button className="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+						<UserPlus className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+						<div className="text-left">
+							<div className="font-medium text-slate-800 dark:text-white">Register Student</div>
+							<div className="text-sm text-slate-600 dark:text-slate-400">Add new student</div>
 						</div>
-						<div className="relative text-center">
-							<div className="font-bold text-slate-900 dark:text-white mb-1">Register Student</div>
-							<div className="text-xs text-slate-600 dark:text-slate-400">Add student</div>
-						</div>
-						<ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
 					</button>
-					
-					<button className="group relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-2xl hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-orange-500/20 hover:-translate-y-1">
-						<div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-						<div className="relative p-4 bg-orange-500/10 dark:bg-orange-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-							<School className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+					<button className="flex items-center space-x-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+						<School className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+						<div className="text-left">
+							<div className="font-medium text-slate-800 dark:text-white">Add Partner School</div>
+							<div className="text-sm text-slate-600 dark:text-slate-400">Register partner school</div>
 						</div>
-						<div className="relative text-center">
-							<div className="font-bold text-slate-900 dark:text-white mb-1">Partner School</div>
-							<div className="text-xs text-slate-600 dark:text-slate-400">Register school</div>
-						</div>
-						<ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-orange-600 dark:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity" />
 					</button>
-					
-					<button className="group relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-2xl hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-slate-500/20 hover:-translate-y-1">
-						<div className="absolute inset-0 bg-gradient-to-br from-slate-500/10 to-slate-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-						<div className="relative p-4 bg-slate-500/10 dark:bg-slate-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-							<FileBarChart className="w-8 h-8 text-slate-600 dark:text-slate-400" />
+					<button className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors">
+						<FileBarChart className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+						<div className="text-left">
+							<div className="font-medium text-slate-800 dark:text-white">Generate Report</div>
+							<div className="text-sm text-slate-600 dark:text-slate-400">Create new report</div>
 						</div>
-						<div className="relative text-center">
-							<div className="font-bold text-slate-900 dark:text-white mb-1">Generate Report</div>
-							<div className="text-xs text-slate-600 dark:text-slate-400">Create report</div>
-						</div>
-						<ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
 					</button>
 				</div>
 			</div>

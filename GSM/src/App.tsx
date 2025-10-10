@@ -9,6 +9,7 @@ import { Login } from './pages/auth/Login';
 import { GatewayLogin } from './pages/GatewayLogin';
 import { useAuthStore } from './store/v1authStore';
 import AdminApp from './admin/App';
+import PartnerSchoolApp from './partner-school/PartnerSchoolApp';
 
 function PortalLayoutWrapper() {
 	return (
@@ -62,6 +63,9 @@ function App() {
 				{/* Admin login and admin routes */}
 				<Route path="/admin-login" element={<Login />} />
 				<Route path="/admin/*" element={<RequireAdmin />} />
+
+				{/* Partner School routes */}
+				<Route path="/partner-school" element={<PartnerSchoolApp />} />
 
 				{/* 404 */}
 				<Route path="*" element={
