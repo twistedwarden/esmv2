@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Update the role enum to include ps_rep
-            $table->enum('role', ['admin', 'student', 'staff', 'ps_rep'])->default('student')->change();
+            $table->enum('role', ['admin', 'citizen', 'staff', 'ps_rep'])->default('citizen')->change();
         });
     }
 
@@ -24,7 +24,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Revert back to original enum values
-            $table->enum('role', ['admin', 'student', 'staff'])->default('student')->change();
+            $table->enum('role', ['admin', 'citizen', 'staff'])->default('citizen')->change();
         });
     }
 };

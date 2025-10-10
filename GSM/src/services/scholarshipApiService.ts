@@ -167,7 +167,7 @@ export interface ScholarshipApplication {
   school_id: number;
   type: 'new' | 'renewal';
   parent_application_id?: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'on_hold' | 'cancelled';
+  status: 'draft' | 'submitted' | 'documents_reviewed' | 'interview_scheduled' | 'endorsed_to_ssc' | 'approved' | 'grants_processing' | 'grants_disbursed' | 'rejected' | 'on_hold' | 'cancelled' | 'for_compliance' | 'compliance_documents_submitted';
   reason_for_renewal?: string;
   financial_need_description: string;
   requested_amount?: number;
@@ -406,13 +406,14 @@ class ScholarshipApiService {
       return { data, meta: restMeta };
     }
     // Already normalized array
-    return { data: (payload as ScholarshipApplication[]) || [], meta: response.meta };
+    return { data: (payload as ScholarshipApplication[]) || [], meta: undefined };
   }
 
   // Get current user's applications
   async getUserApplications(): Promise<ScholarshipApplication[]> {
     try {
-      const response = await this.getApplications();
+      // Add 'mine=true' parameter to scope results to current user only
+      const response = await this.getApplications({ mine: true });
       // Handle paginated response: response.data contains the actual applications array
       const applications = response.data || [];
       return Array.isArray(applications) ? applications : [];
@@ -428,7 +429,7 @@ class ScholarshipApiService {
     );
     // Backend returns `{ success: boolean, data: application }`
     console.log('getApplication response:', response);
-    return response.data;
+    return response.data!.data!;
   }
 
   async createApplication(applicationData: Partial<ScholarshipApplication>): Promise<ScholarshipApplication> {
@@ -448,17 +449,6 @@ class ScholarshipApiService {
       {
         method: 'PUT',
         body: JSON.stringify(applicationData),
-      }
-    );
-    return response.data!.data!;
-  }
-
-  async updateStudent(id: number, studentData: any): Promise<any> {
-    const response = await this.makeRequest<{ data: any }>(
-      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.STUDENT(id),
-      {
-        method: 'PUT',
-        body: JSON.stringify(studentData),
       }
     );
     return response.data!.data!;
@@ -500,6 +490,30 @@ class ScholarshipApiService {
       {
         method: 'POST',
         body: JSON.stringify({ rejection_reason: rejectionReason }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async markAsReviewed(id: number): Promise<ScholarshipApplication> {
+    const response = await this.makeRequest<{ data: ScholarshipApplication }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.APPLICATION_REVIEW(id),
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async flagForCompliance(id: number, reason: string): Promise<ScholarshipApplication> {
+    const response = await this.makeRequest<{ data: ScholarshipApplication }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.APPLICATION_COMPLIANCE(id),
+      {
+        method: 'POST',
+        body: JSON.stringify({ 
+          reason: reason
+        }),
       }
     );
     return response.data!.data!;

@@ -38,15 +38,15 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // Create test student user
+        // Create test citizen user
         User::create([
             'citizen_id' => 'CITIZEN-001',
-            'email' => 'student@example.com',
-            'password' => Hash::make('student123'),
+            'email' => 'citizen@example.com',
+            'password' => Hash::make('citizen123'),
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'middle_name' => 'Cruz',
-            'role' => 'student',
+            'role' => 'citizen',
             'is_active' => true,
             'email_verified_at' => now(),
         ]);

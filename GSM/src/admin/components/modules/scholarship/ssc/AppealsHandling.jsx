@@ -58,7 +58,7 @@ function AppealsHandling() {
             originalDecision: 'rejected',
             appealReason: 'Financial circumstances changed',
             appealDate: '2024-01-15',
-            status: 'under_review',
+            status: 'documents_reviewed',
             priority: 'medium',
             assignedTo: 'Prof. Juan Cruz',
             originalScore: 5.8,
@@ -124,13 +124,21 @@ function AppealsHandling() {
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      under_review: 'bg-blue-100 text-blue-800',
-      resolved: 'bg-green-100 text-green-800',
+      draft: 'bg-gray-100 text-gray-800',
+      submitted: 'bg-yellow-100 text-yellow-800',
+      documents_reviewed: 'bg-blue-100 text-blue-800',
+      interview_scheduled: 'bg-blue-100 text-blue-800',
+      endorsed_to_ssc: 'bg-purple-100 text-purple-800',
+      approved: 'bg-green-100 text-green-800',
+      grants_processing: 'bg-indigo-100 text-indigo-800',
+      grants_disbursed: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
-      on_hold: 'bg-gray-100 text-gray-800'
+      on_hold: 'bg-orange-100 text-orange-800',
+      cancelled: 'bg-gray-100 text-gray-800',
+      for_compliance: 'bg-red-100 text-red-800',
+      compliance_documents_submitted: 'bg-blue-100 text-blue-800'
     };
-    return colors[status] || colors.pending;
+    return colors[status] || colors.submitted;
   };
 
   const getPriorityColor = (priority) => {
@@ -222,7 +230,7 @@ function AppealsHandling() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Under Review</p>
               <p className="text-2xl font-bold text-gray-900">
-                {appeals.filter(a => a.status === 'under_review').length}
+                {appeals.filter(a => ['documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc'].includes(a.status)).length}
               </p>
             </div>
           </div>
@@ -275,10 +283,19 @@ function AppealsHandling() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="under_review">Under Review</option>
-              <option value="resolved">Resolved</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="documents_reviewed">Documents Reviewed</option>
+              <option value="interview_scheduled">Interview Scheduled</option>
+              <option value="endorsed_to_ssc">Endorsed to SSC</option>
+              <option value="approved">Approved</option>
+              <option value="grants_processing">Grants Processing</option>
+              <option value="grants_disbursed">Grants Disbursed</option>
               <option value="rejected">Rejected</option>
+              <option value="on_hold">On Hold</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="for_compliance">For Compliance</option>
+              <option value="compliance_documents_submitted">Compliance Documents Submitted</option>
             </select>
           </div>
         </div>

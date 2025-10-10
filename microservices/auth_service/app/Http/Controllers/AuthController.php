@@ -151,7 +151,7 @@ class AuthController extends Controller
             'street' => $request->street,
             'barangay' => $request->barangay,
             'password' => Hash::make($request->regPassword),
-            'role' => 'student',
+            'role' => 'citizen',
             'email_verified_at' => null, // Email verification pending
             'status' => 'pending_verification',
             'email_verification_token' => Str::random(60),
@@ -223,7 +223,10 @@ class AuthController extends Controller
 
         try {
             // Exchange authorization code for access token
-            $client = new \GuzzleHttp\Client();
+            $client = new \GuzzleHttp\Client([
+                'verify' => false, // Disable SSL verification for development
+                'timeout' => 30,
+            ]);
             $response = $client->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => env('GOOGLE_CLIENT_ID'),
@@ -241,7 +244,8 @@ class AuthController extends Controller
             $userResponse = $client->get('https://www.googleapis.com/oauth2/v2/userinfo', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $accessToken,
-                ]
+                ],
+                'verify' => false, // Disable SSL verification for development
             ]);
 
             $googleUser = json_decode($userResponse->getBody(), true);

@@ -428,7 +428,7 @@ class ScholarshipApplicationController extends Controller
         if (!$application->canBeApproved()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application must be submitted or reviewed to be approved'
+                'message' => 'Application must be endorsed to SSC to be approved'
             ], 400);
         }
 
@@ -481,7 +481,7 @@ class ScholarshipApplicationController extends Controller
         if (!$application->canBeRejected()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application must be submitted or reviewed to be rejected'
+                'message' => 'Application can be rejected at any review stage'
             ], 400);
         }
 
@@ -533,7 +533,7 @@ class ScholarshipApplicationController extends Controller
         if (!$application->canBeReviewed()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application must be submitted to be reviewed'
+                'message' => 'Application must be submitted for documents to be reviewed'
             ], 400);
         }
 
@@ -603,7 +603,7 @@ class ScholarshipApplicationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application processing started successfully',
+                'message' => 'Grants processing started successfully',
                 'data' => $application
             ]);
 
@@ -637,7 +637,7 @@ class ScholarshipApplicationController extends Controller
         if (!$application->canBeReleased()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application must be processing to be released'
+                'message' => 'Application must be in grants processing to disburse funds'
             ], 400);
         }
 
@@ -655,7 +655,7 @@ class ScholarshipApplicationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Funds released successfully',
+                'message' => 'Grants disbursed successfully',
                 'data' => $application
             ]);
 
@@ -693,6 +693,61 @@ class ScholarshipApplicationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function flagForCompliance(Request $request, $id)
+    {
+        try {
+            $application = ScholarshipApplication::findOrFail($id);
+
+            $request->validate([
+                'reason' => 'required|string|max:1000'
+            ]);
+
+            if (!$application->canBeReviewed()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application must be submitted for documents to be flagged for compliance'
+                ], 400);
+            }
+
+            try {
+                DB::beginTransaction();
+
+                $authUser = $request->get('auth_user');
+                $flaggedBy = $authUser['id'] ?? null;
+                
+                $application->flagForCompliance(
+                    $request->reason,
+                    $flaggedBy
+                );
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Application flagged for compliance successfully',
+                    'data' => $application
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to flag application for compliance',
                 'error' => $e->getMessage()
             ], 500);
         }

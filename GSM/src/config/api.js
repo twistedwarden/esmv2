@@ -33,6 +33,8 @@ export const API_CONFIG = {
             APPLICATION_SUBMIT: (id) => `/api/applications/${id}/submit`,
             APPLICATION_APPROVE: (id) => `/api/applications/${id}/approve`,
             APPLICATION_REJECT: (id) => `/api/applications/${id}/reject`,
+            APPLICATION_REVIEW: (id) => `/api/applications/${id}/review`,
+            APPLICATION_COMPLIANCE: (id) => `/api/applications/${id}/compliance`,
             
             // Document management
             DOCUMENTS: '/api/documents',

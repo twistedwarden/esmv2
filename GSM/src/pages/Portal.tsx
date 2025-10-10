@@ -98,9 +98,9 @@ export const Portal: React.FC = () => {
         const applications = await scholarshipApiService.getUserApplications();
         
         // Check if user has any pending or active applications
-        // Pending/Active statuses: draft, submitted, reviewed, approved, processing, released, on_hold
+        // Pending/Active statuses: draft, submitted, documents_reviewed, interview_scheduled, endorsed_to_ssc, approved, grants_processing, grants_disbursed, on_hold
         // Only rejected and cancelled applications allow new applications
-        const activeStatuses = ['draft', 'submitted', 'reviewed', 'approved', 'processing', 'released', 'on_hold'];
+        const activeStatuses = ['draft', 'submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
         const hasActive = applications.some(app => activeStatuses.includes(app.status?.toLowerCase()));
         
         setHasActiveApplication(hasActive);

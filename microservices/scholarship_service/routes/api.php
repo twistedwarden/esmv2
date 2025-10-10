@@ -56,6 +56,8 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     
     // Application actions
     Route::post('/{application}/submit', [ScholarshipApplicationController::class, 'submit']);
+    Route::post('/{application}/review', [ScholarshipApplicationController::class, 'review']);
+    Route::post('/{application}/compliance', [ScholarshipApplicationController::class, 'flagForCompliance']);
     Route::post('/{application}/approve', [ScholarshipApplicationController::class, 'approve']);
     Route::post('/{application}/reject', [ScholarshipApplicationController::class, 'reject']);
 });

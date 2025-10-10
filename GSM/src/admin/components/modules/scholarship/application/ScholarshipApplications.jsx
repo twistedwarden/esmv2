@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { 
   Search, 
   Filter, 
@@ -49,6 +50,9 @@ import {
 } from 'lucide-react';
 
 function ScholarshipApplications() {
+  // Toast context
+  const { showSuccess, showError, showWarning, showInfo } = useToastContext();
+  
   // Core state
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,11 +84,21 @@ function ScholarshipApplications() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [activeApplication, setActiveApplication] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
-  const [approveAmount, setApproveAmount] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [complianceReason, setComplianceReason] = useState('');
-  const [complianceType, setComplianceType] = useState('incorrect_info');
-  const [reviewAction, setReviewAction] = useState('approve'); // 'approve', 'compliance', 'reject'
+  
+  // Bulk action modal state
+  const [isBulkActionModalOpen, setIsBulkActionModalOpen] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState(''); // 'reviewed', 'compliance', 'reject'
+  const [bulkActionReason, setBulkActionReason] = useState('');
+  
+  // Quick action modal state
+  const [isQuickActionModalOpen, setIsQuickActionModalOpen] = useState(false);
+  const [quickActionType, setQuickActionType] = useState(''); // 'reject', 'compliance'
+  const [quickActionReason, setQuickActionReason] = useState('');
+  const [quickActionApplication, setQuickActionApplication] = useState(null);
+  const [reviewAction, setReviewAction] = useState('reviewed'); // 'reviewed'
+  const [reviewedConfirmation, setReviewedConfirmation] = useState('');
   const [docDownloadingId, setDocDownloadingId] = useState(null);
   
   // Statistics
@@ -114,7 +128,9 @@ function ScholarshipApplications() {
         const list = Array.isArray(resp.data) ? resp.data : [];
       
         const mapped = list.map(a => ({
-          id: a.id,
+          // Preserve the full application object for the modal
+          ...a,
+          // Add computed fields for display
           name: `${a.student?.first_name ?? ''} ${a.student?.last_name ?? ''}`.trim() || 'Unknown',
           studentId: a.student?.student_id_number || a.student_id || '',
           email: a.student?.email_address || '',
@@ -128,12 +144,10 @@ function ScholarshipApplications() {
           currentEducationalLevel: a.student?.current_academic_record?.educational_level || '',
           schoolYear: a.student?.current_academic_record?.school_year || '',
           schoolTerm: a.student?.current_academic_record?.school_term || '',
-          status: a.status,
           submittedDate: a.submitted_at || a.created_at,
-        requestedAmount: a.requested_amount || 0,
-        approvedAmount: a.approved_amount || 0,
-        priority: a.priority || 'normal',
-        documents: a.documents || []
+          requestedAmount: a.requested_amount || 0,
+          approvedAmount: a.approved_amount || 0,
+          priority: a.priority || 'normal'
         }));
       
         setApplications(mapped);
@@ -148,10 +162,10 @@ function ScholarshipApplications() {
   const updateStats = (apps) => {
     const newStats = {
       total: apps.length,
-      pending: apps.filter(app => app.status === 'pending').length,
+      pending: apps.filter(app => app.status === 'draft' || app.status === 'submitted').length,
       approved: apps.filter(app => app.status === 'approved').length,
       rejected: apps.filter(app => app.status === 'rejected').length,
-      underReview: apps.filter(app => app.status === 'under_review').length
+      underReview: apps.filter(app => ['documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc'].includes(app.status)).length
     };
     setStats(newStats);
   };
@@ -222,7 +236,21 @@ function ScholarshipApplications() {
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'under_review':
+      case 'documents_reviewed':
+      case 'interview_scheduled':
+      case 'endorsed_to_ssc':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'grants_processing':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'grants_disbursed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'on_hold':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+      case 'for_compliance':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'compliance_documents_submitted':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
@@ -237,8 +265,13 @@ function ScholarshipApplications() {
         return <CheckCircle className="w-4 h-4" />;
       case 'rejected':
         return <XCircle className="w-4 h-4" />;
-      case 'under_review':
+      case 'documents_reviewed':
+      case 'interview_scheduled':
+      case 'endorsed_to_ssc':
         return <FileText className="w-4 h-4" />;
+      case 'grants_processing':
+      case 'grants_disbursed':
+        return <CheckCircle className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
     }
@@ -303,8 +336,7 @@ function ScholarshipApplications() {
     try {
       console.log('Opening review modal for application:', app);
       setIsReviewModalOpen(true);
-      setReviewLoading(true);
-      setReviewAction('approve'); // Default to approve view
+      setReviewAction('reviewed'); // Default to reviewed view
       
       // Ensure we have a valid application object
       if (!app || !app.id) {
@@ -313,37 +345,38 @@ function ScholarshipApplications() {
         return;
       }
 
-      try {
-        const detailed = await scholarshipApiService.getApplication(app.id);
-        setActiveApplication(detailed || app);
-        setApproveAmount(detailed?.approved_amount || '');
-      } catch (apiError) {
-        console.warn('Failed to fetch detailed application, using basic data:', apiError);
-        setActiveApplication(app);
-      }
+      // Use the application data we already have (no need to fetch again)
+      setActiveApplication(app);
       
       setRejectReason('');
       setComplianceReason('');
-      setComplianceType('incorrect_info');
+      setReviewedConfirmation('');
     } catch (error) {
       console.error('Error opening review modal:', error);
       setActiveApplication(null);
-    } finally {
-      setReviewLoading(false);
     }
   };
 
-  const handleApprove = async () => {
+  const handleMarkAsReviewed = async () => {
     if (!activeApplication) return;
+    
+    // Validate confirmation text
+    if (reviewedConfirmation !== 'REVIEWED') {
+      showWarning('Confirmation Required', 'Please type "REVIEWED" to confirm this action.');
+      return;
+    }
+    
     setReviewLoading(true);
     try {
-      const amt = parseFloat(approveAmount || '0');
-      await scholarshipApiService.approveApplication(activeApplication.id, isNaN(amt) ? 0 : amt);
+      // Call API to mark application as reviewed
+      await scholarshipApiService.markAsReviewed(activeApplication.id);
       await fetchApplications();
       setIsReviewModalOpen(false);
+      setReviewedConfirmation(''); // Reset confirmation
+      showSuccess('Application Reviewed', 'Application has been successfully marked as reviewed.');
     } catch (e) {
-      console.error('Approve failed', e);
-      alert('Approve failed. Please try again.');
+      console.error('Mark as reviewed failed', e);
+      showError('Review Failed', 'Failed to mark as reviewed. Please try again.');
     } finally {
       setReviewLoading(false);
     }
@@ -352,7 +385,7 @@ function ScholarshipApplications() {
   const handleReject = async () => {
     if (!activeApplication) return;
     if (!rejectReason?.trim()) {
-      alert('Please enter a rejection reason.');
+      showWarning('Rejection Reason Required', 'Please enter a rejection reason.');
       return;
     }
     setReviewLoading(true);
@@ -360,9 +393,10 @@ function ScholarshipApplications() {
       await scholarshipApiService.rejectApplication(activeApplication.id, rejectReason.trim());
       await fetchApplications();
       setIsReviewModalOpen(false);
+      showSuccess('Application Rejected', 'Application has been successfully rejected.');
     } catch (e) {
       console.error('Reject failed', e);
-      alert('Reject failed. Please try again.');
+      showError('Rejection Failed', 'Failed to reject application. Please try again.');
     } finally {
       setReviewLoading(false);
     }
@@ -371,28 +405,24 @@ function ScholarshipApplications() {
   const handleComplianceSubmit = async () => {
     if (!activeApplication) return;
     if (!complianceReason?.trim()) {
-      alert('Please enter a compliance reason.');
+      showWarning('Compliance Reason Required', 'Please enter a compliance reason.');
       return;
     }
     
     setReviewLoading(true);
     try {
-      // Here you would call your API to flag the application for compliance issues
-      console.log('Flagging application for compliance:', {
-        applicationId: activeApplication.id,
-        type: complianceType,
-        reason: complianceReason.trim()
-      });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call API to flag the application for compliance issues
+      await scholarshipApiService.flagForCompliance(
+        activeApplication.id,
+        complianceReason.trim()
+      );
       
       await fetchApplications();
       setIsReviewModalOpen(false);
-      alert('Application flagged for compliance review. Student will be notified to correct the information.');
+      showSuccess('Application Flagged for Compliance', 'Application has been flagged for compliance review. Student will be notified to correct the information.');
     } catch (e) {
       console.error('Compliance flagging failed', e);
-      alert('Failed to flag application for compliance. Please try again.');
+      showError('Compliance Flagging Failed', 'Failed to flag application for compliance. Please try again.');
     } finally {
       setReviewLoading(false);
     }
@@ -401,7 +431,185 @@ function ScholarshipApplications() {
   const handleViewDocument = (docId, fileName) => {
     console.log('Viewing document:', docId, fileName);
     // Implement document viewing logic here
-    alert(`Viewing document: ${fileName}`);
+    showInfo('Document Viewer', `Opening document: ${fileName}`);
+  };
+
+  // Quick action handlers for individual applications
+  const handleQuickReviewed = async (application) => {
+    if (!application) return;
+    
+    console.log('Quick review action triggered for application:', application.id);
+    const confirmed = confirm(`Mark application ${application.applicationNumber} as reviewed?`);
+    if (!confirmed) return;
+    
+    setReviewLoading(true);
+    try {
+      console.log('Calling markAsReviewed API for application:', application.id);
+      await scholarshipApiService.markAsReviewed(application.id);
+      console.log('API call successful, refreshing applications list');
+      await fetchApplications();
+      showSuccess('Application Reviewed', 'Application has been successfully marked as reviewed.');
+    } catch (e) {
+      console.error('Quick review failed', e);
+      showError('Review Failed', 'Failed to mark as reviewed. Please try again.');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleQuickCompliance = async (application) => {
+    if (!application) return;
+    
+    setQuickActionType('compliance');
+    setQuickActionReason('');
+    setQuickActionApplication(application);
+    setIsQuickActionModalOpen(true);
+  };
+
+  const handleQuickReject = async (application) => {
+    if (!application) return;
+    
+    setQuickActionType('reject');
+    setQuickActionReason('');
+    setQuickActionApplication(application);
+    setIsQuickActionModalOpen(true);
+  };
+
+  // Execute the quick action after modal confirmation
+  const executeQuickAction = async () => {
+    if (!quickActionApplication) return;
+    
+    setReviewLoading(true);
+    setIsQuickActionModalOpen(false);
+    
+    try {
+      switch (quickActionType) {
+        case 'compliance':
+          if (!quickActionReason?.trim()) {
+            showWarning('Compliance Reason Required', 'Please enter a compliance reason.');
+            setReviewLoading(false);
+            return;
+          }
+          await scholarshipApiService.flagForCompliance(quickActionApplication.id, quickActionReason.trim());
+          await fetchApplications();
+          showSuccess('Application Flagged for Compliance', 'Application has been flagged for compliance review.');
+          break;
+        case 'reject':
+          if (!quickActionReason?.trim()) {
+            showWarning('Rejection Reason Required', 'Please enter a rejection reason.');
+            setReviewLoading(false);
+            return;
+          }
+          await scholarshipApiService.rejectApplication(quickActionApplication.id, quickActionReason.trim());
+          await fetchApplications();
+          showSuccess('Application Rejected', 'Application has been successfully rejected.');
+          break;
+        default:
+          throw new Error('Invalid quick action type');
+      }
+    } catch (e) {
+      console.error('Quick action failed', e);
+      const actionName = quickActionType === 'reject' ? 'reject' : 'flag for compliance';
+      showError(`${actionName.charAt(0).toUpperCase() + actionName.slice(1)} Failed`, `Failed to ${actionName} application. Please try again.`);
+    } finally {
+      setReviewLoading(false);
+      setQuickActionReason('');
+      setQuickActionType('');
+      setQuickActionApplication(null);
+    }
+  };
+
+  // Bulk action handlers
+  const handleBulkReviewed = async () => {
+    if (selectedApplications.length === 0) return;
+    
+    setBulkActionType('reviewed');
+    setBulkActionReason('');
+    setIsBulkActionModalOpen(true);
+  };
+
+  const handleBulkCompliance = async () => {
+    if (selectedApplications.length === 0) return;
+    
+    setBulkActionType('compliance');
+    setBulkActionReason('');
+    setIsBulkActionModalOpen(true);
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedApplications.length === 0) return;
+    
+    setBulkActionType('reject');
+    setBulkActionReason('');
+    setIsBulkActionModalOpen(true);
+  };
+
+  // Execute the bulk action after modal confirmation
+  const executeBulkAction = async () => {
+    if (selectedApplications.length === 0) return;
+    
+    const count = selectedApplications.length;
+    setReviewLoading(true);
+    setIsBulkActionModalOpen(false);
+    
+    try {
+      let promises = [];
+      
+      switch (bulkActionType) {
+        case 'reviewed':
+          promises = selectedApplications.map(appId => 
+            scholarshipApiService.markAsReviewed(appId)
+          );
+          break;
+        case 'compliance':
+          if (!bulkActionReason?.trim()) {
+            showWarning('Compliance Reason Required', 'Please enter a compliance reason.');
+            setReviewLoading(false);
+            return;
+          }
+          promises = selectedApplications.map(appId => 
+            scholarshipApiService.flagForCompliance(appId, bulkActionReason.trim())
+          );
+          break;
+        case 'reject':
+          if (!bulkActionReason?.trim()) {
+            showWarning('Rejection Reason Required', 'Please enter a rejection reason.');
+            setReviewLoading(false);
+            return;
+          }
+          promises = selectedApplications.map(appId => 
+            scholarshipApiService.rejectApplication(appId, bulkActionReason.trim())
+          );
+          break;
+        default:
+          throw new Error('Invalid bulk action type');
+      }
+      
+      await Promise.all(promises);
+      await fetchApplications();
+      setSelectedApplications([]);
+      
+      // Show success message based on action type
+      switch (bulkActionType) {
+        case 'reviewed':
+          showSuccess('Bulk Review Complete', `${count} application(s) have been marked as reviewed.`);
+          break;
+        case 'compliance':
+          showSuccess('Bulk Compliance Complete', `${count} application(s) have been flagged for compliance.`);
+          break;
+        case 'reject':
+          showSuccess('Bulk Rejection Complete', `${count} application(s) have been rejected.`);
+          break;
+      }
+    } catch (e) {
+      console.error('Bulk action failed', e);
+      const actionName = bulkActionType === 'reviewed' ? 'review' : bulkActionType;
+      showError(`Bulk ${actionName.charAt(0).toUpperCase() + actionName.slice(1)} Failed`, `Failed to ${actionName} applications. Please try again.`);
+    } finally {
+      setReviewLoading(false);
+      setBulkActionReason('');
+      setBulkActionType('');
+    }
   };
 
   const handleDownloadDocument = async (docId, fileName) => {
@@ -554,12 +762,45 @@ function ScholarshipApplications() {
               </button>
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
-              <button className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} title="Approve">
-                <CheckCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              </button>
-              <button className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} title="Reject">
-                <XCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              </button>
+              {/* Status-specific quick actions */}
+              {console.log('Application status for quick actions:', application.status, 'Application ID:', application.id)}
+              {application.status === 'documents_reviewed' && (
+                <button 
+                  onClick={() => handleQuickReviewed(application)}
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  title="Mark as Reviewed"
+                >
+                  <CheckCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                </button>
+              )}
+              {application.status === 'for_compliance' && (
+                <button 
+                  onClick={() => handleQuickCompliance(application)}
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  title="Flag for Compliance"
+                >
+                  <Flag className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                </button>
+              )}
+              {application.status === 'rejected' && (
+                <button 
+                  onClick={() => openReview(application)}
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  title="View Details"
+                >
+                  <Eye className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                </button>
+              )}
+              {/* Always show reject option for non-rejected applications */}
+              {application.status !== 'rejected' && (
+                <button 
+                  onClick={() => handleQuickReject(application)}
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  title="Reject"
+                >
+                  <XCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -675,10 +916,19 @@ function ScholarshipApplications() {
             className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           >
             <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="under_review">Under Review</option>
+            <option value="draft">Draft</option>
+            <option value="submitted">Submitted</option>
+            <option value="documents_reviewed">Documents Reviewed</option>
+            <option value="interview_scheduled">Interview Scheduled</option>
+            <option value="endorsed_to_ssc">Endorsed to SSC</option>
             <option value="approved">Approved</option>
+            <option value="grants_processing">Grants Processing</option>
+            <option value="grants_disbursed">Grants Disbursed</option>
             <option value="rejected">Rejected</option>
+            <option value="on_hold">On Hold</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="for_compliance">For Compliance</option>
+            <option value="compliance_documents_submitted">Compliance Documents Submitted</option>
           </select>
           </div>
 
@@ -894,14 +1144,26 @@ function ScholarshipApplications() {
                 {selectedApplications.length} application(s) selected
                     </span>
                     <div className="flex space-x-2">
-                <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
-                  Approve
+                <button 
+                  onClick={handleBulkReviewed}
+                  disabled={reviewLoading}
+                  className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                >
+                  {reviewLoading ? 'Processing...' : 'Reviewed'}
                       </button>
-                <button className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
-                  Reject
+                <button 
+                  onClick={handleBulkCompliance}
+                  disabled={reviewLoading}
+                  className="bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                >
+                  {reviewLoading ? 'Processing...' : 'Compliance'}
                       </button>
-                <button className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
-                  Mark for Review
+                <button 
+                  onClick={handleBulkReject}
+                  disabled={reviewLoading}
+                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                >
+                  {reviewLoading ? 'Processing...' : 'Reject'}
                       </button>
                     </div>
         </div>
@@ -959,18 +1221,18 @@ function ScholarshipApplications() {
               {/* Action Buttons */}
               <div className="p-4 lg:p-6 space-y-2 lg:space-y-3">
                 <button
-                  onClick={() => setReviewAction('approve')}
+                  onClick={() => setReviewAction('reviewed')}
                   className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${
-                    reviewAction === 'approve'
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                      : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-green-300'
+                    reviewAction === 'reviewed'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-blue-300'
                   }`}
                 >
                   <div className="flex items-center space-x-2 lg:space-x-3">
                     <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
                     <div className="text-left">
-                      <div className="font-semibold text-sm lg:text-base">Approve</div>
-                      <div className="text-xs lg:text-sm opacity-75">Approve this application</div>
+                      <div className="font-semibold text-sm lg:text-base">Reviewed</div>
+                      <div className="text-xs lg:text-sm opacity-75">Mark this application as reviewed</div>
                     </div>
                   </div>
                 </button>
@@ -1012,52 +1274,32 @@ function ScholarshipApplications() {
 
               {/* Action Form */}
               <div className="flex-1 p-4 lg:p-6">
-                {reviewAction === 'approve' && (
+                {reviewAction === 'reviewed' && (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Approved Amount
+                        Type "REVIEWED" to confirm
                       </label>
                       <input
-                        type="number"
-                        step="0.01"
-                        value={approveAmount}
-                        onChange={(e) => setApproveAmount(e.target.value)}
-                        placeholder="Enter approved amount"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        type="text"
+                        value={reviewedConfirmation}
+                        onChange={(e) => setReviewedConfirmation(e.target.value)}
+                        placeholder="Type REVIEWED to confirm"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <button
-                      onClick={handleApprove}
-                      disabled={reviewLoading || !approveAmount.trim()}
-                      className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      onClick={handleMarkAsReviewed}
+                      disabled={reviewLoading || reviewedConfirmation !== 'REVIEWED'}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      {reviewLoading ? 'Processing...' : 'Approve Application'}
+                      {reviewLoading ? 'Processing...' : 'Mark as Reviewed'}
                     </button>
                   </div>
                 )}
 
                 {reviewAction === 'compliance' && (
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Issue Type
-                      </label>
-                      <select
-                        value={complianceType}
-                        onChange={(e) => setComplianceType(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                      >
-                        <option value="incorrect_info">Incorrect Information</option>
-                        <option value="missing_documents">Missing Documents</option>
-                        <option value="invalid_documents">Invalid Documents</option>
-                        <option value="incomplete_application">Incomplete Application</option>
-                        <option value="eligibility_issues">Eligibility Issues</option>
-                        <option value="academic_requirements">Academic Requirements Not Met</option>
-                        <option value="financial_documents">Financial Documents Issues</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Detailed Reason
@@ -1357,6 +1599,169 @@ function ScholarshipApplications() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Action Modal */}
+      {isBulkActionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsBulkActionModalOpen(false)} />
+          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {bulkActionType === 'reviewed' && 'Mark as Reviewed'}
+                  {bulkActionType === 'compliance' && 'Flag for Compliance'}
+                  {bulkActionType === 'reject' && 'Reject Applications'}
+                </h3>
+                <button
+                  onClick={() => setIsBulkActionModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  This action will be applied to <span className="font-semibold text-gray-900 dark:text-white">{selectedApplications.length} application(s)</span>.
+                </p>
+              </div>
+
+              {/* Reason input for compliance and reject actions */}
+              {(bulkActionType === 'compliance' || bulkActionType === 'reject') && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {bulkActionType === 'compliance' ? 'Compliance Reason' : 'Rejection Reason'}
+                  </label>
+                  <textarea
+                    value={bulkActionReason}
+                    onChange={(e) => setBulkActionReason(e.target.value)}
+                    placeholder={`Enter ${bulkActionType === 'compliance' ? 'compliance' : 'rejection'} reason...`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {/* Confirmation for reviewed action */}
+              {bulkActionType === 'reviewed' && (
+                <div className="mb-6">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    This will mark all selected applications as reviewed. This action cannot be undone.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsBulkActionModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkAction}
+                disabled={reviewLoading || (bulkActionType !== 'reviewed' && !bulkActionReason?.trim())}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  bulkActionType === 'reviewed' 
+                    ? 'bg-blue-500 hover:bg-blue-600' 
+                    : bulkActionType === 'compliance'
+                    ? 'bg-yellow-500 hover:bg-yellow-600'
+                    : 'bg-red-500 hover:bg-red-600'
+                }`}
+              >
+                {reviewLoading ? 'Processing...' : 
+                  bulkActionType === 'reviewed' ? 'Mark as Reviewed' :
+                  bulkActionType === 'compliance' ? 'Flag for Compliance' :
+                  'Reject Applications'
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Action Modal */}
+      {isQuickActionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsQuickActionModalOpen(false)} />
+          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {quickActionType === 'reject' && 'Reject Application'}
+                  {quickActionType === 'compliance' && 'Flag for Compliance'}
+                </h3>
+                <button
+                  onClick={() => setIsQuickActionModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {quickActionType === 'reject' && 'This will reject the application and cannot be undone.'}
+                  {quickActionType === 'compliance' && 'This will flag the application for compliance review.'}
+                </p>
+                {quickActionApplication && (
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mt-2">
+                    Application: {quickActionApplication.applicationNumber || quickActionApplication.id}
+                  </p>
+                )}
+              </div>
+
+              {/* Reason input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {quickActionType === 'reject' ? 'Rejection Reason' : 'Compliance Reason'}
+                </label>
+                <textarea
+                  value={quickActionReason}
+                  onChange={(e) => setQuickActionReason(e.target.value)}
+                  placeholder={`Enter ${quickActionType === 'reject' ? 'rejection' : 'compliance'} reason...`}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsQuickActionModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeQuickAction}
+                disabled={reviewLoading || !quickActionReason?.trim()}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  quickActionType === 'reject' 
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-yellow-500 hover:bg-yellow-600'
+                }`}
+              >
+                {reviewLoading ? 'Processing...' : 
+                  quickActionType === 'reject' ? 'Reject Application' :
+                  'Flag for Compliance'
+                }
+              </button>
             </div>
           </div>
         </div>

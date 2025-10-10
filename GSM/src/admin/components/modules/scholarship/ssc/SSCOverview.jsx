@@ -69,7 +69,7 @@ function SSCOverview() {
             applicationId: 'APP-2024-002',
             member: 'Prof. Juan Cruz',
             timestamp: '2024-01-15T09:15:00Z',
-            status: 'under_review'
+            status: 'documents_reviewed'
           },
           {
             id: 3,

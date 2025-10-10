@@ -20,7 +20,7 @@ class CreateCitizenUser extends Seeder
             'password' => Hash::make('password123'),
             'first_name' => 'CJ',
             'last_name' => 'User',
-            'role' => 'student',
+            'role' => 'citizen',
             'is_active' => true,
             'email_verified_at' => now(),
         ];

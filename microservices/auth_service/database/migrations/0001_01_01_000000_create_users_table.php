@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('middle_name')->nullable();
             $table->string('extension_name')->nullable();
-            $table->enum('role', ['admin', 'student', 'staff'])->default('student');
+            $table->enum('role', ['admin', 'citizen', 'staff'])->default('citizen');
             $table->boolean('is_active')->default(true);
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();

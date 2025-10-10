@@ -404,7 +404,7 @@ export const NewApplicationForm: React.FC = () => {
         // Check if user has any active applications that would prevent creating a new one
         // Draft applications can be edited, so they don't block access to this page
         // Only non-draft active statuses block new applications
-        const blockingStatuses = ['submitted', 'reviewed', 'approved', 'processing', 'released', 'on_hold'];
+        const blockingStatuses = ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
         const hasBlockingApplication = applications.some(app => blockingStatuses.includes(app.status?.toLowerCase()));
         
         // Check if user has a draft application that they might want to edit

@@ -497,13 +497,17 @@ export const ScholarshipDashboard: React.FC = () => {
     switch (status?.toLowerCase()) {
       case 'draft': return 'Draft';
       case 'submitted': return 'Submitted';
-      case 'reviewed': return 'Reviewed';
+      case 'documents_reviewed': return 'Documents Reviewed';
+      case 'interview_scheduled': return 'Interview Scheduled';
+      case 'endorsed_to_ssc': return 'Endorsed to SSC';
       case 'approved': return 'Approved';
-      case 'processing': return 'Processing';
-      case 'released': return 'Released';
+      case 'grants_processing': return 'Grants Processing';
+      case 'grants_disbursed': return 'Grants Disbursed';
       case 'rejected': return 'Rejected';
       case 'on_hold': return 'On Hold';
       case 'cancelled': return 'Cancelled';
+      case 'for_compliance': return 'For Compliance';
+      case 'compliance_documents_submitted': return 'Compliance Documents Submitted';
       default: return status || 'Unknown';
     }
   };
@@ -511,15 +515,19 @@ export const ScholarshipDashboard: React.FC = () => {
   // Helper function to get current stage based on status
   const getCurrentStage = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'draft': return 0;           // Stage 0: General Requirements and Interview
-      case 'submitted': return 0;       // Stage 0: General Requirements and Interview (when submitted)
-      case 'reviewed': return 1;        // Stage 1: Endorsed to SSC Approval
-      case 'approved': return 2;        // Stage 2: Approved Application
-      case 'processing': return 3;      // Stage 3: Grants Processing
-      case 'released': return 4;        // Stage 4: Grants Disbursed
-      case 'rejected': return -1;       // Special case for rejected
-      case 'on_hold': return 1;         // Stage 1: Endorsed to SSC Approval
-      case 'cancelled': return -1;      // Special case for cancelled
+      case 'draft': return 0;                   // Stage 0: General Requirements and Interview
+      case 'submitted': return 0;               // Stage 0: General Requirements and Interview (when submitted)
+      case 'documents_reviewed': return 0;      // Stage 0: Documents being reviewed
+      case 'interview_scheduled': return 0;     // Stage 0: Interview scheduled
+      case 'endorsed_to_ssc': return 1;         // Stage 1: Endorsed to SSC Approval
+      case 'approved': return 2;                // Stage 2: Approved Application
+      case 'grants_processing': return 3;       // Stage 3: Grants Processing
+      case 'grants_disbursed': return 4;        // Stage 4: Grants Disbursed
+      case 'rejected': return -1;               // Special case for rejected
+      case 'on_hold': return 1;                 // Stage 1: On hold during review
+      case 'cancelled': return -1;              // Special case for cancelled
+      case 'for_compliance': return 0;          // Stage 0: Needs compliance review
+      case 'compliance_documents_submitted': return 0; // Stage 0: Compliance docs submitted, pending review
       default: return 0;
     }
   };
@@ -869,17 +877,24 @@ export const ScholarshipDashboard: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
       case 'approved':
-      case 'completed':
-      case 'released':
+      case 'grants_processing':
+      case 'grants_disbursed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'submitted':
-      case 'reviewed':
-      case 'processing':
+      case 'documents_reviewed':
+      case 'interview_scheduled':
+      case 'endorsed_to_ssc':
         return <Clock className="h-5 w-5 text-blue-500" />;
-      case 'pending':
+      case 'draft':
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case 'rejected':
         return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'on_hold':
+        return <AlertCircle className="h-5 w-5 text-orange-500" />;
+      case 'for_compliance':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'compliance_documents_submitted':
+        return <Clock className="h-5 w-5 text-blue-500" />;
       default:
         return <Clock className="h-5 w-5 text-gray-500" />;
     }
@@ -888,17 +903,25 @@ export const ScholarshipDashboard: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'approved':
-      case 'completed':
-      case 'released':
+      case 'grants_disbursed':
         return 'text-green-600 bg-green-100';
+      case 'grants_processing':
+        return 'text-purple-600 bg-purple-100';
       case 'submitted':
-      case 'reviewed':
-      case 'processing':
+      case 'documents_reviewed':
+      case 'interview_scheduled':
+      case 'endorsed_to_ssc':
         return 'text-blue-600 bg-blue-100';
       case 'pending':
         return 'text-yellow-600 bg-yellow-100';
       case 'rejected':
         return 'text-red-600 bg-red-100';
+      case 'for_compliance':
+        return 'text-red-600 bg-red-100';
+      case 'compliance_documents_submitted':
+        return 'text-blue-600 bg-blue-100';
+      case 'cancelled':
+        return 'text-gray-600 bg-gray-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }

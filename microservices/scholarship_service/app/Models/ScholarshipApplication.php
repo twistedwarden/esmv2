@@ -146,12 +146,12 @@ class ScholarshipApplication extends Model
 
     public function canBeApproved(): bool
     {
-        return in_array($this->status, ['submitted', 'reviewed']);
+        return $this->status === 'endorsed_to_ssc';
     }
 
     public function canBeRejected(): bool
     {
-        return in_array($this->status, ['submitted', 'reviewed']);
+        return in_array($this->status, ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc']);
     }
 
     public function canBeDeleted(): bool
@@ -239,25 +239,25 @@ class ScholarshipApplication extends Model
 
     public function canBeReleased(): bool
     {
-        return $this->status === 'processing';
+        return $this->status === 'grants_processing';
     }
 
-    public function review($notes = null, $reviewedBy = null): bool
+    public function reviewDocuments($notes = null, $reviewedBy = null): bool
     {
         if (!$this->canBeReviewed()) {
             return false;
         }
 
         $this->update([
-            'status' => 'reviewed',
+            'status' => 'documents_reviewed',
             'reviewed_at' => now(),
             'reviewed_by' => $reviewedBy ?? auth()->id(),
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
-            'status' => 'reviewed',
-            'notes' => $notes ?? 'Application reviewed by committee',
+            'status' => 'documents_reviewed',
+            'notes' => $notes ?? 'Documents reviewed and verified',
             'changed_by' => $reviewedBy ?? auth()->id(),
             'changed_at' => now(),
         ]);
@@ -265,19 +265,61 @@ class ScholarshipApplication extends Model
         return true;
     }
 
-    public function process($notes = null, $processedBy = null): bool
+    public function scheduleInterview($notes = null, $scheduledBy = null): bool
+    {
+        if ($this->status !== 'documents_reviewed') {
+            return false;
+        }
+
+        $this->update([
+            'status' => 'interview_scheduled',
+            'notes' => $notes,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'interview_scheduled',
+            'notes' => $notes ?? 'Interview scheduled for applicant',
+            'changed_by' => $scheduledBy ?? auth()->id(),
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    public function endorseToSSC($notes = null, $endorsedBy = null): bool
+    {
+        if ($this->status !== 'interview_scheduled') {
+            return false;
+        }
+
+        $this->update([
+            'status' => 'endorsed_to_ssc',
+            'notes' => $notes,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'endorsed_to_ssc',
+            'notes' => $notes ?? 'Application endorsed to SSC for final approval',
+            'changed_by' => $endorsedBy ?? auth()->id(),
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    public function processGrants($notes = null, $processedBy = null): bool
     {
         if (!$this->canBeProcessed()) {
             return false;
         }
 
         $this->update([
-            'status' => 'processing',
+            'status' => 'grants_processing',
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
-            'status' => 'processing',
+            'status' => 'grants_processing',
             'notes' => $notes ?? 'Application approved, processing grant disbursement',
             'changed_by' => $processedBy ?? auth()->id(),
             'changed_at' => now(),
@@ -286,24 +328,78 @@ class ScholarshipApplication extends Model
         return true;
     }
 
-    public function release($notes = null, $releasedBy = null): bool
+    public function disburseGrants($notes = null, $disbursedBy = null): bool
     {
         if (!$this->canBeReleased()) {
             return false;
         }
 
         $this->update([
-            'status' => 'released',
+            'status' => 'grants_disbursed',
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
-            'status' => 'released',
-            'notes' => $notes ?? 'Funds released to student',
-            'changed_by' => $releasedBy ?? auth()->id(),
+            'status' => 'grants_disbursed',
+            'notes' => $notes ?? 'Grants disbursed to student',
+            'changed_by' => $disbursedBy ?? auth()->id(),
             'changed_at' => now(),
         ]);
 
         return true;
+    }
+
+    public function flagForCompliance($reason, $flaggedBy = null): bool
+    {
+        $this->update([
+            'status' => 'for_compliance',
+            'notes' => $reason,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'for_compliance',
+            'notes' => $reason,
+            'changed_by' => $flaggedBy ?? auth()->id(),
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    public function submitComplianceDocuments($notes = null, $submittedBy = null): bool
+    {
+        if ($this->status !== 'for_compliance') {
+            return false;
+        }
+
+        $this->update([
+            'status' => 'compliance_documents_submitted',
+            'notes' => $notes,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'compliance_documents_submitted',
+            'notes' => $notes ?? 'Compliance documents submitted',
+            'changed_by' => $submittedBy ?? auth()->id(),
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    // Legacy method aliases for backward compatibility
+    public function review($notes = null, $reviewedBy = null): bool
+    {
+        return $this->reviewDocuments($notes, $reviewedBy);
+    }
+
+    public function process($notes = null, $processedBy = null): bool
+    {
+        return $this->processGrants($notes, $processedBy);
+    }
+
+    public function release($notes = null, $releasedBy = null): bool
+    {
+        return $this->disburseGrants($notes, $releasedBy);
     }
 }

@@ -176,7 +176,7 @@ CREATE TABLE scholarship_applications (
   school_id BIGINT NOT NULL,
   type ENUM('new', 'renewal') NOT NULL,
   parent_application_id VARCHAR(255),
-  status ENUM('draft', 'submitted', 'reviewed', 'approved', 'processing', 'released', 'rejected', 'on_hold', 'cancelled') DEFAULT 'draft',
+  status ENUM('draft', 'submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'rejected', 'on_hold', 'cancelled', 'for_compliance', 'compliance_documents_submitted') DEFAULT 'draft',
   reason_for_renewal TEXT,
   financial_need_description TEXT NOT NULL,
   requested_amount DECIMAL(10,2),

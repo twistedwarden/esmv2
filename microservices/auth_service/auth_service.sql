@@ -2,7 +2,7 @@ CREATE TABLE users (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  roles ENUM('student','school_admin','staff','super_admin', 'citizen') NOT NULL,
+  roles ENUM('admin','citizen','staff','ps_rep') NOT NULL DEFAULT 'citizen',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

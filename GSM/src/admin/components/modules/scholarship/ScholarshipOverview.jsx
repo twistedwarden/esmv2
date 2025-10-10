@@ -55,7 +55,7 @@ function ScholarshipOverview() {
             ...prev,
             approved: byStatus.approved ?? prev.approved,
             rejected: byStatus.rejected ?? prev.rejected,
-            pendingReview: byStatus.pending ?? byStatus.under_review ?? prev.pendingReview,
+            pendingReview: (byStatus.submitted ?? 0) + (byStatus.documents_reviewed ?? 0) + (byStatus.interview_scheduled ?? 0) + (byStatus.endorsed_to_ssc ?? 0) || prev.pendingReview,
           }));
         }
 
@@ -83,13 +83,29 @@ function ScholarshipOverview() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
+      case 'draft':
+        return 'bg-gray-100 text-gray-800';
+      case 'submitted':
         return 'bg-yellow-100 text-yellow-800';
+      case 'documents_reviewed':
+      case 'interview_scheduled':
+      case 'endorsed_to_ssc':
+        return 'bg-blue-100 text-blue-800';
       case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'grants_processing':
+        return 'bg-purple-100 text-purple-800';
+      case 'grants_disbursed':
         return 'bg-green-100 text-green-800';
       case 'rejected':
         return 'bg-red-100 text-red-800';
-      case 'under_review':
+      case 'on_hold':
+        return 'bg-orange-100 text-orange-800';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800';
+      case 'for_compliance':
+        return 'bg-red-100 text-red-800';
+      case 'compliance_documents_submitted':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -98,14 +114,19 @@ function ScholarshipOverview() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pending':
+      case 'draft':
+      case 'submitted':
         return <Clock className="w-4 h-4" />;
+      case 'documents_reviewed':
+      case 'interview_scheduled':
+      case 'endorsed_to_ssc':
+        return <FileText className="w-4 h-4" />;
       case 'approved':
+      case 'grants_processing':
+      case 'grants_disbursed':
         return <CheckCircle className="w-4 h-4" />;
       case 'rejected':
         return <XCircle className="w-4 h-4" />;
-      case 'under_review':
-        return <FileText className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
     }
