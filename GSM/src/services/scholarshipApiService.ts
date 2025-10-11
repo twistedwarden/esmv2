@@ -36,6 +36,10 @@ export interface Student {
   created_at?: string;
   updated_at?: string;
   emergency_contacts?: EmergencyContact[];
+  addresses?: Address[];
+  family_members?: FamilyMember[];
+  financial_information?: FinancialInformation;
+  academic_records?: AcademicRecord[];
 }
 
 export interface Address {
@@ -429,7 +433,17 @@ class ScholarshipApiService {
     );
     // Backend returns `{ success: boolean, data: application }`
     console.log('getApplication response:', response);
-    return response.data!.data!;
+    console.log('getApplication response.data:', response.data);
+    console.log('getApplication response.data.data:', response.data?.data);
+    
+    // Handle different response structures
+    if (response.data?.data) {
+      return response.data.data;
+    } else if (response.data) {
+      return response.data as ScholarshipApplication;
+    } else {
+      throw new Error('Invalid response structure from getApplication API');
+    }
   }
 
   async createApplication(applicationData: Partial<ScholarshipApplication>): Promise<ScholarshipApplication> {
@@ -625,6 +639,23 @@ class ScholarshipApiService {
         method: 'DELETE',
       }
     );
+  }
+
+  async viewDocument(id: number): Promise<string> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(
+      getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENT_VIEW(id)),
+      {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // Return the URL for viewing the document
+    return getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENT_VIEW(id));
   }
 
   async downloadDocument(id: number): Promise<Blob> {

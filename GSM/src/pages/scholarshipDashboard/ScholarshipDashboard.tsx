@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare } from 'lucide-react';
+import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Trash2 } from 'lucide-react';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 
 export const ScholarshipDashboard: React.FC = () => {
@@ -18,6 +18,9 @@ export const ScholarshipDashboard: React.FC = () => {
   const [isSubmittingApp, setIsSubmittingApp] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Notification state
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -281,7 +284,7 @@ export const ScholarshipDashboard: React.FC = () => {
   const currentApplication = applications.length > 0 ? applications[0] : null;
 
   // Standard required documents for scholarship applications
-  // Using actual document type IDs from the database
+  // Using actual document type IDs from the database seeder
   const standardRequiredDocuments = [
     {
       id: 8, // High School Transcript of Records
@@ -292,7 +295,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 1
     },
     {
-      id: 10, // Certificate of Good Moral Character
+      id: 11, // Certificate of Good Moral Character
       name: 'Certificate of Good Moral',
       description: 'Certificate from your school confirming your good moral character',
       category: 'academic',
@@ -300,7 +303,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 2
     },
     {
-      id: 11, // Income Tax Return (ITR)
+      id: 12, // Income Tax Return (ITR)
       name: 'Income Certificate',
       description: 'Official document showing your family\'s income status from BIR or barangay',
       category: 'financial',
@@ -311,7 +314,7 @@ export const ScholarshipDashboard: React.FC = () => {
       id: 4, // Barangay Certificate
       name: 'Barangay Certificate',
       description: 'Certificate from your barangay confirming your residency',
-      category: 'residency',
+      category: 'personal',
       is_required: true,
       priority: 4
     },
@@ -319,7 +322,7 @@ export const ScholarshipDashboard: React.FC = () => {
       id: 2, // Valid ID
       name: 'Valid ID (Government-issued)',
       description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',
-      category: 'identification',
+      category: 'personal',
       is_required: true,
       priority: 5
     },
@@ -327,15 +330,15 @@ export const ScholarshipDashboard: React.FC = () => {
       id: 1, // Birth Certificate
       name: 'Birth Certificate',
       description: 'Official birth certificate from PSA (Philippine Statistics Authority)',
-      category: 'identification',
+      category: 'personal',
       is_required: true,
       priority: 6
     },
     {
-      id: 4, // Barangay Certificate (reusing for proof of residency)
-      name: 'Proof of Residency',
-      description: 'Document proving your current address (utility bill, lease agreement, etc.)',
-      category: 'residency',
+      id: 10, // Certificate of Enrollment
+      name: 'Certificate of Enrollment',
+      description: 'Document proving your current enrollment status',
+      category: 'academic',
       is_required: true,
       priority: 7
     }
@@ -489,6 +492,35 @@ export const ScholarshipDashboard: React.FC = () => {
       setUploadError(err instanceof Error ? err.message : 'Failed to upload document');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Handle document removal
+  const handleRemoveDocument = (document: any) => {
+    setDocumentToDelete(document);
+    setShowDeleteModal(true);
+  };
+
+  const confirmRemoveDocument = async () => {
+    if (!documentToDelete || !currentApplication) return;
+
+    setIsDeleting(true);
+    try {
+      await scholarshipApiService.deleteDocument(documentToDelete.id);
+      
+      // Refresh documents after successful deletion
+      const documentsData = await scholarshipApiService.getDocuments({
+        application_id: currentApplication.id
+      });
+      setDocuments(documentsData.data || []);
+      
+      setShowDeleteModal(false);
+      setDocumentToDelete(null);
+    } catch (err) {
+      console.error('Error removing document:', err);
+      setUploadError(err instanceof Error ? err.message : 'Failed to remove document');
+    } finally {
+      setIsDeleting(false);
     }
   };
   
@@ -1437,8 +1469,7 @@ export const ScholarshipDashboard: React.FC = () => {
                     const categoryLabels = {
                       academic: '📚 Academic Documents',
                       financial: '💰 Financial Documents',
-                      residency: '🏠 Residency Documents',
-                      identification: '🆔 Identification Documents',
+                      personal: '🆔 Personal Documents',
                       other: '📄 Other Documents'
                     };
 
@@ -1523,30 +1554,47 @@ export const ScholarshipDashboard: React.FC = () => {
                             }
                           </span>
                           {currentApplication && (
-                            <div className="relative">
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    uploadDocument(file, item.id);
-                                  }
-                                }}
-                                className="hidden"
-                                id={`upload-${item.id}`}
-                                disabled={isUploading}
-                              />
-                              <label
-                                htmlFor={`upload-${item.id}`}
-                                className={`inline-flex items-center px-2 py-1 text-[10px] font-medium rounded-md cursor-pointer transition-colors ${
-                                  item.isSubmitted
-                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                    : 'bg-orange-500 text-white hover:bg-orange-600'
-                                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              >
-                                <Upload className="h-3 w-3" />
-                              </label>
+                            <div className="flex items-center space-x-1">
+                              <div className="relative">
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      uploadDocument(file, item.id);
+                                    }
+                                  }}
+                                  className="hidden"
+                                  id={`upload-${item.id}`}
+                                  disabled={isUploading}
+                                />
+                                <label
+                                  htmlFor={`upload-${item.id}`}
+                                  className={`inline-flex items-center px-2 py-1 text-[10px] font-medium rounded-md cursor-pointer transition-colors ${
+                                    item.isSubmitted
+                                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                                  } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  <Upload className="h-3 w-3" />
+                                </label>
+                              </div>
+                              {/* Remove button - only show when document is submitted and application is draft */}
+                              {item.isSubmitted && currentApplication.status === 'draft' && item.document && (
+                                <button
+                                  onClick={() => handleRemoveDocument(item.document)}
+                                  disabled={isDeleting}
+                                  className={`inline-flex items-center px-2 py-1 text-[10px] font-medium rounded-md cursor-pointer transition-colors ${
+                                    isDeleting 
+                                      ? 'opacity-50 cursor-not-allowed bg-gray-200 text-gray-700'
+                                      : 'bg-red-500 text-white hover:bg-red-600'
+                                  }`}
+                                  title="Remove document"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1756,6 +1804,52 @@ export const ScholarshipDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Document Removal Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Remove Document</h3>
+                  <p className="text-sm text-gray-600">Are you sure you want to remove this document?</p>
+                </div>
+              </div>
+              
+              {documentToDelete && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-900">{documentToDelete.file_name}</p>
+                  <p className="text-xs text-gray-600">This action cannot be undone.</p>
+                </div>
+              )}
+              
+              <div className="flex space-x-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDocumentToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRemoveDocument}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                >
+                  {isDeleting ? 'Removing...' : 'Remove Document'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

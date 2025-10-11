@@ -7,6 +7,7 @@ use App\Http\Controllers\ScholarshipApplicationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\ScholarshipCategoryController;
+use App\Http\Controllers\PartnerSchoolController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,7 @@ Route::prefix('documents')->middleware(['auth.auth_service'])->group(function ()
     Route::post('/', [DocumentController::class, 'store']);
     Route::get('/{document}', [DocumentController::class, 'show']);
     Route::delete('/{document}', [DocumentController::class, 'destroy']);
+    Route::get('/{document}/view', [DocumentController::class, 'view']);
     Route::get('/{document}/download', [DocumentController::class, 'download']);
     Route::post('/{document}/verify', [DocumentController::class, 'verify']);
     Route::post('/{document}/reject', [DocumentController::class, 'reject']);
@@ -94,6 +96,21 @@ Route::prefix('scholarship-categories')->group(function () {
     Route::get('/{category}', [ScholarshipCategoryController::class, 'show']);
     Route::put('/{category}', [ScholarshipCategoryController::class, 'update'])->middleware(['auth.auth_service']);
     Route::delete('/{category}', [ScholarshipCategoryController::class, 'destroy'])->middleware(['auth.auth_service']);
+});
+
+// Partner School routes (protected by authentication)
+Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/info', [PartnerSchoolController::class, 'getSchoolInfo']);
+    Route::get('/stats', [PartnerSchoolController::class, 'getStats']);
+    Route::get('/students', [PartnerSchoolController::class, 'getStudents']);
+    
+    // Verification routes
+    Route::prefix('verification')->group(function () {
+        Route::get('/applications', [PartnerSchoolController::class, 'getApplicationsForVerification']);
+        Route::get('/stats', [PartnerSchoolController::class, 'getVerificationStats']);
+        Route::post('/applications/{applicationId}', [PartnerSchoolController::class, 'verifyApplication']);
+        Route::put('/students/{studentId}/enrollment', [PartnerSchoolController::class, 'updateEnrollmentStatus']);
+    });
 });
 
 // Form-specific endpoints for easy integration (protected by authentication)

@@ -24,11 +24,23 @@ import {
   GraduationCap,
   Bell,
   Menu,
-  User
+  User,
+  Shield,
+  UserCheck,
+  XCircle
 } from 'lucide-react';
+import { 
+  fetchPartnerSchoolInfo, 
+  fetchPartnerSchoolStats, 
+  fetchPartnerSchoolStudents,
+  fetchApplicationsForVerification,
+  fetchVerificationStats,
+  verifyApplication
+} from '../services/partnerSchoolService';
+import { API_CONFIG } from '../config/api';
 
 const PartnerSchoolDashboard = () => {
-  const { currentUser, logout, isLoggingOut } = useAuthStore();
+  const { currentUser, logout, isLoggingOut, token } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [uploadFile, setUploadFile] = useState(null);
   const [validationResults, setValidationResults] = useState(null);
@@ -39,6 +51,18 @@ const PartnerSchoolDashboard = () => {
   const [theme, setTheme] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  
+  // School information state
+  const [schoolInfo, setSchoolInfo] = useState(null);
+  const [schoolStats, setSchoolStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Verification state
+  const [verificationApplications, setVerificationApplications] = useState([]);
+  const [verificationStats, setVerificationStats] = useState(null);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationError, setVerificationError] = useState(null);
 
   // Mobile detection
   React.useEffect(() => {
@@ -82,6 +106,39 @@ const PartnerSchoolDashboard = () => {
     }
   };
 
+  const handleVerifyEnrollment = async (applicationId, isEnrolled) => {
+    try {
+      const studentId = verificationApplications.find(app => app.id === applicationId)?.studentId;
+      if (!studentId) {
+        console.error('Student ID not found for application:', applicationId);
+        return;
+      }
+
+      const response = await fetch(`${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/api/partner-school/verification/students/${studentId}/enrollment`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          is_currently_enrolled: isEnrolled,
+          verification_notes: isEnrolled ? 'Verified as currently enrolled by partner school' : 'Confirmed not currently enrolled by partner school'
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh the verification data
+        await fetchVerificationData();
+        console.log(`Enrollment status updated for application ${applicationId}: ${isEnrolled ? 'enrolled' : 'not enrolled'}`);
+      } else {
+        console.error('Failed to update enrollment status:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error updating enrollment status:', error);
+    }
+  };
+
   const handleSidebarToggle = () => {
     if (isMobile) {
       setSidebarCollapsed(!sidebarCollapsed);
@@ -95,55 +152,108 @@ const PartnerSchoolDashboard = () => {
       'overview': ['Partner School', 'Overview'],
       'upload': ['Partner School', 'Upload Data'],
       'students': ['Partner School', 'Students'],
+      'verification': ['Partner School', 'Verification'],
       'reports': ['Partner School', 'Reports'],
       'settings': ['Partner School', 'Settings']
     };
     return breadcrumbs[activeTab] || ['Partner School', 'Overview'];
   };
 
-  // Mock data for demonstration
-  const schoolInfo = {
-    name: 'Caloocan City Science High School',
-    code: 'CCSHS-001',
-    contactPerson: 'Dr. Maria Santos',
-    email: 'principal@ccshs.edu.ph',
-    phone: '+63-2-1234-5678'
-  };
+  // Fetch school information on component mount
+  useEffect(() => {
+    const fetchSchoolData = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-  const statsData = [
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch school info and stats in parallel
+        const [schoolData, statsData] = await Promise.all([
+          fetchPartnerSchoolInfo(token),
+          fetchPartnerSchoolStats(token)
+        ]);
+
+        setSchoolInfo(schoolData);
+        setSchoolStats(statsData);
+      } catch (err) {
+        console.error('Error fetching school data:', err);
+        setError(err.message);
+        
+        // Fallback to mock data if API fails
+        setSchoolInfo({
+          school: {
+            name: 'Caloocan City Science High School',
+            campus: 'Main Campus',
+            full_name: 'Caloocan City Science High School - Main Campus',
+            contact_number: '+63-2-1234-5678',
+            email: 'principal@ccshs.edu.ph',
+            website: 'https://ccshs.edu.ph',
+            address: 'Caloocan City',
+            city: 'Caloocan',
+            province: 'Metro Manila',
+            region: 'NCR',
+            classification: 'PUBLIC HIGH SCHOOL'
+          },
+          representative: {
+            citizen_id: currentUser?.citizen_id || 'PSREP-001',
+            assigned_at: new Date().toISOString()
+          }
+        });
+        
+        setSchoolStats({
+          total_applications: 0,
+          pending_applications: 0,
+          approved_applications: 0,
+          rejected_applications: 0,
+          recent_applications: 0
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchoolData();
+  }, [token, currentUser]);
+
+  // Generate stats data from API response
+  const statsData = schoolStats ? [
     {
-      title: "Total Students",
-      value: "2,500",
-      change: "+150",
-      changeType: "increase",
+      title: "Total Applications",
+      value: schoolStats.total_applications?.toLocaleString() || "0",
+      change: `+${schoolStats.recent_applications || 0} this month`,
+      changeType: schoolStats.recent_applications > 0 ? "increase" : "neutral",
       icon: Users,
       color: "green"
     },
     {
-      title: "Active Enrollments",
-      value: "2,300",
-      change: "+120",
-      changeType: "increase",
-      icon: GraduationCap,
-      color: "green"
-    },
-    {
-      title: "Last Upload",
-      value: "Jan 15, 2024",
-      change: "2 days ago",
+      title: "Pending Applications",
+      value: schoolStats.pending_applications?.toLocaleString() || "0",
+      change: "Awaiting review",
       changeType: "neutral",
       icon: Clock,
       color: "blue"
     },
     {
-      title: "Data Quality",
-      value: "98.5%",
-      change: "+2.1%",
+      title: "Approved Applications",
+      value: schoolStats.approved_applications?.toLocaleString() || "0",
+      change: "Successfully processed",
       changeType: "increase",
-      icon: ShieldCheck,
+      icon: CheckCircle,
       color: "green"
+    },
+    {
+      title: "Rejected Applications",
+      value: schoolStats.rejected_applications?.toLocaleString() || "0",
+      change: "Not approved",
+      changeType: schoolStats.rejected_applications > 0 ? "decrease" : "neutral",
+      icon: AlertCircle,
+      color: schoolStats.rejected_applications > 0 ? "red" : "green"
     }
-  ];
+  ] : [];
 
   const mockStudents = [
     {
@@ -178,9 +288,56 @@ const PartnerSchoolDashboard = () => {
     }
   ];
 
+  // Fetch students data when students tab is active
   useEffect(() => {
-    setStudents(mockStudents);
-  }, []);
+    if (activeTab === 'students' && token) {
+      fetchStudentsData();
+    } else {
+      // Fallback to mock data if not on students tab
+      setStudents(mockStudents);
+    }
+  }, [activeTab, token]);
+
+  const fetchStudentsData = async () => {
+    try {
+      const studentsData = await fetchPartnerSchoolStudents(token, { 
+        status: filterStatus, 
+        search: searchTerm 
+      });
+      setStudents(studentsData.data || []);
+    } catch (err) {
+      console.error('Error fetching students data:', err);
+      // Fallback to mock data on error
+      setStudents(mockStudents);
+    }
+  };
+
+  // Fetch verification data when verification tab is active
+  useEffect(() => {
+    if (activeTab === 'verification' && token) {
+      fetchVerificationData();
+    }
+  }, [activeTab, token]);
+
+  const fetchVerificationData = async () => {
+    setVerificationLoading(true);
+    setVerificationError(null);
+    
+    try {
+      const [applicationsData, statsData] = await Promise.all([
+        fetchApplicationsForVerification(token, { status: filterStatus, search: searchTerm }),
+        fetchVerificationStats(token)
+      ]);
+      
+      setVerificationApplications(applicationsData.applications || []);
+      setVerificationStats(statsData);
+    } catch (err) {
+      console.error('Error fetching verification data:', err);
+      setVerificationError(err.message);
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -255,8 +412,35 @@ const PartnerSchoolDashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Partner School Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-300">Welcome back, {schoolInfo.contactPerson}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{schoolInfo.name}</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-2"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+              </div>
+            ) : schoolInfo ? (
+              <>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Welcome back, {currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Representative'}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {schoolInfo.school.full_name || schoolInfo.school.name}
+                  {schoolInfo.school.campus && schoolInfo.school.name !== schoolInfo.school.full_name && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      {schoolInfo.school.campus}
+                    </span>
+                  )}
+                </p>
+                {schoolInfo.school.address && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    📍 {schoolInfo.school.address}, {schoolInfo.school.city}, {schoolInfo.school.province}
+                  </p>
+                )}
+              </>
+            ) : error ? (
+              <p className="text-red-600 dark:text-red-400">Error loading school information: {error}</p>
+            ) : (
+              <p className="text-gray-500">Loading school information...</p>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -280,15 +464,26 @@ const PartnerSchoolDashboard = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
+        {loading ? (
+          // Loading skeletons
+          Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border-l-4 p-6 border border-slate-200 dark:border-slate-700 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+            </div>
+          ))
+        ) : (
+          statsData.map((stat, index) => (
+            <StatCard key={index} {...stat} />
+          ))
+        )}
       </div>
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <button 
             onClick={() => setActiveTab('upload')}
             className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
@@ -307,6 +502,16 @@ const PartnerSchoolDashboard = () => {
             <div className="text-left">
               <h3 className="font-semibold text-gray-900 dark:text-white">Manage Students</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300">View and edit student records</p>
+            </div>
+          </button>
+          <button 
+            onClick={() => setActiveTab('verification')}
+            className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+          >
+            <Shield className="w-8 h-8 text-[#4A90E2]" />
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Verify Students</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Verify scholarship applications</p>
             </div>
           </button>
           <button 
@@ -632,6 +837,309 @@ const PartnerSchoolDashboard = () => {
     </div>
   );
 
+  const renderVerification = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Verification</h1>
+            <p className="text-gray-600 dark:text-gray-300">Verify scholarship applicants' enrollment status against your school's academic records</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search applications..."
+                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
+            <select 
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">All Applications</option>
+              <option value="needs_verification">Needs Verification</option>
+              <option value="pending">Pending Verification</option>
+              <option value="verified">Verified</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Verification Process Info */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
+        <div className="flex items-start space-x-3">
+          <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+          <div>
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">Verification Process</h3>
+            <div className="text-sm text-blue-800 dark:text-blue-400 space-y-2">
+              <p><strong>How it works:</strong> Students submit applications with enrollment status set to "not enrolled" by default. Your job is to verify their actual enrollment status against your school's academic records.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <p className="font-medium">⚠️ <strong>Needs Verification:</strong> Student marked as not enrolled BUT has current academic record</p>
+                  <p className="font-medium">✅ <strong>Verified Enrolled:</strong> Student confirmed enrolled AND has current academic record</p>
+                </div>
+                <div>
+                  <p className="font-medium">❌ <strong>Claims Enrolled (No Record):</strong> Student marked as enrolled BUT no current academic record</p>
+                  <p className="font-medium">ℹ️ <strong>Not Enrolled:</strong> Student confirmed not enrolled AND no current academic record</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-sm border-l-4 border-l-[#4CAF50] p-6 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Pending Verification</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {verificationStats?.pending_verification || 0}
+              </p>
+              <p className="text-sm text-[#4CAF50]">
+                ↗ +{verificationStats?.pending_this_week || 0} this week
+              </p>
+            </div>
+            <div className="p-3 rounded-full bg-green-100 dark:bg-green-800">
+              <Clock className="w-6 h-6 text-[#4CAF50]" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-sm border-l-4 border-l-[#4A90E2] p-6 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Verified Students</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {verificationStats?.verified_students || 0}
+              </p>
+              <p className="text-sm text-[#4CAF50]">
+                ↗ +{verificationStats?.verified_this_week || 0} this week
+              </p>
+            </div>
+            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-800">
+              <UserCheck className="w-6 h-6 text-[#4A90E2]" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg shadow-sm border-l-4 border-l-[#FDA811] p-6 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Rejected Applications</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {verificationStats?.rejected_applications || 0}
+              </p>
+              <p className="text-sm text-red-600 dark:text-red-400">
+                ↘ -{verificationStats?.rejected_this_week || 0} this week
+              </p>
+            </div>
+            <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-800">
+              <XCircle className="w-6 h-6 text-[#FDA811]" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-sm border-l-4 border-l-[#4CAF50] p-6 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Verification Rate</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {verificationStats?.verification_rate || 0}%
+              </p>
+              <p className="text-sm text-[#4CAF50]">↗ Updated</p>
+            </div>
+            <div className="p-3 rounded-full bg-green-100 dark:bg-green-800">
+              <ShieldCheck className="w-6 h-6 text-[#4CAF50]" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Applications Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+            <thead className="bg-gray-50 dark:bg-slate-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Application
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Student
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Enrollment Verification
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Verification Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Notes
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Submitted
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+              {verificationLoading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+                      <span className="text-gray-600 dark:text-gray-400">Loading applications...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : verificationError ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center">
+                    <div className="text-red-600 dark:text-red-400">
+                      Error loading applications: {verificationError}
+                    </div>
+                  </td>
+                </tr>
+              ) : verificationApplications.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center">
+                    <div className="text-gray-600 dark:text-gray-400">
+                      No applications found for verification.
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                verificationApplications.map((application) => (
+                <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{application.applicationNumber}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{application.scholarshipType}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{application.studentName}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">ID: {application.studentId}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm text-gray-900 dark:text-white">{application.yearLevel} - {application.program}</div>
+                      <div className={`text-sm ${
+                        application.verificationColor === 'green' ? 'text-green-600 dark:text-green-400' :
+                        application.verificationColor === 'orange' ? 'text-orange-600 dark:text-orange-400' :
+                        application.verificationColor === 'red' ? 'text-red-600 dark:text-red-400' :
+                        'text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {application.verificationMessage || 'Status Unknown'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Claims: {application.isCurrentlyEnrolled ? 'Yes' : 'No'} | 
+                        School Record: {application.academicRecordExists ? 'Found' : 'Missing'}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      application.applicationStatus === 'verified' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                      application.applicationStatus === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                      application.applicationStatus === 'rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
+                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                    }`}>
+                      {application.applicationStatus === 'verified' ? '✓ Verified' :
+                       application.applicationStatus === 'pending' ? '⏳ Pending' :
+                       application.applicationStatus === 'rejected' ? '✗ Rejected' :
+                       application.applicationStatus}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate" title={application.verificationNotes}>
+                      {application.verificationNotes}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {new Date(application.submittedAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="View Details">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {application.verificationStatus === 'needs_verification' && (
+                        <>
+                          <button 
+                            className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
+                            title="Verify Enrolled"
+                            onClick={() => handleVerifyEnrollment(application.id, true)}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button 
+                            className="text-orange-600 dark:text-orange-400 hover:text-orange-900 dark:hover:text-orange-300"
+                            title="Confirm Not Enrolled"
+                            onClick={() => handleVerifyEnrollment(application.id, false)}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {application.applicationStatus === 'pending' && application.verificationStatus !== 'needs_verification' && (
+                        <>
+                          <button className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+            <UserCheck className="w-8 h-8 text-[#4CAF50]" />
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Bulk Verify</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Verify multiple applications</p>
+            </div>
+          </button>
+          <button className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+            <FileText className="w-8 h-8 text-[#4A90E2]" />
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Export Report</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Download verification report</p>
+            </div>
+          </button>
+          <button className="flex items-center space-x-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+            <Shield className="w-8 h-8 text-[#FDA811]" />
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Sync Data</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Update enrollment records</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderSettings = () => (
     <div className="space-y-6">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
@@ -646,32 +1154,54 @@ const PartnerSchoolDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School Name</label>
                 <input
                   type="text"
-                  value={schoolInfo.name}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                  value={schoolInfo?.school?.name || ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School Code</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Campus</label>
                 <input
                   type="text"
-                  value={schoolInfo.code}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                  value={schoolInfo?.school?.campus || 'Main Campus'}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
                 />
               </div>
                <div>
                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contact Person</label>
                  <input
                    type="text"
-                   value={schoolInfo.contactPerson}
-                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                   value={currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : ''}
+                   readOnly
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
                  />
                </div>
                <div>
                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
                  <input
                    type="email"
-                   value={schoolInfo.email}
-                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                   value={schoolInfo?.school?.email || ''}
+                   readOnly
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
+                 <input
+                   type="text"
+                   value={schoolInfo?.school?.contact_number || ''}
+                   readOnly
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
+                 <input
+                   type="text"
+                   value={schoolInfo?.school?.address ? `${schoolInfo.school.address}, ${schoolInfo.school.city}, ${schoolInfo.school.province}` : ''}
+                   readOnly
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
                  />
                </div>
             </div>
@@ -734,7 +1264,15 @@ const PartnerSchoolDashboard = () => {
              </div>
              {!sidebarCollapsed && (
                <div className="min-w-0">
-                 <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{schoolInfo.name.split(' ')[0]}</h1>
+                 <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                   {loading ? (
+                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                   ) : schoolInfo ? (
+                     schoolInfo.school.name.split(' ')[0]
+                   ) : (
+                     'School'
+                   )}
+                 </h1>
                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Partner School</p>
                </div>
              )}
@@ -745,6 +1283,7 @@ const PartnerSchoolDashboard = () => {
         <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto">
           {[
             { id: 'overview', label: 'Overview', icon: Home },
+            { id: 'verification', label: 'Verification', icon: Shield },
             { id: 'upload', label: 'Upload Data', icon: Upload },
             { id: 'students', label: 'Students', icon: Users },
             { id: 'reports', label: 'Reports', icon: BarChart3 },
@@ -807,7 +1346,7 @@ const PartnerSchoolDashboard = () => {
             {/* User Info */}
             <div className="hidden md:flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
               <User className="w-4 h-4" />
-              <span>{currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : schoolInfo.contactPerson}</span>
+              <span>{currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Representative'}</span>
               <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
                 {currentUser?.role || 'ps_rep'}
               </span>
@@ -843,6 +1382,7 @@ const PartnerSchoolDashboard = () => {
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'upload' && renderUpload()}
         {activeTab === 'students' && renderStudents()}
+        {activeTab === 'verification' && renderVerification()}
         {activeTab === 'reports' && renderReports()}
         {activeTab === 'settings' && renderSettings()}
       </div>

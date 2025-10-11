@@ -345,8 +345,15 @@ function ScholarshipApplications() {
         return;
       }
 
-      // Use the application data we already have (no need to fetch again)
-      setActiveApplication(app);
+      // Fetch detailed application data with documents
+      try {
+        const detailedApp = await scholarshipApiService.getApplication(app.id);
+        setActiveApplication(detailedApp);
+      } catch (error) {
+        console.error('Failed to fetch detailed application data:', error);
+        // Fallback to the application data we already have
+        setActiveApplication(app);
+      }
       
       setRejectReason('');
       setComplianceReason('');
@@ -359,6 +366,12 @@ function ScholarshipApplications() {
 
   const handleMarkAsReviewed = async () => {
     if (!activeApplication) return;
+    
+    // Validate application status
+    if (activeApplication.status !== 'submitted') {
+      showError('Invalid Status', 'Application must be in "Submitted" status to be marked as reviewed.');
+      return;
+    }
     
     // Validate confirmation text
     if (reviewedConfirmation !== 'REVIEWED') {
@@ -376,7 +389,8 @@ function ScholarshipApplications() {
       showSuccess('Application Reviewed', 'Application has been successfully marked as reviewed.');
     } catch (e) {
       console.error('Mark as reviewed failed', e);
-      showError('Review Failed', 'Failed to mark as reviewed. Please try again.');
+      const errorMessage = e.message || 'Failed to mark as reviewed. Please try again.';
+      showError('Review Failed', errorMessage);
     } finally {
       setReviewLoading(false);
     }
@@ -428,15 +442,37 @@ function ScholarshipApplications() {
     }
   };
 
-  const handleViewDocument = (docId, fileName) => {
-    console.log('Viewing document:', docId, fileName);
-    // Implement document viewing logic here
-    showInfo('Document Viewer', `Opening document: ${fileName}`);
+  const handleViewDocument = async (docId, fileName) => {
+    try {
+      console.log('Viewing document:', docId, fileName);
+      
+      // Get the view URL for the document
+      const viewUrl = await scholarshipApiService.viewDocument(docId);
+      
+      // Open the document in a new tab
+      const newWindow = window.open(viewUrl, '_blank');
+      
+      if (!newWindow) {
+        showWarning('Popup Blocked', 'Please allow popups for this site to view documents.');
+        return;
+      }
+      
+      showInfo('Document Viewer', `Opening document: ${fileName}`);
+    } catch (error) {
+      console.error('Failed to view document:', error);
+      showError('View Failed', `Failed to view document: ${fileName}. ${error.message}`);
+    }
   };
 
   // Quick action handlers for individual applications
   const handleQuickReviewed = async (application) => {
     if (!application) return;
+    
+    // Validate application status
+    if (application.status !== 'submitted') {
+      showError('Invalid Status', `Application must be in "Submitted" status to be marked as reviewed. Current status: ${application.status}`);
+      return;
+    }
     
     console.log('Quick review action triggered for application:', application.id);
     const confirmed = confirm(`Mark application ${application.applicationNumber} as reviewed?`);
@@ -451,7 +487,8 @@ function ScholarshipApplications() {
       showSuccess('Application Reviewed', 'Application has been successfully marked as reviewed.');
     } catch (e) {
       console.error('Quick review failed', e);
-      showError('Review Failed', 'Failed to mark as reviewed. Please try again.');
+      const errorMessage = e.message || 'Failed to mark as reviewed. Please try again.';
+      showError('Review Failed', errorMessage);
     } finally {
       setReviewLoading(false);
     }
@@ -616,12 +653,28 @@ function ScholarshipApplications() {
     setDocDownloadingId(docId);
     try {
       console.log('Downloading document:', docId, fileName);
-      // Implement document download logic here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate download
-      alert(`Downloaded: ${fileName}`);
+      
+      // Download the document blob
+      const blob = await scholarshipApiService.downloadDocument(docId);
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      
+      // Trigger the download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showSuccess('Download Complete', `Successfully downloaded: ${fileName}`);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Download failed. Please try again.');
+      showError('Download Failed', `Failed to download document: ${fileName}. ${error.message}`);
     } finally {
       setDocDownloadingId(null);
     }
@@ -764,7 +817,7 @@ function ScholarshipApplications() {
             <div className="flex items-center space-x-2 flex-shrink-0">
               {/* Status-specific quick actions */}
               {console.log('Application status for quick actions:', application.status, 'Application ID:', application.id)}
-              {application.status === 'documents_reviewed' && (
+              {application.status === 'submitted' && (
                 <button 
                   onClick={() => handleQuickReviewed(application)}
                   className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
@@ -1276,6 +1329,22 @@ function ScholarshipApplications() {
               <div className="flex-1 p-4 lg:p-6">
                 {reviewAction === 'reviewed' && (
                   <div className="space-y-4">
+                    {activeApplication?.status !== 'submitted' && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+                        <div className="flex items-start">
+                          <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 mt-0.5 mr-3 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-1">
+                              Invalid Status
+                            </h4>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                              This application is currently in <span className="font-semibold capitalize">{activeApplication?.status?.replace('_', ' ')}</span> status. 
+                              Applications must be in <span className="font-semibold">Submitted</span> status to be marked as reviewed.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Type "REVIEWED" to confirm
@@ -1285,12 +1354,13 @@ function ScholarshipApplications() {
                         value={reviewedConfirmation}
                         onChange={(e) => setReviewedConfirmation(e.target.value)}
                         placeholder="Type REVIEWED to confirm"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled={activeApplication?.status !== 'submitted'}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                     <button
                       onClick={handleMarkAsReviewed}
-                      disabled={reviewLoading || reviewedConfirmation !== 'REVIEWED'}
+                      disabled={reviewLoading || reviewedConfirmation !== 'REVIEWED' || activeApplication?.status !== 'submitted'}
                       className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {reviewLoading ? 'Processing...' : 'Mark as Reviewed'}

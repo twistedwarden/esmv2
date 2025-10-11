@@ -39,6 +39,7 @@ export const API_CONFIG = {
             // Document management
             DOCUMENTS: '/api/documents',
             DOCUMENT: (id) => `/api/documents/${id}`,
+            DOCUMENT_VIEW: (id) => `/api/documents/${id}/view`,
             DOCUMENT_DOWNLOAD: (id) => `/api/documents/${id}/download`,
             DOCUMENT_VERIFY: (id) => `/api/documents/${id}/verify`,
             DOCUMENT_REJECT: (id) => `/api/documents/${id}/reject`,

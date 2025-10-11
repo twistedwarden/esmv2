@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { scholarshipApiService, type School, type ScholarshipCategory } from '../../services/scholarshipApiService';
+import { scholarshipApiService, type School, type ScholarshipCategory, type Student } from '../../services/scholarshipApiService';
 import { useAuthStore } from '../../store/v1authStore';
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton';
 
@@ -489,7 +489,8 @@ export const NewApplicationForm: React.FC = () => {
   // Load saved form data on component mount
   useEffect(() => {
     const savedData = loadFormDataFromStorage();
-    if (savedData) {
+    if (savedData && !isEditMode) {
+      // Only load saved data if we're not in edit mode
       console.log('Loading saved form data:', savedData);
       reset(savedData.formData);
       setCurrentStep(savedData.currentStep);
@@ -499,8 +500,13 @@ export const NewApplicationForm: React.FC = () => {
       setGwaInputFormat(savedData.formData.gwaInputFormat || 'percentage');
       setStudentIdType(savedData.formData.studentIdType || 'school');
       setShowReligionOther(savedData.formData.religion === 'OTHERS, PLEASE SPECIFY');
+    } else if (isEditMode) {
+      // In edit mode, always start from step 1 and clear localStorage
+      console.log('Edit mode detected - starting from step 1 and clearing localStorage');
+      setCurrentStep(1);
+      clearFormDataFromStorage();
     }
-  }, [reset]);
+  }, [reset, isEditMode]);
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -513,8 +519,13 @@ export const NewApplicationForm: React.FC = () => {
   // Populate form fields when editing existing application
   useEffect(() => {
     if (isEditMode && existingApplication && !isCheckingApplications) {
-      console.log('Populating form with existing application data:', existingApplication);
+      console.log('=== FORM POPULATION DEBUG ===');
+      console.log('isEditMode:', isEditMode);
+      console.log('existingApplication:', existingApplication);
+      console.log('existingApplication type:', typeof existingApplication);
+      console.log('existingApplication keys:', Object.keys(existingApplication || {}));
       console.log('Student data:', existingApplication.student);
+      console.log('Student data keys:', Object.keys(existingApplication.student || {}));
       console.log('Emergency contacts:', existingApplication.student?.emergency_contacts);
       
       // Map the existing application data to form fields
@@ -533,12 +544,15 @@ export const NewApplicationForm: React.FC = () => {
         birthPlace: existingApplication.student?.birth_place || '',
         heightCm: existingApplication.student?.height_cm?.toString() || '',
         weightKg: existingApplication.student?.weight_kg?.toString() || '',
-        isPwd: existingApplication.student?.is_pwd ? true : false,
+        isPwd: existingApplication.student?.is_pwd === true,
         pwdSpecification: existingApplication.student?.pwd_specification || '',
         presentAddress: existingApplication.student?.addresses?.[0]?.address_line_1 || '',
+        presentAddressLine2: existingApplication.student?.addresses?.[0]?.address_line_2 || '',
         barangay: existingApplication.student?.addresses?.[0]?.barangay || '',
         district: existingApplication.student?.addresses?.[0]?.district || '',
         city: existingApplication.student?.addresses?.[0]?.city || 'QUEZON CITY',
+        province: existingApplication.student?.addresses?.[0]?.province || '',
+        region: existingApplication.student?.addresses?.[0]?.region || '',
         zipCode: existingApplication.student?.addresses?.[0]?.zip_code || '',
         contactNumber: existingApplication.student?.contact_number || '',
         emailAddress: existingApplication.student?.email_address || '',
@@ -601,7 +615,7 @@ export const NewApplicationForm: React.FC = () => {
         marginalizedGroups: existingApplication.marginalized_groups || [],
         digitalWallets: existingApplication.digital_wallets || [],
         walletAccountNumber: existingApplication.wallet_account_number || '',
-        isSchoolAtCaloocan: existingApplication.is_school_at_qc ? 'yes' : 'no',
+        isSchoolAtCaloocan: existingApplication.is_school_at_caloocan ? 'yes' : 'no',
         
         // Academic Information
         educationalLevel: existingApplication.student?.current_academic_record?.educational_level || '',
@@ -622,6 +636,10 @@ export const NewApplicationForm: React.FC = () => {
         previousSchool: existingApplication.student?.current_academic_record?.previous_school || '',
         previousSchoolAddress: existingApplication.student?.current_academic_record?.previous_school_address || '',
         
+        // Additional academic fields
+        isCurrentlyEnrolled: existingApplication.student?.current_academic_record?.is_currently_enrolled ? 'yes' : 'no',
+        isGraduating: existingApplication.student?.current_academic_record?.is_graduating ? 'yes' : 'no',
+        
         // Application type
         type: existingApplication.type || 'new',
         reasonForRenewal: existingApplication.reason_for_renewal || '',
@@ -629,8 +647,14 @@ export const NewApplicationForm: React.FC = () => {
         notes: existingApplication.notes || ''
       };
       
+      // Debug log the form data before reset
+      console.log('Form data to be populated:', formData);
+      
       // Reset form with populated data
       reset(formData);
+      
+      // Ensure we start from step 1 in edit mode
+      setCurrentStep(1);
       
       // Set the selected IDs for dropdowns
       if (existingApplication.category_id) {
@@ -663,9 +687,174 @@ export const NewApplicationForm: React.FC = () => {
         }
       }
       
+      // Handle religion field for "OTHERS, PLEASE SPECIFY"
+      if (formData.religion === 'OTHERS, PLEASE SPECIFY') {
+        setShowReligionOther(true);
+      }
+      
+      console.log('=== FORM POPULATION COMPLETED ===');
       console.log('Form populated with existing application data');
+      console.log('Current step set to:', 1);
+      console.log('Selected category ID:', existingApplication.category_id);
+      console.log('Selected subcategory ID:', existingApplication.subcategory_id);
+      console.log('Selected school:', existingApplication.school?.name);
     }
   }, [isEditMode, existingApplication, isCheckingApplications, reset]);
+
+  // Auto-populate personal information from authenticated user
+  useEffect(() => {
+    const populateUserData = async () => {
+      if (!currentUser || isEditMode || isCheckingApplications) {
+        return;
+      }
+
+      // Check if there's saved data in localStorage - if so, don't auto-populate
+      const savedData = loadFormDataFromStorage();
+      const forceAutoPopulate = new URLSearchParams(window.location.search).get('force-populate') === 'true';
+      
+      if (savedData && !forceAutoPopulate) {
+        console.log('Skipping auto-population - saved form data exists in localStorage');
+        console.log('To test auto-population, add ?force-populate=true to URL or clear localStorage');
+        return;
+      }
+      
+      if (forceAutoPopulate && savedData) {
+        console.log('Force auto-population enabled - clearing saved data and populating from user record');
+        clearFormDataFromStorage();
+      }
+
+      console.log('Auto-populating form with user data:', currentUser);
+      
+      // Only populate fields that have actual data from the citizen record
+      if (currentUser.first_name) {
+        setValue('firstName', currentUser.first_name);
+      }
+      if (currentUser.last_name) {
+        setValue('lastName', currentUser.last_name);
+      }
+      if (currentUser.middle_name) {
+        setValue('middleName', currentUser.middle_name);
+      }
+      if (currentUser.extension_name) {
+        setValue('extensionName', currentUser.extension_name);
+      }
+      if (currentUser.email) {
+        setValue('emailAddress', currentUser.email);
+      }
+      if (currentUser.mobile) {
+        setValue('contactNumber', currentUser.mobile);
+      }
+      if (currentUser.birthdate) {
+        setValue('dateOfBirth', new Date(currentUser.birthdate).toISOString().split('T')[0]);
+      }
+      if (currentUser.address) {
+        setValue('presentAddress', currentUser.address);
+      }
+      if (currentUser.barangay) {
+        setValue('barangay', currentUser.barangay);
+      }
+
+      // Optionally try to fetch additional student data if it exists (from previous applications)
+      try {
+        const studentsResponse = await scholarshipApiService.getStudents();
+        const existingStudent: Student | null = studentsResponse.data && studentsResponse.data.length > 0 
+          ? studentsResponse.data[0] 
+          : null;
+
+        if (existingStudent) {
+          console.log('Found existing student record, populating additional fields:', existingStudent);
+          
+          // Populate additional fields from student record
+          if (existingStudent.contact_number) {
+            setValue('contactNumber', existingStudent.contact_number);
+          }
+          if (existingStudent.sex) {
+            setValue('sex', existingStudent.sex);
+          }
+          if (existingStudent.civil_status) {
+            setValue('civilStatus', existingStudent.civil_status);
+          }
+          if (existingStudent.birth_date) {
+            setValue('dateOfBirth', new Date(existingStudent.birth_date).toISOString().split('T')[0]);
+          }
+          if (existingStudent.religion) {
+            setValue('religion', existingStudent.religion);
+          }
+          if (existingStudent.nationality) {
+            setValue('nationality', existingStudent.nationality);
+          }
+          if (existingStudent.birth_place) {
+            setValue('birthPlace', existingStudent.birth_place);
+          }
+          if (existingStudent.height_cm) {
+            setValue('heightCm', existingStudent.height_cm.toString());
+          }
+          if (existingStudent.weight_kg) {
+            setValue('weightKg', existingStudent.weight_kg.toString());
+          }
+          if (existingStudent.is_pwd !== undefined) {
+            setValue('isPwd', existingStudent.is_pwd);
+          }
+          if (existingStudent.pwd_specification) {
+            setValue('pwdSpecification', existingStudent.pwd_specification);
+          }
+          
+          // Populate address if available
+          if (existingStudent.addresses && existingStudent.addresses.length > 0) {
+            const address = existingStudent.addresses[0];
+            setValue('presentAddress', address.address_line_1 || '');
+            setValue('presentAddressLine2', address.address_line_2 || '');
+            setValue('barangay', address.barangay || '');
+            setValue('district', address.district || '');
+            setValue('city', address.city || 'QUEZON CITY');
+            setValue('province', address.province || '');
+            setValue('region', address.region || '');
+            setValue('zipCode', address.zip_code || '');
+          }
+          
+          // Populate employment info
+          if (existingStudent.is_employed !== undefined) {
+            setValue('isStudentEmployed', existingStudent.is_employed ? 'yes' : 'no');
+          }
+          if (existingStudent.occupation) {
+            setValue('studentOccupation', existingStudent.occupation);
+          }
+          
+          // Populate other flags
+          if (existingStudent.is_solo_parent !== undefined) {
+            setValue('isSoloParent', existingStudent.is_solo_parent ? 'yes' : 'no');
+          }
+          if (existingStudent.is_indigenous_group !== undefined) {
+            setValue('isIndigenousGroup', existingStudent.is_indigenous_group ? 'yes' : 'no');
+          }
+          if (existingStudent.is_registered_voter !== undefined) {
+            setValue('isRegisteredVoter', existingStudent.is_registered_voter ? 'yes' : 'no');
+          }
+          if (existingStudent.voter_nationality) {
+            setValue('voterNationality', existingStudent.voter_nationality);
+          }
+          if (existingStudent.has_paymaya_account !== undefined) {
+            setValue('hasPayMayaAccount', existingStudent.has_paymaya_account ? 'yes' : 'no');
+          }
+          if (existingStudent.preferred_mobile_number) {
+            setValue('preferredMobileNumber', existingStudent.preferred_mobile_number);
+          }
+          
+          // Populate student ID if available
+          if (existingStudent.student_id_number) {
+            setValue('studentId', existingStudent.student_id_number);
+          }
+        } else {
+          console.log('No existing student record found - using only auth user data');
+        }
+      } catch (error) {
+        console.error('Error fetching additional student data (non-critical):', error);
+        // This is not critical - we already have the basic user data populated
+      }
+    };
+
+    populateUserData();
+  }, [currentUser, isEditMode, isCheckingApplications, setValue]);
 
   // Save form data to localStorage whenever form values change
   useEffect(() => {
@@ -709,8 +898,8 @@ export const NewApplicationForm: React.FC = () => {
         is_pwd: Boolean(data.isPwd),
         pwd_specification: data.pwdSpecification || null,
         religion: data.religion === 'OTHERS, PLEASE SPECIFY' ? data.religionOther : data.religion || null,
-        height_cm: data.heightCm ? parseFloat(data.heightCm) : null,
-        weight_kg: data.weightKg ? parseFloat(data.weightKg) : null,
+        height_cm: data.heightCm ? parseFloat(data.heightCm) : undefined,
+        weight_kg: data.weightKg ? parseFloat(data.weightKg) : undefined,
         contact_number: data.contactNumber || null,
         email_address: data.emailAddress || null,
         is_employed: data.isStudentEmployed === 'yes',
@@ -728,49 +917,49 @@ export const NewApplicationForm: React.FC = () => {
         // Addresses
         addresses: [
           {
-            type: 'present',
+            type: 'present' as const,
             address_line_1: data.presentAddress || '',
-            address_line_2: null,
-            barangay: data.barangay || null,
-            district: data.district || null,
+            address_line_2: undefined,
+            barangay: data.barangay || undefined,
+            district: data.district || undefined,
             city: data.city || 'Caloocan City',
             province: 'Metro Manila',
             region: 'NCR',
-            zip_code: data.zipCode || null,
+            zip_code: data.zipCode || undefined,
           }
         ],
 
         // Family members
         family_members: [
           {
-            relationship: 'father',
+            relationship: 'father' as const,
             first_name: data.fatherFirstName || '',
             last_name: data.fatherLastName || '',
-            middle_name: data.fatherMiddleName || null,
-            extension_name: data.fatherExtensionName || null,
-            contact_number: data.fatherContactNumber || null,
-            occupation: data.fatherOccupation || null,
-            monthly_income: data.fatherMonthlyIncome ? parseIncomeToNumber(data.fatherMonthlyIncome) : null,
+            middle_name: data.fatherMiddleName || undefined,
+            extension_name: data.fatherExtensionName || undefined,
+            contact_number: data.fatherContactNumber || undefined,
+            occupation: data.fatherOccupation || undefined,
+            monthly_income: data.fatherMonthlyIncome ? parseIncomeToNumber(data.fatherMonthlyIncome) : undefined,
             is_alive: data.isFatherAvailable === 'yes',
             is_employed: Boolean(data.fatherMonthlyIncome || data.fatherOccupation),
             is_ofw: false,
             is_pwd: false,
-            pwd_specification: null,
+            pwd_specification: undefined,
           },
           {
-            relationship: 'mother',
+            relationship: 'mother' as const,
             first_name: data.motherFirstName || '',
             last_name: data.motherLastName || '',
-            middle_name: data.motherMiddleName || null,
-            extension_name: data.motherExtensionName || null,
-            contact_number: data.motherContactNumber || null,
-            occupation: data.motherOccupation || null,
-            monthly_income: data.motherMonthlyIncome ? parseIncomeToNumber(data.motherMonthlyIncome) : null,
+            middle_name: data.motherMiddleName || undefined,
+            extension_name: data.motherExtensionName || undefined,
+            contact_number: data.motherContactNumber || undefined,
+            occupation: data.motherOccupation || undefined,
+            monthly_income: data.motherMonthlyIncome ? parseIncomeToNumber(data.motherMonthlyIncome) : undefined,
             is_alive: data.isMotherAvailable === 'yes',
             is_employed: Boolean(data.motherMonthlyIncome || data.motherOccupation),
             is_ofw: false,
             is_pwd: false,
-            pwd_specification: null,
+            pwd_specification: undefined,
           }
         ],
 
@@ -780,9 +969,9 @@ export const NewApplicationForm: React.FC = () => {
             full_name: data.emergencyContactName || '',
             contact_number: data.emergencyContactNumber || '',
             relationship: data.emergencyContactRelationship || '',
-            address: null,
-            email: null,
-            notes: null,
+            address: undefined,
+            email: undefined,
+            notes: undefined,
             is_primary: true,
           }
         ] : [],
@@ -790,7 +979,7 @@ export const NewApplicationForm: React.FC = () => {
         // Financial information
         financial_information: {
           family_monthly_income_range: data.totalFamilyMonthlyIncome || null,
-          monthly_income: data.isStudentEmployed === 'yes' && data.studentMonthlyIncome ? parseIncomeToNumber(data.studentMonthlyIncome) : null,
+          monthly_income: data.isStudentEmployed === 'yes' && data.studentMonthlyIncome ? parseIncomeToNumber(data.studentMonthlyIncome) : undefined,
           number_of_siblings: parseInt(data.numberOfSiblings) || 0,
           siblings_currently_enrolled: parseInt(data.numberOfSiblingsInSchool) || 0,
           home_ownership_status: data.homeOwnershipStatus || null,
@@ -819,7 +1008,7 @@ export const NewApplicationForm: React.FC = () => {
           : 50000,
         marginalized_groups: data.marginalizedGroups || [],
         digital_wallets: data.paymentMethod && data.paymentMethod !== 'Cash' ? [data.paymentMethod] : [],
-        wallet_account_number: data.accountNumber || null,
+        wallet_account_number: data.accountNumber || undefined,
         how_did_you_know: data.howDidYouKnow || [],
         is_school_at_caloocan: data.isSchoolAtCaloocan === 'YES',
 
@@ -833,8 +1022,8 @@ export const NewApplicationForm: React.FC = () => {
           year_level: data.gradeYearLevel || '1st Year',
           school_year: data.schoolYear || '2024-2025',
           school_term: data.schoolTerm || '1st Semester',
-          units_enrolled: data.unitsEnrolled ? parseInt(data.unitsEnrolled) : null,
-          units_completed: data.unitsCompleted && data.unitsCompleted !== 'N/A' ? parseInt(data.unitsCompleted) : null,
+          units_enrolled: data.unitsEnrolled ? parseInt(data.unitsEnrolled) : undefined,
+          units_completed: data.unitsCompleted && data.unitsCompleted !== 'N/A' ? parseInt(data.unitsCompleted) : undefined,
           previous_school_address: data.previousSchoolAddress || null,
           general_weighted_average: data.generalWeightedAverage ? (() => {
             const inputValue = parseFloat(data.generalWeightedAverage);
@@ -849,7 +1038,7 @@ export const NewApplicationForm: React.FC = () => {
             }
             
             return gwa;
-          })() : null,
+          })() : undefined,
           previous_school: data.previousSchool || null,
           is_graduating: false,
         },

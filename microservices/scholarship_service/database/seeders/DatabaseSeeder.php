@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             ScholarshipCategorySeeder::class,
             SchoolSeeder::class,
             DocumentTypeSeeder::class,
+            PartnerSchoolRepresentativeSeeder::class, // Must run after SchoolSeeder
             SampleApplicationSeeder::class,
         ]);
     }

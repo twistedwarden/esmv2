@@ -22,7 +22,7 @@ CREATE TABLE students (
   email_address VARCHAR(255),
   is_employed BOOLEAN DEFAULT FALSE,
   is_job_seeking BOOLEAN DEFAULT FALSE,
-  is_currently_enrolled BOOLEAN DEFAULT TRUE,
+  is_currently_enrolled BOOLEAN DEFAULT FALSE,
   is_graduating BOOLEAN DEFAULT FALSE,
   is_solo_parent BOOLEAN DEFAULT FALSE,
   is_indigenous_group BOOLEAN DEFAULT FALSE,

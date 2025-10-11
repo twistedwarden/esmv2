@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\ScholarshipCategory;
 use App\Models\ScholarshipSubcategory;
 use App\Models\AcademicRecord;
+use App\Models\PartnerSchoolRepresentative;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -33,10 +34,41 @@ class ScholarshipApplicationController extends Controller
             'documents.documentType'
         ]);
 
+        $authUser = $request->get('auth_user');
+
+        // Filter for partner school representatives
+        // Partner school reps can only see applications from their assigned school
+        if ($authUser && isset($authUser['role']) && $authUser['role'] === 'ps_rep') {
+            if (isset($authUser['citizen_id'])) {
+                // Look up which school this partner rep represents
+                $partnerRep = PartnerSchoolRepresentative::findByCitizenId($authUser['citizen_id']);
+                
+                if ($partnerRep) {
+                    // Filter applications to only show students from their school
+                    $query->where('school_id', $partnerRep->school_id);
+                    
+                    Log::info('Partner school rep filtering applications', [
+                        'citizen_id' => $authUser['citizen_id'],
+                        'school_id' => $partnerRep->school_id,
+                        'school_name' => $partnerRep->school->name ?? 'Unknown'
+                    ]);
+                } else {
+                    // Not registered as a partner rep - return empty result
+                    Log::warning('Partner school rep not found in database', [
+                        'citizen_id' => $authUser['citizen_id']
+                    ]);
+                    $query->whereRaw('1 = 0');
+                }
+            } else {
+                // No citizen_id provided - return empty result
+                Log::warning('Partner school rep missing citizen_id');
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         // Scope results: by default, allow admins/staff to view all.
         // Limit to current user's applications only when explicitly requested
         // via `mine=true` or `scope=student`.
-        $authUser = $request->get('auth_user');
         $scopeMine = $request->boolean('mine') || $request->get('scope') === 'student';
         if ($scopeMine && $authUser && isset($authUser['id'])) {
             $userId = $authUser['id'];

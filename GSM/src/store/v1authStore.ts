@@ -9,6 +9,12 @@ export type AuthUser = {
 	last_name: string
 	middle_name?: string
 	extension_name?: string
+	mobile?: string
+	birthdate?: string
+	address?: string
+	house_number?: string
+	street?: string
+	barangay?: string
 	role: UserRole
 	is_active: boolean
 }
@@ -74,7 +80,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 			if (data.success) {
 				set({ 
-					currentUser: data.data.user, 
+					currentUser: {
+						id: String(data.data.user.id),
+						citizen_id: data.data.user.citizen_id ?? '',
+						email: data.data.user.email,
+						first_name: data.data.user.first_name,
+						last_name: data.data.user.last_name,
+						middle_name: data.data.user.middle_name,
+						extension_name: data.data.user.extension_name,
+						mobile: data.data.user.mobile,
+						birthdate: data.data.user.birthdate,
+						address: data.data.user.address,
+						house_number: data.data.user.house_number,
+						street: data.data.user.street,
+						barangay: data.data.user.barangay,
+						role: data.data.user.role,
+						is_active: data.data.user.is_active,
+					}, 
 					token,
 					isLoading: false
 				})
@@ -124,6 +146,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         email: user.email,
                         first_name: user.first_name,
                         last_name: user.last_name,
+                        middle_name: user.middle_name,
+                        extension_name: user.extension_name,
+                        mobile: user.mobile,
+                        birthdate: user.birthdate,
+                        address: user.address,
+                        house_number: user.house_number,
+                        street: user.street,
+                        barangay: user.barangay,
                         role: user.role,
                         is_active: user.status === 'active',
                     }, 
@@ -240,6 +270,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 						email: user.email,
 						first_name: user.first_name,
 						last_name: user.last_name,
+						middle_name: user.middle_name,
+						extension_name: user.extension_name,
+						mobile: user.mobile,
+						birthdate: user.birthdate,
+						address: user.address,
+						house_number: user.house_number,
+						street: user.street,
+						barangay: user.barangay,
 						role: user.role,
 						is_active: true,
 					}, 

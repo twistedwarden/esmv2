@@ -34,7 +34,7 @@ return new class extends Migration
             $table->string('email_address')->nullable();
             $table->boolean('is_employed')->default(false);
             $table->boolean('is_job_seeking')->default(false);
-            $table->boolean('is_currently_enrolled')->default(true);
+            $table->boolean('is_currently_enrolled')->default(false);
             $table->boolean('is_graduating')->default(false);
             $table->boolean('is_solo_parent')->default(false);
             $table->boolean('is_indigenous_group')->default(false);

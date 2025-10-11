@@ -44,9 +44,18 @@ class GsmAuthController extends Controller
 
         $safeUser = [
             'id' => $user->id,
+            'citizen_id' => $user->citizen_id,
             'email' => $user->email,
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
+            'middle_name' => $user->middle_name,
+            'extension_name' => $user->extension_name,
+            'mobile' => $user->mobile,
+            'birthdate' => $user->birthdate,
+            'address' => $user->address,
+            'house_number' => $user->house_number,
+            'street' => $user->street,
+            'barangay' => $user->barangay,
             'role' => $user->role,
             'status' => $user->is_active ? 'active' : 'inactive',
         ];

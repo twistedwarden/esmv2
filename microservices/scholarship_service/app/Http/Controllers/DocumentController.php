@@ -200,6 +200,41 @@ class DocumentController extends Controller
     }
 
     /**
+     * View the specified document (inline display)
+     */
+    public function view(Document $document): BinaryFileResponse|JsonResponse
+    {
+        try {
+            if (!Storage::disk('public')->exists($document->file_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+
+            $filePath = Storage::disk('public')->path($document->file_path);
+            
+            // Set headers for inline viewing
+            $headers = [
+                'Content-Type' => $document->mime_type,
+                'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ];
+
+            return response()->file($filePath, $headers);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to view document',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Download the specified document
      */
     public function download(Document $document): BinaryFileResponse|JsonResponse
