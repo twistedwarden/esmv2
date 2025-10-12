@@ -257,3 +257,76 @@ export const fetchEnrollmentData = async (token, params = {}) => {
     throw error;
   }
 };
+
+// Flexible data upload (accepts any CSV structure)
+export const uploadFlexibleData = async (token, csvData, headers, updateMode = 'merge') => {
+  try {
+    console.log('uploadFlexibleData called with:', { token, csvDataLength: csvData.length, headers, updateMode });
+    console.log('API_BASE_URL:', API_BASE_URL);
+    
+    const response = await fetch(`${API_BASE_URL}/api/partner-school/flexible/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        csv_data: csvData,
+        headers: headers,
+        update_mode: updateMode
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Upload response:', data);
+    
+    if (data.success) {
+      return data;
+    } else {
+      throw new Error(data.message || 'Upload failed');
+    }
+  } catch (error) {
+    console.error('Error uploading flexible data:', error);
+    throw error;
+  }
+};
+
+// Fetch flexible students data
+export const fetchFlexibleStudents = async (token, params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) queryParams.append('page', params.page);
+    queryParams.append('per_page', params.per_page || 1000); // Request up to 1000 records
+    if (params.search) queryParams.append('search', params.search);
+    
+    const response = await fetch(`${API_BASE_URL}/api/partner-school/flexible/students?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to fetch flexible students');
+    }
+  } catch (error) {
+    console.error('Error fetching flexible students:', error);
+    throw error;
+  }
+};

@@ -118,6 +118,10 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::post('/enrollment/upload', [PartnerSchoolController::class, 'uploadEnrollmentData']);
     Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
     
+    // Flexible data routes (accepts any CSV structure)
+    Route::post('/flexible/upload', [PartnerSchoolController::class, 'uploadFlexibleData']);
+    Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
+    
     // Verification routes
     Route::prefix('verification')->group(function () {
         Route::get('/applications', [PartnerSchoolController::class, 'getApplicationsForVerification']);
