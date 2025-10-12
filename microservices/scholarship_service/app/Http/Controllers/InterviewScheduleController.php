@@ -116,9 +116,11 @@ class InterviewScheduleController extends Controller
             'interview_type' => 'required|in:in_person,online,phone',
             'meeting_link' => 'nullable|string|max:500',
             'interviewer_id' => 'nullable|integer',
+            'staff_id' => 'nullable|integer',
             'interviewer_name' => 'required|string|max:255',
             'scheduling_type' => 'required|in:automatic,manual',
             'notes' => 'nullable|string|max:1000',
+            'duration' => 'nullable|integer|min:15|max:120', // Duration in minutes
         ]);
 
         if ($validator->fails()) {
@@ -141,15 +143,33 @@ class InterviewScheduleController extends Controller
                 ], 400);
             }
 
+            // Check for interviewer conflicts
+            $conflicts = $this->checkInterviewerConflicts(
+                $request->staff_id,
+                $request->interview_date,
+                $request->interview_time,
+                $request->duration ?? 30 // Default 30 minutes if not specified
+            );
+
+            if (!empty($conflicts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Interviewer has conflicting schedule',
+                    'conflicts' => $conflicts
+                ], 409); // 409 Conflict status code
+            }
+
             $authUser = $request->get('auth_user');
             $scheduledBy = $authUser['id'] ?? null;
 
             $interviewData = $request->only([
                 'interview_date', 'interview_time', 'interview_location',
                 'interview_type', 'meeting_link', 'interviewer_id',
-                'interviewer_name', 'scheduling_type'
+                'staff_id', 'interviewer_name', 'scheduling_type', 'notes', 'duration'
             ]);
             $interviewData['scheduled_by'] = $scheduledBy;
+            $interviewData['interview_notes'] = $interviewData['notes'] ?? null;
+            unset($interviewData['notes']);
 
             $schedule = InterviewSchedule::createForApplication($application, $interviewData);
 
@@ -187,6 +207,7 @@ class InterviewScheduleController extends Controller
             'interview_date' => 'required|date|after_or_equal:today',
             'interview_time' => 'required|date_format:H:i',
             'reason' => 'required|string|max:500',
+            'duration' => 'nullable|integer|min:15|max:120', // Duration in minutes
         ]);
 
         if ($validator->fails()) {
@@ -205,6 +226,23 @@ class InterviewScheduleController extends Controller
         }
 
         try {
+            // Check for interviewer conflicts (excluding current schedule)
+            $conflicts = $this->checkInterviewerConflicts(
+                $schedule->staff_id,
+                $request->interview_date,
+                $request->interview_time,
+                $request->duration ?? $schedule->duration ?? 30,
+                $schedule->id // Exclude current schedule
+            );
+
+            if (!empty($conflicts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Interviewer has conflicting schedule at the new time',
+                    'conflicts' => $conflicts
+                ], 409); // 409 Conflict status code
+            }
+
             $authUser = $request->get('auth_user');
             $rescheduledBy = $authUser['id'] ?? null;
 
@@ -212,7 +250,8 @@ class InterviewScheduleController extends Controller
                 $request->interview_date,
                 $request->interview_time,
                 $request->reason,
-                $rescheduledBy
+                $rescheduledBy,
+                $request->duration ?? $schedule->duration
             );
 
             return response()->json([
@@ -407,6 +446,8 @@ class InterviewScheduleController extends Controller
             'date' => 'required|date|after_or_equal:today',
             'interview_type' => 'required|in:in_person,online,phone',
             'interviewer_id' => 'nullable|integer',
+            'staff_id' => 'nullable|integer',
+            'duration' => 'nullable|integer|min:15|max:120', // Duration in minutes
         ]);
 
         if ($validator->fails()) {
@@ -421,6 +462,8 @@ class InterviewScheduleController extends Controller
             $date = $request->date;
             $interviewType = $request->interview_type;
             $interviewerId = $request->interviewer_id;
+            $staffId = $request->staff_id;
+            $duration = $request->duration ?? 30;
 
             // Define available time slots (9 AM to 5 PM, 30-minute intervals)
             $timeSlots = [];
@@ -432,29 +475,76 @@ class InterviewScheduleController extends Controller
                 $startTime->addMinutes(30);
             }
 
-            // Get booked slots
-            $bookedSlots = InterviewSchedule::where('interview_date', $date)
+            // Get booked slots with duration consideration
+            $query = InterviewSchedule::where('interview_date', $date)
                 ->where('interview_type', $interviewType)
-                ->when($interviewerId, function($query) use ($interviewerId) {
-                    return $query->where('interviewer_id', $interviewerId);
-                })
-                ->whereIn('status', ['scheduled', 'rescheduled'])
-                ->pluck('interview_time')
-                ->map(function($time) {
-                    return Carbon::parse($time)->format('H:i');
-                })
-                ->toArray();
+                ->whereIn('status', ['scheduled', 'rescheduled']);
+
+            // Filter by interviewer or staff
+            if ($staffId) {
+                $query->where('staff_id', $staffId);
+            } elseif ($interviewerId) {
+                $query->where('interviewer_id', $interviewerId);
+            }
+
+            $bookedSchedules = $query->get();
+            $unavailableSlots = [];
+
+            foreach ($bookedSchedules as $schedule) {
+                $scheduleStartTime = Carbon::parse($schedule->interview_time);
+                $scheduleDuration = $schedule->duration ?? 30;
+                $scheduleEndTime = $scheduleStartTime->copy()->addMinutes($scheduleDuration);
+
+                // Mark all slots within the schedule duration as unavailable
+                $currentTime = $scheduleStartTime->copy();
+                while ($currentTime->lt($scheduleEndTime)) {
+                    $unavailableSlots[] = $currentTime->format('H:i');
+                    $currentTime->addMinutes(30);
+                }
+            }
+
+            // Also check for potential conflicts with the requested duration
+            $conflictingSlots = [];
+            foreach ($timeSlots as $slot) {
+                $slotStartTime = Carbon::parse($date . ' ' . $slot);
+                $slotEndTime = $slotStartTime->copy()->addMinutes($duration);
+
+                foreach ($bookedSchedules as $schedule) {
+                    $scheduleStartTime = Carbon::parse($schedule->interview_date . ' ' . $schedule->interview_time);
+                    $scheduleDuration = $schedule->duration ?? 30;
+                    $scheduleEndTime = $scheduleStartTime->copy()->addMinutes($scheduleDuration);
+
+                    if ($this->timeRangesOverlap($slotStartTime, $slotEndTime, $scheduleStartTime, $scheduleEndTime)) {
+                        $conflictingSlots[] = $slot;
+                        break;
+                    }
+                }
+            }
+
+            // Combine unavailable slots
+            $allUnavailableSlots = array_unique(array_merge($unavailableSlots, $conflictingSlots));
 
             // Filter available slots
-            $availableSlots = array_diff($timeSlots, $bookedSlots);
+            $availableSlots = array_diff($timeSlots, $allUnavailableSlots);
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'date' => $date,
                     'interview_type' => $interviewType,
+                    'staff_id' => $staffId,
+                    'duration' => $duration,
                     'available_slots' => array_values($availableSlots),
-                    'booked_slots' => $bookedSlots,
+                    'unavailable_slots' => array_values($allUnavailableSlots),
+                    'booked_schedules' => $bookedSchedules->map(function($schedule) {
+                        return [
+                            'id' => $schedule->id,
+                            'start_time' => $schedule->interview_time,
+                            'duration' => $schedule->duration ?? 30,
+                            'student_name' => $schedule->application->student->first_name . ' ' . $schedule->application->student->last_name,
+                            'interview_type' => $schedule->interview_type,
+                        ];
+                    }),
                 ]
             ]);
 
@@ -521,6 +611,59 @@ class InterviewScheduleController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Check for interviewer conflicts
+     */
+    private function checkInterviewerConflicts($staffId, $date, $time, $duration, $excludeScheduleId = null): array
+    {
+        if (!$staffId) {
+            return []; // No conflicts if no staff assigned
+        }
+
+        $startTime = Carbon::parse($date . ' ' . $time);
+        $endTime = $startTime->copy()->addMinutes($duration);
+
+        $query = InterviewSchedule::where('staff_id', $staffId)
+            ->where('interview_date', $date)
+            ->whereIn('status', ['scheduled', 'rescheduled']);
+
+        if ($excludeScheduleId) {
+            $query->where('id', '!=', $excludeScheduleId);
+        }
+
+        $existingSchedules = $query->get();
+        $conflicts = [];
+
+        foreach ($existingSchedules as $schedule) {
+            $existingStartTime = Carbon::createFromFormat('Y-m-d H:i:s', $schedule->interview_date->format('Y-m-d') . ' ' . $schedule->interview_time);
+            $existingDuration = $schedule->duration ?? 30; // Default 30 minutes
+            $existingEndTime = $existingStartTime->copy()->addMinutes($existingDuration);
+
+            // Check if time ranges overlap
+            if ($this->timeRangesOverlap($startTime, $endTime, $existingStartTime, $existingEndTime)) {
+                $conflicts[] = [
+                    'schedule_id' => $schedule->id,
+                    'student_name' => $schedule->application->student->first_name . ' ' . $schedule->application->student->last_name,
+                    'start_time' => $existingStartTime->format('H:i'),
+                    'end_time' => $existingEndTime->format('H:i'),
+                    'display_start_time' => $existingStartTime->format('g:i A'),
+                    'display_end_time' => $existingEndTime->format('g:i A'),
+                    'interview_type' => $schedule->interview_type,
+                ];
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Check if two time ranges overlap
+     */
+    private function timeRangesOverlap($start1, $end1, $start2, $end2): bool
+    {
+        return $start1->lt($end2) && $end1->gt($start2);
     }
 }
 

@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ScholarshipApplicationController extends Controller
 {
@@ -929,6 +930,7 @@ class ScholarshipApplicationController extends Controller
             'interview_type' => 'required|in:in_person,online,phone',
             'meeting_link' => 'nullable|string|max:500',
             'interviewer_id' => 'nullable|integer',
+            'staff_id' => 'nullable|integer',
             'interviewer_name' => 'required|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -954,13 +956,34 @@ class ScholarshipApplicationController extends Controller
             $authUser = $request->get('auth_user');
             $scheduledBy = $authUser['id'] ?? null;
 
+            // Check for interviewer conflicts
+            if ($request->staff_id) {
+                $conflicts = $this->checkInterviewerConflicts(
+                    $request->staff_id,
+                    $request->interview_date,
+                    $request->interview_time,
+                    $request->duration ?? 30 // Default 30 minutes if not specified
+                );
+
+                if (!empty($conflicts)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Interviewer has conflicting schedule',
+                        'conflicts' => $conflicts
+                    ], 409); // 409 Conflict status code
+                }
+            }
+
             $interviewData = $request->only([
                 'interview_date', 'interview_time', 'interview_location',
                 'interview_type', 'meeting_link', 'interviewer_id',
-                'interviewer_name'
+                'staff_id', 'interviewer_name', 'notes'
             ]);
             $interviewData['scheduling_type'] = 'manual';
             $interviewData['scheduled_by'] = $scheduledBy;
+            $interviewData['interview_notes'] = $interviewData['notes'] ?? null;
+            $interviewData['duration'] = $request->duration ?? 30; // Add duration to interview data
+            unset($interviewData['notes']);
 
             $application->scheduleInterviewManually($interviewData, $scheduledBy);
 
@@ -1160,5 +1183,58 @@ class ScholarshipApplicationController extends Controller
         }
 
         return $slots;
+    }
+
+    /**
+     * Check for interviewer conflicts
+     */
+    private function checkInterviewerConflicts($staffId, $date, $time, $duration, $excludeScheduleId = null): array
+    {
+        if (!$staffId) {
+            return []; // No conflicts if no staff assigned
+        }
+
+        $startTime = Carbon::parse($date . ' ' . $time);
+        $endTime = $startTime->copy()->addMinutes($duration);
+
+        $query = InterviewSchedule::where('staff_id', $staffId)
+            ->where('interview_date', $date)
+            ->whereIn('status', ['scheduled', 'rescheduled']);
+
+        if ($excludeScheduleId) {
+            $query->where('id', '!=', $excludeScheduleId);
+        }
+
+        $existingSchedules = $query->get();
+        $conflicts = [];
+
+        foreach ($existingSchedules as $schedule) {
+            $existingStartTime = Carbon::createFromFormat('Y-m-d H:i:s', $schedule->interview_date->format('Y-m-d') . ' ' . $schedule->interview_time);
+            $existingDuration = $schedule->duration ?? 30; // Default 30 minutes
+            $existingEndTime = $existingStartTime->copy()->addMinutes($existingDuration);
+
+            // Check if time ranges overlap
+            if ($this->timeRangesOverlap($startTime, $endTime, $existingStartTime, $existingEndTime)) {
+                $conflicts[] = [
+                    'schedule_id' => $schedule->id,
+                    'student_name' => $schedule->application->student->first_name . ' ' . $schedule->application->student->last_name,
+                    'start_time' => $existingStartTime->format('H:i'),
+                    'end_time' => $existingEndTime->format('H:i'),
+                    'display_start_time' => $existingStartTime->format('g:i A'),
+                    'display_end_time' => $existingEndTime->format('g:i A'),
+                    'interview_type' => $schedule->interview_type,
+                ];
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Check if two time ranges overlap
+     */
+    private function timeRangesOverlap($start1, $end1, $start2, $end2): bool
+    {
+        return $start1->lt($end2) && $end1->gt($start2);
     }
 }
