@@ -6,6 +6,7 @@ use App\Models\PartnerSchoolRepresentative;
 use App\Models\ScholarshipApplication;
 use App\Models\Student;
 use App\Models\PartnerSchoolEnrollmentData;
+use App\Models\FlexibleStudentData;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -220,12 +221,19 @@ class PartnerSchoolController extends Controller
 
             $schoolId = $representative->school_id;
 
-            // Get students who have applications for this school
-            $query = Student::whereHas('scholarshipApplications', function($q) use ($schoolId) {
-                $q->where('school_id', $schoolId);
+            // Get students who have applications for this school OR enrollment data
+            $query = Student::where(function($q) use ($schoolId) {
+                $q->whereHas('scholarshipApplications', function($subQ) use ($schoolId) {
+                    $subQ->where('school_id', $schoolId);
+                })->orWhereHas('enrollmentData', function($subQ) use ($schoolId) {
+                    $subQ->where('school_id', $schoolId);
+                });
             })->with([
                 'currentAcademicRecord', 
                 'scholarshipApplications' => function($q) use ($schoolId) {
+                    $q->where('school_id', $schoolId);
+                },
+                'enrollmentData' => function($q) use ($schoolId) {
                     $q->where('school_id', $schoolId);
                 }
             ]);
@@ -236,15 +244,31 @@ class PartnerSchoolController extends Controller
                 $query->where(function($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
                       ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                      ->orWhere('student_id_number', 'like', "%{$search}%")
+                      ->orWhereHas('enrollmentData', function($subQ) use ($search) {
+                          $subQ->where('first_name', 'like', "%{$search}%")
+                               ->orWhere('last_name', 'like', "%{$search}%")
+                               ->orWhere('student_id_number', 'like', "%{$search}%");
+                      });
                 });
             }
 
             // Apply status filter
             if ($request->has('status') && $request->status !== 'all') {
-                $query->whereHas('scholarshipApplications', function($q) use ($schoolId, $request) {
-                    $q->where('school_id', $schoolId)
-                      ->where('status', $request->status);
+                $query->where(function($q) use ($schoolId, $request) {
+                    $q->whereHas('scholarshipApplications', function($subQ) use ($schoolId, $request) {
+                        $subQ->where('school_id', $schoolId)
+                             ->where('status', $request->status);
+                    })->orWhereHas('enrollmentData', function($subQ) use ($schoolId, $request) {
+                        // For enrollment data, map status to enrollment status
+                        if ($request->status === 'active') {
+                            $subQ->where('school_id', $schoolId)
+                                 ->where('is_currently_enrolled', true);
+                        } elseif ($request->status === 'inactive') {
+                            $subQ->where('school_id', $schoolId)
+                                 ->where('is_currently_enrolled', false);
+                        }
+                    });
                 });
             }
 
@@ -254,8 +278,19 @@ class PartnerSchoolController extends Controller
             Log::info('Partner school students requested', [
                 'citizen_id' => $authUser['citizen_id'],
                 'school_id' => $schoolId,
-                'total_students' => $students->total()
+                'total_students' => $students->total(),
+                'students_data' => $students->items()
             ]);
+            
+            // Debug each student's enrollment data
+            foreach ($students->items() as $student) {
+                Log::info('Student enrollment data debug', [
+                    'student_id' => $student->id,
+                    'student_id_number' => $student->student_id_number,
+                    'enrollment_data_count' => $student->enrollmentData ? $student->enrollmentData->count() : 0,
+                    'enrollment_data' => $student->enrollmentData ? $student->enrollmentData->toArray() : []
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -773,6 +808,13 @@ class PartnerSchoolController extends Controller
 
             $csvData = $request->csv_data;
             $updateMode = $request->update_mode;
+            
+            Log::info('Starting enrollment data upload', [
+                'citizen_id' => $authUser['citizen_id'],
+                'school_id' => $schoolId,
+                'csv_rows' => count($csvData),
+                'update_mode' => $updateMode
+            ]);
 
             // If replace mode, clear existing data for this school
             if ($updateMode === 'replace') {
@@ -788,6 +830,18 @@ class PartnerSchoolController extends Controller
             try {
                 foreach ($csvData as $index => $row) {
                     try {
+                        // Convert string boolean to actual boolean
+                        if (isset($row['is_currently_enrolled'])) {
+                            $value = strtolower(trim($row['is_currently_enrolled']));
+                            if (in_array($value, ['true', '1', 'yes', 'y', 'on'])) {
+                                $row['is_currently_enrolled'] = true;
+                            } elseif (in_array($value, ['false', '0', 'no', 'n', 'off', 'graduated'])) {
+                                $row['is_currently_enrolled'] = false;
+                            } else {
+                                $row['is_currently_enrolled'] = (bool) $row['is_currently_enrolled'];
+                            }
+                        }
+
                         // Validate required fields
                         $rowValidator = Validator::make($row, [
                             'student_id_number' => 'required|string|max:50',
@@ -802,7 +856,13 @@ class PartnerSchoolController extends Controller
                         ]);
 
                         if ($rowValidator->fails()) {
-                            $errors[] = "Row " . ($index + 1) . ": " . implode(', ', $rowValidator->errors()->all());
+                            $errorMessage = "Row " . ($index + 1) . ": " . implode(', ', $rowValidator->errors()->all());
+                            $errors[] = $errorMessage;
+                            Log::warning('CSV validation failed', [
+                                'row' => $index + 1,
+                                'data' => $row,
+                                'errors' => $rowValidator->errors()->all()
+                            ]);
                             continue;
                         }
 
@@ -822,8 +882,40 @@ class PartnerSchoolController extends Controller
                             'uploaded_at' => now()
                         ];
 
+                        // Create or update Student record
+                        $student = Student::firstOrCreate(
+                            ['student_id_number' => $row['student_id_number']],
+                            [
+                                'first_name' => $row['first_name'],
+                                'last_name' => $row['last_name'],
+                                'middle_name' => null,
+                                'email' => null,
+                                'phone_number' => null,
+                                'date_of_birth' => null,
+                                'gender' => null,
+                                'address' => null,
+                                'city' => null,
+                                'province' => null,
+                                'zip_code' => null,
+                                'is_active' => true
+                            ]
+                        );
+
+                        // Update student name if it changed
+                        if ($student->first_name !== $row['first_name'] || $student->last_name !== $row['last_name']) {
+                            $student->update([
+                                'first_name' => $row['first_name'],
+                                'last_name' => $row['last_name']
+                            ]);
+                        }
+
                         // Use upsert to handle duplicates
-                        PartnerSchoolEnrollmentData::upsertEnrollment($enrollmentData);
+                        $enrollment = PartnerSchoolEnrollmentData::upsertEnrollment($enrollmentData);
+                        Log::info('Enrollment data created/updated', [
+                            'enrollment_id' => $enrollment->id,
+                            'student_id' => $row['student_id_number'],
+                            'school_id' => $schoolId
+                        ]);
                         $processed++;
 
                     } catch (\Exception $e) {
@@ -964,6 +1056,139 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch enrollment data.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload flexible CSV data (accepts any structure)
+     */
+    public function uploadFlexibleData(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->get('auth_user');
+            
+            if (!$authUser || $authUser['role'] !== 'ps_rep') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access.'
+                ], 403);
+            }
+
+            // Get school ID for the authenticated user
+            $schoolRep = PartnerSchoolRepresentative::where('citizen_id', $authUser['citizen_id'])->first();
+            if (!$schoolRep) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School not found for user.'
+                ], 404);
+            }
+
+            $schoolId = $schoolRep->school_id;
+            $csvData = $request->input('csv_data', []);
+            $headers = $request->input('headers', []);
+            $updateMode = $request->input('update_mode', 'merge');
+
+            if (empty($csvData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No CSV data provided.'
+                ], 400);
+            }
+
+            // Handle replace mode
+            if ($updateMode === 'replace') {
+                FlexibleStudentData::where('school_id', $schoolId)->delete();
+            }
+
+            $processed = 0;
+            $errors = [];
+
+            DB::beginTransaction();
+
+            try {
+                foreach ($csvData as $index => $row) {
+                    try {
+                        FlexibleStudentData::createFromCSVRow($row, (int)$schoolId, $authUser['citizen_id'], (array)$headers);
+                        $processed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
+                    }
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Flexible data uploaded successfully.',
+                    'processed' => $processed,
+                    'errors' => $errors,
+                    'total_received' => count($csvData)
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading flexible data', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload flexible data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get flexible students data
+     */
+    public function getFlexibleStudents(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->get('auth_user');
+            
+            if (!$authUser || $authUser['role'] !== 'ps_rep') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access.'
+                ], 403);
+            }
+
+            // Get school ID for the authenticated user
+            $schoolRep = PartnerSchoolRepresentative::where('citizen_id', $authUser['citizen_id'])->first();
+            if (!$schoolRep) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School not found for user.'
+                ], 404);
+            }
+
+            $schoolId = $schoolRep->school_id;
+            $perPage = $request->input('per_page', 1000); // Show up to 1000 records
+            $page = $request->input('page', 1);
+
+            $flexibleStudents = FlexibleStudentData::where('school_id', $schoolId)
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'success' => true,
+                'data' => $flexibleStudents
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching flexible students', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch flexible students.'
             ], 500);
         }
     }
