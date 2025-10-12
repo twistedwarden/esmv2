@@ -1,7 +1,6 @@
-import { Bell, Menu, LogOut, User } from 'lucide-react'
+import { Bell, Menu, User } from 'lucide-react'
 import React from 'react'
 import { useAuthStore, getFullName } from '../../../store/v1authStore'
-import { useNavigate } from 'react-router-dom'
 
 type HeaderProps = {
 	sidebarCollapsed: boolean
@@ -9,10 +8,9 @@ type HeaderProps = {
 	breadcrumb?: string[]
 }
 
-function Header({ sidebarCollapsed: _sidebarCollapsed, onToggleSidebar, breadcrumb = ['Dashboard'] }: HeaderProps) {
+function Header({ onToggleSidebar, breadcrumb = ['Dashboard'] }: HeaderProps) {
 	const [theme, setTheme] = React.useState('')
-	const { currentUser, logout, isLoggingOut } = useAuthStore()
-	const navigate = useNavigate()
+	const { currentUser } = useAuthStore()
 
 	React.useEffect(() => {
 		const storedTheme = localStorage.getItem('theme')
@@ -33,10 +31,6 @@ function Header({ sidebarCollapsed: _sidebarCollapsed, onToggleSidebar, breadcru
 		document.documentElement.classList.toggle('dark', newTheme === 'dark')
 	}
 
-	const handleLogout = async () => {
-		await logout()
-		navigate('/')
-	}
 
 	return (
 		<div className='bg-white/-80 backdrop-blur-xl border-b border-slate-200 px-6 py-4 dark:bg-slate-800 dark:border-slate-700/50'>

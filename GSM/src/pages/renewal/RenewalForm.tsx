@@ -189,7 +189,7 @@ export const RenewalForm: React.FC = () => {
       console.log('Renewal form data:', data);
       console.log('Uploaded files:', uploadedFiles);
       setSubmitSuccess(true);
-    } catch (error) {
+    } catch {
       setError('Failed to submit renewal application. Please try again.');
     } finally {
       setIsSubmitting(false);

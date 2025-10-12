@@ -108,7 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					isLoading: false 
 				})
 			}
-		} catch (error) {
+		} catch {
 			localStorage.removeItem('auth_token')
 			set({ 
 				currentUser: null, 
@@ -166,7 +166,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 				set({ error: data.message || 'Login failed' })
 				return false
 			}
-		} catch (error) {
+		} catch {
 			set({ error: 'Network error. Please try again.' })
 			return false
 		}
@@ -313,7 +313,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 						'Accept': 'application/json',
 					},
 				})
-			} catch (error) {
+			} catch {
 				// Ignore logout errors
 			}
 		}

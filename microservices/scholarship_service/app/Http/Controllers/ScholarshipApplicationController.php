@@ -9,6 +9,8 @@ use App\Models\ScholarshipCategory;
 use App\Models\ScholarshipSubcategory;
 use App\Models\AcademicRecord;
 use App\Models\PartnerSchoolRepresentative;
+use App\Models\EnrollmentVerification;
+use App\Models\InterviewSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -513,7 +515,7 @@ class ScholarshipApplicationController extends Controller
         if (!$application->canBeRejected()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application can be rejected at any review stage'
+                'message' => 'Application cannot be rejected in its current status: ' . $application->status
             ], 400);
         }
 
@@ -578,6 +580,9 @@ class ScholarshipApplicationController extends Controller
                 $request->notes,
                 $reviewedBy
             );
+
+            // Automatic enrollment verification has been removed
+            // Applications with status 'approved_pending_verification' will require manual verification
 
             DB::commit();
 
@@ -783,5 +788,377 @@ class ScholarshipApplicationController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Approve application for enrollment verification
+     * Status: documents_reviewed → approved_pending_verification
+     */
+    public function approveForVerification(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canBeApprovedForVerification()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be in documents_reviewed status to approve for verification'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $approvedBy = $authUser['id'] ?? null;
+
+            $application->approveForVerification($approvedBy, $request->notes);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved for enrollment verification',
+                'data' => $application->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to approve application for verification', [
+                'exception' => $e->getMessage(),
+                'application_id' => $application->id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve application for verification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Submit enrollment verification
+     * Status: approved_pending_verification → enrollment_verified
+     */
+    public function verifyEnrollment(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'enrollment_proof_document_id' => 'required|exists:documents,id',
+            'enrollment_year' => 'required|string|max:255',
+            'enrollment_term' => 'required|string|max:255',
+            'is_currently_enrolled' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if ($application->status !== 'approved_pending_verification') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be approved for verification first'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $verifiedBy = $authUser['id'] ?? null;
+
+            // Create enrollment verification
+            $verification = EnrollmentVerification::createForApplication($application);
+            $verification->update([
+                'enrollment_proof_document_id' => $request->enrollment_proof_document_id,
+                'enrollment_year' => $request->enrollment_year,
+                'enrollment_term' => $request->enrollment_term,
+                'is_currently_enrolled' => $request->is_currently_enrolled,
+                'verification_status' => 'verified',
+                'verified_by' => $verifiedBy,
+                'verified_at' => now(),
+            ]);
+
+            // Update application status
+            $application->confirmEnrollment($verification->id, $verifiedBy);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Enrollment verification completed',
+                'data' => $application->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to verify enrollment', [
+                'exception' => $e->getMessage(),
+                'application_id' => $application->id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify enrollment',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Schedule interview manually
+     * Status: enrollment_verified → interview_scheduled
+     */
+    public function scheduleInterview(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'interview_date' => 'required|date|after_or_equal:today',
+            'interview_time' => 'required|date_format:H:i',
+            'interview_location' => 'nullable|string|max:255',
+            'interview_type' => 'required|in:in_person,online,phone',
+            'meeting_link' => 'nullable|string|max:500',
+            'interviewer_id' => 'nullable|integer',
+            'interviewer_name' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canProceedToInterview()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be enrollment verified to schedule interview'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $scheduledBy = $authUser['id'] ?? null;
+
+            $interviewData = $request->only([
+                'interview_date', 'interview_time', 'interview_location',
+                'interview_type', 'meeting_link', 'interviewer_id',
+                'interviewer_name'
+            ]);
+            $interviewData['scheduling_type'] = 'manual';
+            $interviewData['scheduled_by'] = $scheduledBy;
+
+            $application->scheduleInterviewManually($interviewData, $scheduledBy);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Interview scheduled successfully',
+                'data' => $application->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to schedule interview', [
+                'exception' => $e->getMessage(),
+                'application_id' => $application->id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to schedule interview',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Schedule interview automatically
+     * Status: enrollment_verified → interview_scheduled
+     */
+    public function scheduleInterviewAuto(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        if (!$application->canProceedToInterview()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be enrollment verified to schedule interview'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $scheduledBy = $authUser['id'] ?? null;
+
+            // Get available slots for next 7 days
+            $availableSlots = $this->getAvailableSlots(7);
+            
+            if (empty($availableSlots)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No available interview slots found'
+                ], 400);
+            }
+
+            // Select first available slot
+            $slot = $availableSlots[0];
+            
+            $interviewData = [
+                'interview_date' => $slot['date'],
+                'interview_time' => $slot['time'],
+                'interview_location' => $slot['location'] ?? 'TBD',
+                'interview_type' => $slot['type'] ?? 'in_person',
+                'meeting_link' => $slot['meeting_link'] ?? null,
+                'interviewer_id' => $slot['interviewer_id'] ?? null,
+                'interviewer_name' => $slot['interviewer_name'] ?? 'TBD',
+                'scheduling_type' => 'automatic',
+                'scheduled_by' => $scheduledBy,
+            ];
+
+            $application->scheduleInterviewAutomatically($interviewData);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Interview scheduled automatically',
+                'data' => $application->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to auto-schedule interview', [
+                'exception' => $e->getMessage(),
+                'application_id' => $application->id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to auto-schedule interview',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Complete interview
+     * Status: interview_scheduled → interview_completed
+     */
+    public function completeInterview(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'interview_result' => 'required|in:passed,failed,needs_followup',
+            'interview_notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canCompleteInterview()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must have a scheduled interview to complete'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $completedBy = $authUser['id'] ?? null;
+
+            $application->completeInterview(
+                $request->interview_result,
+                $request->interview_notes,
+                $completedBy
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Interview completed successfully',
+                'data' => $application->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to complete interview', [
+                'exception' => $e->getMessage(),
+                'application_id' => $application->id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete interview',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available interview slots for auto-scheduling
+     */
+    private function getAvailableSlots($days = 7): array
+    {
+        $slots = [];
+        $startDate = now();
+        $endDate = now()->addDays($days);
+
+        // Define business hours (9 AM to 5 PM, 30-minute intervals)
+        $timeSlots = [];
+        for ($hour = 9; $hour < 17; $hour++) {
+            for ($minute = 0; $minute < 60; $minute += 30) {
+                $timeSlots[] = sprintf('%02d:%02d', $hour, $minute);
+            }
+        }
+
+        // Get booked slots
+        $bookedSlots = InterviewSchedule::whereBetween('interview_date', [$startDate, $endDate])
+            ->whereIn('status', ['scheduled', 'rescheduled'])
+            ->get()
+            ->groupBy(function($schedule) {
+                return $schedule->interview_date . ' ' . $schedule->interview_time;
+            });
+
+        // Generate available slots
+        for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+            if ($date->isWeekend()) continue; // Skip weekends
+
+            foreach ($timeSlots as $time) {
+                $slotKey = $date->format('Y-m-d') . ' ' . $time;
+                
+                if (!isset($bookedSlots[$slotKey])) {
+                    $slots[] = [
+                        'date' => $date->format('Y-m-d'),
+                        'time' => $time,
+                        'location' => 'Main Office',
+                        'type' => 'in_person',
+                        'interviewer_id' => null,
+                        'interviewer_name' => 'Available',
+                    ];
+                }
+            }
+        }
+
+        return $slots;
     }
 }

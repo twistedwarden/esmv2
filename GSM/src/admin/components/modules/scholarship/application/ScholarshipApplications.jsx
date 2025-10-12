@@ -147,7 +147,8 @@ function ScholarshipApplications() {
           submittedDate: a.submitted_at || a.created_at,
           requestedAmount: a.requested_amount || 0,
           approvedAmount: a.approved_amount || 0,
-          priority: a.priority || 'normal'
+          priority: a.priority || 'normal',
+          status: a.status || 'unknown' // Ensure status is never undefined
         }));
       
         setApplications(mapped);
@@ -162,16 +163,22 @@ function ScholarshipApplications() {
   const updateStats = (apps) => {
     const newStats = {
       total: apps.length,
-      pending: apps.filter(app => app.status === 'draft' || app.status === 'submitted').length,
+      pending: apps.filter(app => ['draft', 'submitted', 'for_compliance'].includes(app.status)).length,
       approved: apps.filter(app => app.status === 'approved').length,
       rejected: apps.filter(app => app.status === 'rejected').length,
-      underReview: apps.filter(app => ['documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc'].includes(app.status)).length
+      underReview: apps.filter(app => ['submitted', 'documents_reviewed'].includes(app.status)).length
     };
     setStats(newStats);
   };
 
   // Filter and sort applications
   const filteredApplications = applications.filter(app => {
+    // Show applications that are in initial review stage (draft, submitted, and for_compliance)
+    // All other statuses should proceed to their appropriate next stage
+    if (!['draft', 'submitted', 'for_compliance'].includes(app.status)) {
+      return false;
+    }
+    
     const matchesStatus = filters.status === 'all' || app.status === filters.status;
     const matchesCategory = filters.category === 'all' || (app.scholarshipCategory || '').toLowerCase().includes(filters.category.toLowerCase());
     const matchesLevel = filters.level === 'all' || (app.currentEducationalLevel || '').toLowerCase().includes(filters.level.toLowerCase());
@@ -236,8 +243,9 @@ function ScholarshipApplications() {
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'documents_reviewed':
+      // approved_pending_verification and enrollment_verified statuses removed - automatic verification disabled
       case 'interview_scheduled':
+      case 'interview_completed':
       case 'endorsed_to_ssc':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'grants_processing':
@@ -252,8 +260,51 @@ function ScholarshipApplications() {
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       case 'compliance_documents_submitted':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'unknown':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+    }
+  };
+
+  const getStatusText = (status) => {
+    // Handle null, undefined, or empty status
+    if (!status) {
+      return 'Unknown';
+    }
+    
+    switch (status) {
+      case 'draft':
+        return 'Draft';
+      case 'submitted':
+        return 'Submitted';
+      // approved_pending_verification and enrollment_verified statuses removed - automatic verification disabled
+      case 'interview_scheduled':
+        return 'Interview Scheduled';
+      case 'interview_completed':
+        return 'Interview Completed';
+      case 'endorsed_to_ssc':
+        return 'Endorsed to SSC';
+      case 'approved':
+        return 'Approved';
+      case 'grants_processing':
+        return 'Grants Processing';
+      case 'grants_disbursed':
+        return 'Grants Disbursed';
+      case 'rejected':
+        return 'Rejected';
+      case 'on_hold':
+        return 'On Hold';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'for_compliance':
+        return 'For Compliance';
+      case 'compliance_documents_submitted':
+        return 'Compliance Documents Submitted';
+      case 'unknown':
+        return 'Unknown Status';
+      default:
+        return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
   };
 
@@ -265,13 +316,16 @@ function ScholarshipApplications() {
         return <CheckCircle className="w-4 h-4" />;
       case 'rejected':
         return <XCircle className="w-4 h-4" />;
-      case 'documents_reviewed':
+      // approved_pending_verification and enrollment_verified statuses removed - automatic verification disabled
       case 'interview_scheduled':
+      case 'interview_completed':
       case 'endorsed_to_ssc':
-        return <FileText className="w-4 h-4" />;
+        return <Users className="w-4 h-4" />;
       case 'grants_processing':
       case 'grants_disbursed':
         return <CheckCircle className="w-4 h-4" />;
+      case 'unknown':
+        return <FileText className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
     }
@@ -381,12 +435,12 @@ function ScholarshipApplications() {
     
     setReviewLoading(true);
     try {
-      // Call API to mark application as reviewed
+      // Call API to mark application as reviewed and move to verification stage
       await scholarshipApiService.markAsReviewed(activeApplication.id);
       await fetchApplications();
       setIsReviewModalOpen(false);
       setReviewedConfirmation(''); // Reset confirmation
-      showSuccess('Application Reviewed', 'Application has been successfully marked as reviewed.');
+      showSuccess('Application Reviewed', 'Application has been reviewed and approved. Student is now ready for interview scheduling.');
     } catch (e) {
       console.error('Mark as reviewed failed', e);
       const errorMessage = e.message || 'Failed to mark as reviewed. Please try again.';
@@ -715,7 +769,7 @@ function ScholarshipApplications() {
           <div className="flex items-center space-x-2 flex-shrink-0">
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
               {getStatusIcon(application.status)}
-              <span className="ml-1 capitalize">{application.status.replace('_', ' ')}</span>
+              <span className="ml-1">{getStatusText(application.status)}</span>
             </span>
             {application.priority !== 'normal' && (
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(application.priority)}`}>
@@ -901,7 +955,7 @@ function ScholarshipApplications() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Draft & Compliance</p>
               <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</p>
             </div>
             <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
@@ -913,7 +967,7 @@ function ScholarshipApplications() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Under Review</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Submitted</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.underReview}</p>
             </div>
             <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
@@ -971,17 +1025,7 @@ function ScholarshipApplications() {
             <option value="all">All Status</option>
             <option value="draft">Draft</option>
             <option value="submitted">Submitted</option>
-            <option value="documents_reviewed">Documents Reviewed</option>
-            <option value="interview_scheduled">Interview Scheduled</option>
-            <option value="endorsed_to_ssc">Endorsed to SSC</option>
-            <option value="approved">Approved</option>
-            <option value="grants_processing">Grants Processing</option>
-            <option value="grants_disbursed">Grants Disbursed</option>
-            <option value="rejected">Rejected</option>
-            <option value="on_hold">On Hold</option>
-            <option value="cancelled">Cancelled</option>
             <option value="for_compliance">For Compliance</option>
-            <option value="compliance_documents_submitted">Compliance Documents Submitted</option>
           </select>
           </div>
 
@@ -1290,6 +1334,7 @@ function ScholarshipApplications() {
                   </div>
                 </button>
 
+
                 <button
                   onClick={() => setReviewAction('compliance')}
                   className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${
@@ -1338,7 +1383,7 @@ function ScholarshipApplications() {
                               Invalid Status
                             </h4>
                             <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                              This application is currently in <span className="font-semibold capitalize">{activeApplication?.status?.replace('_', ' ')}</span> status. 
+                              This application is currently in <span className="font-semibold">{getStatusText(activeApplication?.status)}</span> status. 
                               Applications must be in <span className="font-semibold">Submitted</span> status to be marked as reviewed.
                             </p>
                           </div>
@@ -1450,7 +1495,7 @@ function ScholarshipApplications() {
                         <div className="text-right">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(activeApplication.status || 'pending')}`}>
                             {getStatusIcon(activeApplication.status || 'pending')}
-                            <span className="ml-2 capitalize">{(activeApplication.status || 'pending').replace('_', ' ')}</span>
+                            <span className="ml-2">{getStatusText(activeApplication.status || 'pending')}</span>
                           </span>
                         </div>
                       </div>

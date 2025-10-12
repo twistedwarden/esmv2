@@ -171,7 +171,7 @@ export interface ScholarshipApplication {
   school_id: number;
   type: 'new' | 'renewal';
   parent_application_id?: string;
-  status: 'draft' | 'submitted' | 'documents_reviewed' | 'interview_scheduled' | 'endorsed_to_ssc' | 'approved' | 'grants_processing' | 'grants_disbursed' | 'rejected' | 'on_hold' | 'cancelled' | 'for_compliance' | 'compliance_documents_submitted';
+  status: 'draft' | 'submitted' | 'documents_reviewed' | 'interview_scheduled' | 'interview_completed' | 'endorsed_to_ssc' | 'approved' | 'grants_processing' | 'grants_disbursed' | 'rejected' | 'on_hold' | 'cancelled' | 'for_compliance' | 'compliance_documents_submitted';
   reason_for_renewal?: string;
   financial_need_description: string;
   requested_amount?: number;
@@ -221,6 +221,31 @@ export interface Document {
   created_at?: string;
   updated_at?: string;
   document_type?: DocumentType;
+}
+
+// EnrollmentVerification interface removed - automatic verification is disabled
+
+export interface InterviewSchedule {
+  id?: number;
+  application_id: number;
+  student_id: number;
+  interview_date: string;
+  interview_time: string;
+  interview_location: string;
+  interview_type: 'in_person' | 'online' | 'phone';
+  meeting_link?: string;
+  interviewer_id?: number;
+  interviewer_name?: string;
+  scheduling_type: 'automatic' | 'manual';
+  status: 'scheduled' | 'rescheduled' | 'completed' | 'cancelled' | 'no_show';
+  interview_notes?: string;
+  interview_result?: 'passed' | 'failed' | 'needs_followup';
+  completed_at?: string;
+  scheduled_by?: number;
+  created_at?: string;
+  updated_at?: string;
+  application?: ScholarshipApplication;
+  student?: Student;
 }
 
 export interface ApiResponse<T> {
@@ -593,7 +618,7 @@ class ScholarshipApiService {
         } else {
           errorMessage = errorData.message || errorData.detail || errorMessage;
         }
-      } catch (e) {
+      } catch {
         // If response is not JSON, use the status text
         errorMessage = response.statusText || errorMessage;
       }
@@ -724,6 +749,102 @@ class ScholarshipApiService {
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.HEALTH
     );
     return response.data!;
+  }
+
+  // Enrollment Verification Methods have been removed - automatic verification is disabled
+
+  // Interview Schedule Methods
+  async getInterviewSchedules(): Promise<InterviewSchedule[]> {
+    const response = await this.makeRequest<{ data: InterviewSchedule[] }>(
+      '/api/interview-schedules'
+    );
+    return response.data!.data!;
+  }
+
+  async getInterviewSchedule(id: number): Promise<InterviewSchedule> {
+    const response = await this.makeRequest<{ data: InterviewSchedule }>(
+      `/api/interview-schedules/${id}`
+    );
+    return response.data!.data!;
+  }
+
+  async scheduleInterview(applicationId: number, interviewData: Partial<InterviewSchedule>): Promise<InterviewSchedule> {
+    const response = await this.makeRequest<{ data: InterviewSchedule }>(
+      `/api/applications/${applicationId}/schedule-interview`,
+      {
+        method: 'POST',
+        body: JSON.stringify(interviewData),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async scheduleInterviewAuto(applicationId: number): Promise<InterviewSchedule> {
+    const response = await this.makeRequest<{ data: InterviewSchedule }>(
+      `/api/applications/${applicationId}/schedule-interview-auto`,
+      {
+        method: 'POST',
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async rescheduleInterview(id: number, newDate: string, newTime: string, reason?: string): Promise<InterviewSchedule> {
+    const response = await this.makeRequest<{ data: InterviewSchedule }>(
+      `/api/interview-schedules/${id}/reschedule`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          interview_date: newDate, 
+          interview_time: newTime, 
+          reschedule_reason: reason 
+        }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async completeInterview(id: number, result: 'passed' | 'failed' | 'needs_followup', notes?: string): Promise<InterviewSchedule> {
+    const response = await this.makeRequest<{ data: InterviewSchedule }>(
+      `/api/interview-schedules/${id}/complete`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ 
+          interview_result: result, 
+          interview_notes: notes 
+        }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async cancelInterview(id: number, reason: string): Promise<InterviewSchedule> {
+    const response = await this.makeRequest<{ data: InterviewSchedule }>(
+      `/api/interview-schedules/${id}/cancel`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ cancel_reason: reason }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async getAvailableSlots(date?: string, interviewType?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (interviewType) params.append('type', interviewType);
+    
+    const response = await this.makeRequest<{ data: any[] }>(
+      `/api/interview-schedules/available-slots?${params.toString()}`
+    );
+    return response.data!.data!;
+  }
+
+  async getInterviewCalendar(): Promise<any[]> {
+    const response = await this.makeRequest<{ data: any[] }>(
+      '/api/interview-schedules/calendar'
+    );
+    return response.data!.data!;
   }
 }
 

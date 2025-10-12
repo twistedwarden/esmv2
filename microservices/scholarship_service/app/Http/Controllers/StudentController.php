@@ -196,7 +196,19 @@ class StudentController extends Controller
                 }
             }
 
-            $student = Student::create($studentData);
+            // Check if student with this citizen_id already exists
+            $existingStudent = Student::where('citizen_id', $studentData['citizen_id'])->first();
+            
+            if ($existingStudent) {
+                // Update existing student record instead of creating new one
+                \Log::info("Updating existing student with citizen_id: {$studentData['citizen_id']}, ID: {$existingStudent->id}");
+                $existingStudent->update($studentData);
+                $student = $existingStudent;
+            } else {
+                // Create new student record
+                \Log::info("Creating new student with citizen_id: {$studentData['citizen_id']}");
+                $student = Student::create($studentData);
+            }
 
             // Create addresses
             if ($request->has('addresses')) {

@@ -62,7 +62,26 @@ export const API_CONFIG = {
             // Statistics
             STATS_OVERVIEW: '/api/stats/overview',
             STATS_APPLICATIONS_BY_STATUS: '/api/stats/applications/by-status',
-            STATS_APPLICATIONS_BY_TYPE: '/api/stats/applications/by-type'
+            STATS_APPLICATIONS_BY_TYPE: '/api/stats/applications/by-type',
+            
+            // Enrollment Verification - Removed (automatic verification disabled)
+            
+            // Interview Schedules
+            INTERVIEW_SCHEDULES: '/api/interview-schedules',
+            INTERVIEW_SCHEDULE: (id) => `/api/interview-schedules/${id}`,
+            INTERVIEW_SCHEDULE_RESCHEDULE: (id) => `/api/interview-schedules/${id}/reschedule`,
+            INTERVIEW_SCHEDULE_COMPLETE: (id) => `/api/interview-schedules/${id}/complete`,
+            INTERVIEW_SCHEDULE_CANCEL: (id) => `/api/interview-schedules/${id}/cancel`,
+            INTERVIEW_SCHEDULE_NO_SHOW: (id) => `/api/interview-schedules/${id}/no-show`,
+            INTERVIEW_AVAILABLE_SLOTS: '/api/interview-schedules/available-slots',
+            INTERVIEW_CALENDAR: '/api/interview-schedules/calendar',
+            
+            // Application Workflow Extensions
+            APPLICATION_APPROVE_VERIFICATION: (id) => `/api/applications/${id}/approve-for-verification`,
+            APPLICATION_VERIFY_ENROLLMENT: (id) => `/api/applications/${id}/verify-enrollment`,
+            APPLICATION_SCHEDULE_INTERVIEW: (id) => `/api/applications/${id}/schedule-interview`,
+            APPLICATION_SCHEDULE_INTERVIEW_AUTO: (id) => `/api/applications/${id}/schedule-interview-auto`,
+            APPLICATION_COMPLETE_INTERVIEW: (id) => `/api/applications/${id}/complete-interview`
         }
     }
 };

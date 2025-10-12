@@ -34,7 +34,7 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 			await logout()
 			// Redirect to login page after successful logout
 			navigate('/', { replace: true })
-		} catch (error) {
+		} catch {
 			// Even if logout fails, redirect to login page
 			navigate('/', { replace: true })
 		}

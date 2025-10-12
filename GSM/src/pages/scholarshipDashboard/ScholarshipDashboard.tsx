@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Trash2 } from 'lucide-react';
+import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Trash2, FileText } from 'lucide-react';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
+// EnrollmentVerificationCard removed - automatic verification disabled
+import InterviewScheduleCard from '../../components/InterviewScheduleCard';
 
 export const ScholarshipDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ export const ScholarshipDashboard: React.FC = () => {
   };
 
   // Notification functions
-  const generateMockNotifications = (application: any) => {
+  const generateMockNotifications = useCallback((application: any) => {
     const mockNotifications = [];
     
     if (application) {
@@ -84,9 +86,22 @@ export const ScholarshipDashboard: React.FC = () => {
             priority: 'urgent'
           });
           break;
+        // approved_pending_verification status removed - applications go directly to interview_scheduled
+        // enrollment_verified status removed - automatic verification disabled
+        case 'interview_completed':
+          mockNotifications.push({
+            id: 6,
+            type: 'success',
+            title: 'Interview Completed',
+            message: 'Your interview has been completed. The results are being reviewed by the committee.',
+            timestamp: new Date(application.interview_completed_at || Date.now()),
+            isRead: false,
+            priority: 'high'
+          });
+          break;
         case 'rejected':
           mockNotifications.push({
-            id: 4,
+            id: 7,
             type: 'error',
             title: 'Application Not Approved',
             message: `Unfortunately, your application was not approved. Reason: ${application.rejection_reason || 'Please contact support for details.'}`,
@@ -102,7 +117,7 @@ export const ScholarshipDashboard: React.FC = () => {
         const rejectedDocs = documents.filter(doc => doc.status === 'rejected');
         if (rejectedDocs.length > 0) {
           mockNotifications.push({
-            id: 5,
+            id: 8,
             type: 'warning',
             title: 'Document Issues',
             message: `${rejectedDocs.length} document(s) were rejected and need to be resubmitted.`,
@@ -115,7 +130,7 @@ export const ScholarshipDashboard: React.FC = () => {
         const verifiedDocs = documents.filter(doc => doc.status === 'verified');
         if (verifiedDocs.length > 0) {
           mockNotifications.push({
-            id: 6,
+            id: 9,
             type: 'success',
             title: 'Documents Verified',
             message: `${verifiedDocs.length} document(s) have been successfully verified.`,
@@ -129,7 +144,7 @@ export const ScholarshipDashboard: React.FC = () => {
       // Compliance notifications
       if (application.compliance_issues && application.compliance_issues.length > 0) {
         mockNotifications.push({
-          id: 7,
+          id: 10,
           type: 'warning',
           title: 'Compliance Review Required',
           message: 'Your application has been flagged for compliance review. Please check the details and make necessary corrections.',
@@ -144,7 +159,7 @@ export const ScholarshipDashboard: React.FC = () => {
         const missingDocs = requiredDocumentsCount - submittedRequiredCount;
         if (missingDocs > 0) {
           mockNotifications.push({
-            id: 8,
+            id: 11,
             type: 'info',
             title: 'Complete Your Application',
             message: `You have ${missingDocs} required document(s) remaining to complete your application.`,
@@ -168,7 +183,7 @@ export const ScholarshipDashboard: React.FC = () => {
     });
 
     return mockNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
+  }, []);
 
   const markNotificationAsRead = (notificationId: number) => {
     setNotifications(prev => 
@@ -246,7 +261,7 @@ export const ScholarshipDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [generateMockNotifications]);
 
   // Refresh applications and documents
   const refreshApplications = async () => {
@@ -917,6 +932,9 @@ export const ScholarshipDashboard: React.FC = () => {
       case 'interview_scheduled':
       case 'endorsed_to_ssc':
         return <Clock className="h-5 w-5 text-blue-500" />;
+      // approved_pending_verification and enrollment_verified statuses removed - automatic verification disabled
+      case 'interview_completed':
+        return <Users className="h-5 w-5 text-indigo-500" />;
       case 'draft':
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case 'rejected':
@@ -944,6 +962,9 @@ export const ScholarshipDashboard: React.FC = () => {
       case 'interview_scheduled':
       case 'endorsed_to_ssc':
         return 'text-blue-600 bg-blue-100';
+      // approved_pending_verification and enrollment_verified statuses removed - automatic verification disabled
+      case 'interview_completed':
+        return 'text-indigo-600 bg-indigo-100';
       case 'pending':
         return 'text-yellow-600 bg-yellow-100';
       case 'rejected':
@@ -1686,6 +1707,21 @@ export const ScholarshipDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+            {/* Enrollment Verification Card - Removed (automatic verification disabled) */}
+            {/* Manual enrollment verification is now handled by administrators */}
+
+            {/* Interview Schedule Card */}
+            {currentApplication && (scholarshipData.rawStatus === 'interview_scheduled' || scholarshipData.rawStatus === 'interview_completed') && (
+              <InterviewScheduleCard 
+                applicationId={currentApplication.id}
+                studentId={currentApplication.student_id}
+                onStatusChange={() => {
+                  // Refresh applications when status changes
+                  refreshApplications();
+                }}
+              />
+            )}
 
             {/* Action Card - Only for Draft Applications */}
             {currentApplication && scholarshipData.rawStatus === 'draft' && (

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ApplicationOverview from './ApplicationOverview';
 import ScholarshipApplications from './ScholarshipApplications';
-import VerifiedEnrolledStudents from './VerifiedEnrolledStudents';
+// VerifiedEnrolledStudents removed - automatic verification disabled
 import InterviewSchedules from './InterviewSchedules';
 import EndorseToSSC from './EndorseToSSC';
 
@@ -11,7 +11,7 @@ function ApplicationManagement() {
   const tabs = [
     { id: 'overview', label: 'Overview', component: ApplicationOverview },
     { id: 'applications', label: 'Application Review', component: ScholarshipApplications },
-    { id: 'verified', label: 'Verified Enrolled Students', component: VerifiedEnrolledStudents },
+    // Verified Enrolled Students tab removed - automatic verification disabled
     { id: 'interviews', label: 'Interview Schedules', component: InterviewSchedules },
     { id: 'endorse', label: 'Endorse to SSC', component: EndorseToSSC }
   ];

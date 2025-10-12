@@ -37,6 +37,10 @@ class ScholarshipApplication extends Model
         'approved_at',
         'reviewed_by',
         'approved_by',
+        'enrollment_verification_id',
+        'interview_schedule_id',
+        'enrollment_verified_at',
+        'interview_completed_at',
     ];
 
     protected $casts = [
@@ -49,6 +53,8 @@ class ScholarshipApplication extends Model
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',
+        'enrollment_verified_at' => 'datetime',
+        'interview_completed_at' => 'datetime',
     ];
 
     // Relationships
@@ -95,6 +101,16 @@ class ScholarshipApplication extends Model
     public function scholarshipAward(): HasOne
     {
         return $this->hasOne(ScholarshipAward::class);
+    }
+
+    public function enrollmentVerification(): HasOne
+    {
+        return $this->hasOne(EnrollmentVerification::class);
+    }
+
+    public function interviewSchedule(): HasOne
+    {
+        return $this->hasOne(InterviewSchedule::class);
     }
 
     // Scopes
@@ -151,7 +167,17 @@ class ScholarshipApplication extends Model
 
     public function canBeRejected(): bool
     {
-        return in_array($this->status, ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc']);
+        return in_array($this->status, [
+            'submitted', 
+            'documents_reviewed', 
+            'interview_scheduled', 
+            'interview_completed',
+            'endorsed_to_ssc', 
+            'for_compliance', 
+            'compliance_documents_submitted',
+            'on_hold',
+            'grants_processing'
+        ]);
     }
 
     public function canBeDeleted(): bool
@@ -249,15 +275,15 @@ class ScholarshipApplication extends Model
         }
 
         $this->update([
-            'status' => 'documents_reviewed',
+            'status' => 'interview_scheduled',
             'reviewed_at' => now(),
             'reviewed_by' => $reviewedBy ?? auth()->id(),
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
-            'status' => 'documents_reviewed',
-            'notes' => $notes ?? 'Documents reviewed and verified',
+            'status' => 'interview_scheduled',
+            'notes' => $notes ?? 'Application reviewed and approved - ready for interview scheduling',
             'changed_by' => $reviewedBy ?? auth()->id(),
             'changed_at' => now(),
         ]);
@@ -267,18 +293,17 @@ class ScholarshipApplication extends Model
 
     public function scheduleInterview($notes = null, $scheduledBy = null): bool
     {
-        if ($this->status !== 'documents_reviewed') {
+        if ($this->status !== 'interview_scheduled') {
             return false;
         }
 
         $this->update([
-            'status' => 'interview_scheduled',
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
             'status' => 'interview_scheduled',
-            'notes' => $notes ?? 'Interview scheduled for applicant',
+            'notes' => $notes ?? 'Interview details updated',
             'changed_by' => $scheduledBy ?? auth()->id(),
             'changed_at' => now(),
         ]);
@@ -288,7 +313,7 @@ class ScholarshipApplication extends Model
 
     public function endorseToSSC($notes = null, $endorsedBy = null): bool
     {
-        if ($this->status !== 'interview_scheduled') {
+        if ($this->status !== 'interview_completed') {
             return false;
         }
 
@@ -401,5 +426,163 @@ class ScholarshipApplication extends Model
     public function release($notes = null, $releasedBy = null): bool
     {
         return $this->disburseGrants($notes, $releasedBy);
+    }
+
+    // New workflow methods for enrollment verification and interview scheduling
+
+    /**
+     * Approve application for enrollment verification
+     * Status: documents_reviewed → approved_pending_verification
+     */
+    public function approveForVerification($approvedBy, $notes = null): bool
+    {
+        if ($this->status !== 'documents_reviewed') {
+            return false;
+        }
+
+        $this->update([
+            'status' => 'approved_pending_verification',
+            'reviewed_at' => now(),
+            'reviewed_by' => $approvedBy,
+            'notes' => $notes,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'approved_pending_verification',
+            'notes' => $notes ?? 'Application approved for enrollment verification',
+            'changed_by' => $approvedBy,
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Confirm enrollment verification
+     * Status: approved_pending_verification → enrollment_verified
+     */
+    public function confirmEnrollment($verificationId, $confirmedBy): bool
+    {
+        if ($this->status !== 'approved_pending_verification') {
+            return false;
+        }
+
+        $this->update([
+            'status' => 'enrollment_verified',
+            'enrollment_verification_id' => $verificationId,
+            'enrollment_verified_at' => now(),
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'enrollment_verified',
+            'notes' => 'Enrollment verification completed',
+            'changed_by' => $confirmedBy,
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Schedule interview automatically
+     * Status: enrollment_verified → interview_scheduled
+     */
+    public function scheduleInterviewAutomatically($interviewData): bool
+    {
+        if ($this->status !== 'enrollment_verified') {
+            return false;
+        }
+
+        $interview = InterviewSchedule::createForApplication($this, $interviewData);
+        
+        $this->update([
+            'status' => 'interview_scheduled',
+            'interview_schedule_id' => $interview->id,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'interview_scheduled',
+            'notes' => 'Interview scheduled automatically',
+            'changed_by' => $interviewData['scheduled_by'],
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Schedule interview manually
+     * Status: enrollment_verified → interview_scheduled
+     */
+    public function scheduleInterviewManually($interviewData, $scheduledBy): bool
+    {
+        if ($this->status !== 'enrollment_verified') {
+            return false;
+        }
+
+        $interview = InterviewSchedule::createForApplication($this, $interviewData);
+        
+        $this->update([
+            'status' => 'interview_scheduled',
+            'interview_schedule_id' => $interview->id,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'interview_scheduled',
+            'notes' => 'Interview scheduled manually',
+            'changed_by' => $scheduledBy,
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Complete interview
+     * Status: interview_scheduled → interview_completed
+     */
+    public function completeInterview($result, $notes, $completedBy): bool
+    {
+        if ($this->status !== 'interview_scheduled') {
+            return false;
+        }
+
+        $this->update([
+            'status' => 'interview_completed',
+            'interview_completed_at' => now(),
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => 'interview_completed',
+            'notes' => $notes ?? 'Interview completed',
+            'changed_by' => $completedBy,
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Check if application can be approved for verification
+     */
+    public function canBeApprovedForVerification(): bool
+    {
+        return $this->status === 'documents_reviewed';
+    }
+
+    /**
+     * Check if application can proceed to interview
+     */
+    public function canProceedToInterview(): bool
+    {
+        return $this->status === 'interview_scheduled';
+    }
+
+    /**
+     * Check if application can complete interview
+     */
+    public function canCompleteInterview(): bool
+    {
+        return $this->status === 'interview_scheduled';
     }
 }

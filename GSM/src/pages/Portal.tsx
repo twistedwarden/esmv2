@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { ScholarshipDirectoryModal } from '../components/ScholarshipDirectoryModal';
 import { scholarshipApiService } from '../services/scholarshipApiService';
 import { useAuthStore } from '../store/v1authStore';
-import { Skeleton, SkeletonButton } from '../components/ui/Skeleton';
+import { Skeleton } from '../components/ui/Skeleton';
 
 // Add custom CSS for world-class animations
 const customStyles = `
@@ -98,9 +98,9 @@ export const Portal: React.FC = () => {
         const applications = await scholarshipApiService.getUserApplications();
         
         // Check if user has any pending or active applications
-        // Pending/Active statuses: draft, submitted, documents_reviewed, interview_scheduled, endorsed_to_ssc, approved, grants_processing, grants_disbursed, on_hold
+        // Pending/Active statuses: draft, submitted, documents_reviewed, interview_scheduled, interview_completed, endorsed_to_ssc, approved, grants_processing, grants_disbursed, on_hold
         // Only rejected and cancelled applications allow new applications
-        const activeStatuses = ['draft', 'submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
+        const activeStatuses = ['draft', 'submitted', 'documents_reviewed', 'interview_scheduled', 'interview_completed', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
         const hasActive = applications.some(app => activeStatuses.includes(app.status?.toLowerCase()));
         
         setHasActiveApplication(hasActive);

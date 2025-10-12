@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/v1authStore';
-import { Skeleton, SkeletonForm } from '../components/ui/Skeleton';
+import { Skeleton } from '../components/ui/Skeleton';
 
 // Google OAuth types
 declare global {

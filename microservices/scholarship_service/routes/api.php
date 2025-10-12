@@ -8,6 +8,8 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\ScholarshipCategoryController;
 use App\Http\Controllers\PartnerSchoolController;
+use App\Http\Controllers\EnrollmentVerificationController;
+use App\Http\Controllers\InterviewScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +63,13 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     Route::post('/{application}/compliance', [ScholarshipApplicationController::class, 'flagForCompliance']);
     Route::post('/{application}/approve', [ScholarshipApplicationController::class, 'approve']);
     Route::post('/{application}/reject', [ScholarshipApplicationController::class, 'reject']);
+    
+    // New workflow actions
+    Route::post('/{application}/approve-for-verification', [ScholarshipApplicationController::class, 'approveForVerification']);
+    Route::post('/{application}/verify-enrollment', [ScholarshipApplicationController::class, 'verifyEnrollment']);
+    Route::post('/{application}/schedule-interview', [ScholarshipApplicationController::class, 'scheduleInterview']);
+    Route::post('/{application}/schedule-interview-auto', [ScholarshipApplicationController::class, 'scheduleInterviewAuto']);
+    Route::post('/{application}/complete-interview', [ScholarshipApplicationController::class, 'completeInterview']);
 });
 
 // Document routes
@@ -112,6 +121,23 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
         Route::put('/students/{studentId}/enrollment', [PartnerSchoolController::class, 'updateEnrollmentStatus']);
     });
 });
+
+// Enrollment Verification routes have been removed - automatic verification is disabled
+
+// Interview Schedule routes (protected by authentication)
+Route::prefix('interview-schedules')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/', [InterviewScheduleController::class, 'index']);
+    Route::get('/{schedule}', [InterviewScheduleController::class, 'show']);
+    Route::post('/', [InterviewScheduleController::class, 'store']);
+    Route::put('/{schedule}/reschedule', [InterviewScheduleController::class, 'reschedule']);
+    Route::post('/{schedule}/complete', [InterviewScheduleController::class, 'complete']);
+    Route::post('/{schedule}/cancel', [InterviewScheduleController::class, 'cancel']);
+    Route::post('/{schedule}/no-show', [InterviewScheduleController::class, 'markNoShow']);
+    Route::get('/available-slots', [InterviewScheduleController::class, 'availableSlots']);
+    Route::get('/calendar', [InterviewScheduleController::class, 'calendar']);
+});
+
+// Partner School Enrollment Data Management routes have been removed - automatic verification is disabled
 
 // Form-specific endpoints for easy integration (protected by authentication)
 Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
