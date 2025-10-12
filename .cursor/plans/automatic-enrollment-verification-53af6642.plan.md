@@ -1,137 +1,239 @@
 <!-- 53af6642-e8d5-4dfa-92a0-3fed218c3994 ca12b12b-5375-4376-bedd-13576554a0f0 -->
-# Interview to SSC Endorsement Workflow
+# Complete Scholarship Application System Workflow Documentation
 
 ## Overview
 
-After an interviewer submits an interview evaluation, the application should move from Interview Schedules to Endorse SSC, where staff can review the evaluation scores and endorse to SSC for final approval.
+Document the entire scholarship application system workflow, including all stages, status transitions, components, and user interactions from start to finish.
 
-## Backend Changes
+## Documentation Structure
 
-### 1. Database Migration - Store Interview Evaluation Data
+### 1. Create Main Workflow Documentation
 
-**File**: `microservices/scholarship_service/database/migrations/YYYY_MM_DD_add_interview_evaluation_to_applications.php`
+**File**: `docs/SYSTEM_WORKFLOW.md`
 
-Create new migration to add interview evaluation fields to `scholarship_applications` table:
+Create comprehensive documentation covering:
 
-- `interview_evaluation` (JSON) - stores all evaluation scores and data
-- `interview_summary_score` (decimal) - calculated average of all scores
+#### Student Journey
 
-### 2. Update ScholarshipApplication Model
+- Registration process (citizen → student)
+- Application creation and submission
+- Document upload requirements
+- Status tracking and notifications
+- Interview participation
+- Dashboard features
 
-**File**: `microservices/scholarship_service/app/Models/ScholarshipApplication.php`
+#### Admin Workflow
 
-- Add `interview_evaluation` and `interview_summary_score` to `$fillable` array
-- Add `interview_evaluation` to `$casts` as 'array'
-- Update `completeInterview()` method to accept and store evaluation data
+- Application review process
+- Document verification
+- Interview scheduling
+- Evaluation review
+- SSC endorsement process
 
-### 3. Update ScholarshipApplicationController
+#### SSC Workflow
 
-**File**: `microservices/scholarship_service/app/Http/Controllers/ScholarshipApplicationController.php`
+- Final application review
+- Approval/rejection decisions
+- Policy compliance checks
 
-Update `completeInterview()` method (around line 1061):
+#### Status Definitions
 
-- Accept `evaluation_data` parameter
-- Calculate summary score from evaluation scores
-- Store evaluation data in application record
-- Change status to `interview_completed`
+Complete list of all application statuses:
 
-### 4. Create EndorseToSSC API Endpoints
+- `draft` - Application being created
+- `submitted` - Application submitted for review
+- `for_compliance` - Missing/incomplete documents
+- `documents_reviewed` - Documents verified, ready for interview
+- `interview_scheduled` - Interview date/time set
+- `interview_completed` - Interview finished, awaiting endorsement
+- `endorsed_to_ssc` - Endorsed for SSC final review
+- `approved` - SSC approved
+- `rejected` - Application rejected
+- `on_hold` - Awaiting additional information
+- `grants_processing` - Grant being processed
+- `grants_disbursed` - Grant released to student
 
-**File**: `microservices/scholarship_service/routes/api.php`
+### 2. Create Component Mapping Documentation
 
-Add new routes:
+**File**: `docs/COMPONENT_MAPPING.md`
 
-```php
-Route::get('/applications/endorse-to-ssc', [ScholarshipApplicationController::class, 'getEndorseToSSCApplications']);
-Route::post('/applications/{application}/endorse-to-ssc', [ScholarshipApplicationController::class, 'endorseApplicationToSSC']);
+Document which components handle which statuses:
+
+#### Frontend Components
+
+- `ScholarshipApplications.jsx` - handles: draft, submitted, for_compliance
+- `InterviewSchedules.jsx` - handles: documents_reviewed, interview_scheduled
+- `EndorseToSSC.jsx` - handles: interview_completed
+- `SSC/ApplicationReview.jsx` - handles: endorsed_to_ssc
+- `ScholarshipDashboard.tsx` - student view of all statuses
+
+#### Backend Controllers
+
+- `ScholarshipApplicationController.php` - main application logic
+- `InterviewScheduleController.php` - interview management
+- Status transition methods and validations
+
+### 3. Create Status Transition Diagram
+
+**File**: `docs/STATUS_FLOW_DIAGRAM.md`
+
+Visual representation using Mermaid diagram:
+
+```mermaid
+graph TD
+    A[Draft] --> B[Submitted]
+    B --> C{Document Check}
+    C -->|Incomplete| D[For Compliance]
+    D --> B
+    C -->|Complete| E[Documents Reviewed]
+    E --> F[Interview Scheduled]
+    F --> G[Interview Completed]
+    G --> H[Endorsed to SSC]
+    H --> I{SSC Decision}
+    I -->|Approve| J[Approved]
+    I -->|Reject| K[Rejected]
+    I -->|Hold| L[On Hold]
+    J --> M[Grants Processing]
+    M --> N[Grants Disbursed]
 ```
 
-### 5. Add Controller Methods
+### 4. Create API Endpoints Documentation
 
-**File**: `microservices/scholarship_service/app/Http/Controllers/ScholarshipApplicationController.php`
+**File**: `docs/API_ENDPOINTS.md`
 
-Add two new methods:
+Document all API endpoints by workflow stage:
 
-- `getEndorseToSSCApplications()` - fetch applications with status `interview_completed`
-- `endorseApplicationToSSC()` - change status from `interview_completed` to `endorsed_to_ssc`
+#### Application Management
 
-## Frontend Changes
+- `POST /api/applications` - create application
+- `GET /api/applications` - list applications
+- `PUT /api/applications/{id}` - update application
+- `POST /api/applications/{id}/submit` - submit application
+- `POST /api/applications/{id}/review` - mark as reviewed
 
-### 6. Update API Service
+#### Interview Management
 
-**File**: `GSM/src/services/scholarshipApiService.ts`
+- `GET /api/interview-schedules` - list schedules
+- `POST /api/applications/{id}/schedule-interview` - schedule interview
+- `POST /api/applications/{id}/complete-interview` - submit evaluation
 
-Add new methods:
+#### Endorsement & Approval
 
-- `getEndorseToSSCApplications()` - fetch interview_completed applications
-- `endorseApplicationToSSC(applicationId, notes)` - endorse application to SSC
+- `GET /api/applications/endorse-to-ssc` - get interview_completed apps
+- `POST /api/applications/{id}/endorse-to-ssc` - endorse to SSC
+- `GET /api/applications/endorsed-to-ssc` - get endorsed apps
+- `POST /api/applications/{id}/approve` - SSC approve
+- `POST /api/applications/{id}/reject` - reject application
 
-### 7. Update InterviewSchedules Component
+### 5. Create User Role Permissions Documentation
 
-**File**: `GSM/src/admin/components/modules/scholarship/application/InterviewSchedules.jsx`
+**File**: `docs/USER_ROLES.md`
 
-In `handleEvaluationSubmit()` function (around line 814):
+Document permissions for each role:
 
-- Keep the API call to `completeApplicationInterview()` with evaluation data
-- Remove schedule from list after successful submission (already implemented)
-- Application status changes to `interview_completed` (backend handles this)
+#### Citizen
 
-### 8. Update EndorseToSSC Component
+- Register account
+- Create/edit draft applications
+- Submit applications
+- Upload documents
+- View own application status
+- Join scheduled interviews
 
-**File**: `GSM/src/admin/components/modules/scholarship/application/EndorseToSSC.jsx`
+#### Admin/Staff
 
-Major updates:
+- View all applications
+- Review documents
+- Schedule interviews
+- Conduct interviews
+- Submit evaluations
+- Endorse to SSC
 
-- Replace mock data with real API call to fetch `interview_completed` applications
-- Add interview evaluation display section in application details modal
-- Display evaluation scores:
-  - Academic Motivation Score
-  - Leadership & Involvement Score
-  - Financial Need Score
-  - Character & Values Score
-  - Summary Score (calculated average)
-  - Overall Recommendation
-  - Remarks
-- Update `handleEndorse()` to call API and change status to `endorsed_to_ssc`
-- Remove application from list after successful endorsement
+#### SSC Members
 
-### 9. Update SSC ApplicationReview Component
+- View endorsed applications
+- Review interview evaluations
+- Make final approval decisions
+- Access reports and analytics
 
-**File**: `GSM/src/admin/components/modules/scholarship/ssc/ApplicationReview.jsx`
+### 6. Create Interview Evaluation Documentation
 
-- Update to fetch applications with status `endorsed_to_ssc`
-- Add interview evaluation display in application details
-- Show same evaluation scores as EndorseToSSC component
-- SSC can view evaluation data (read-only) and make final approval decision
+**File**: `docs/INTERVIEW_EVALUATION.md`
 
-### 10. Update Status Handling
+Document evaluation process:
 
-**Files**:
+#### Evaluation Criteria
 
-- `GSM/src/admin/components/modules/scholarship/application/ScholarshipApplications.jsx`
-- `GSM/src/pages/scholarshipDashboard/ScholarshipDashboard.tsx`
-- `GSM/src/pages/Portal.tsx`
+- Academic Motivation (1-5 scale)
+- Leadership & Involvement (1-5 scale)
+- Financial Need (1-5 scale)
+- Character & Values (1-5 scale)
+- Overall Recommendation (Recommended/Not Recommended/Conditional)
+- Detailed Remarks
 
-Add status handling for:
+#### Scoring System
 
-- `interview_completed` - show in EndorseToSSC
-- `endorsed_to_ssc` - show in SSC ApplicationReview
+- Summary Score = Average of all criteria scores
+- Scoring guidelines for each criterion
+- Recommendation thresholds
 
-## Workflow Summary
+#### Data Storage
 
-1. Interviewer submits evaluation → Application status: `interview_completed`
-2. Application appears in EndorseToSSC component with evaluation data
-3. Staff reviews evaluation and endorses → Application status: `endorsed_to_ssc`
-4. Application appears in SSC ApplicationReview component
-5. SSC reviews and makes final approval decision
+- Stored as JSON in `interview_evaluation` field
+- Summary score in `interview_summary_score` field
+- Timestamp in `interview_completed_at` field
 
-## Key Features
+### 7. Update README Files
 
-- Interview evaluation data persists with application
-- Summary score calculated automatically
-- Applications flow through proper approval chain
-- Each stage can view previous evaluation data
-- Clean separation between endorsement and final approval
+#### Main README
+
+**File**: `README.md`
+
+Add workflow overview section with links to detailed docs
+
+#### GSM Frontend README
+
+**File**: `GSM/README.md`
+
+Add component documentation and routing information
+
+#### Scholarship Service README
+
+**File**: `microservices/scholarship_service/README.md`
+
+Add API documentation and status management details
+
+### 8. Create Developer Onboarding Guide
+
+**File**: `docs/DEVELOPER_GUIDE.md`
+
+Quick start guide for new developers:
+
+- System architecture overview
+- Key components and their purposes
+- How to add new features
+- Testing guidelines
+- Common workflows to understand
+
+## Documentation Format
+
+All documentation should include:
+
+- Clear headings and structure
+- Code examples where applicable
+- Visual diagrams (Mermaid)
+- Links between related documents
+- Last updated date
+- Version information
+
+## Benefits
+
+- New developers can understand system quickly
+- Clear reference for all stakeholders
+- Easier maintenance and updates
+- Better onboarding experience
+- Reduced knowledge silos
+- Foundation for user manuals
 
 ### To-dos
 
