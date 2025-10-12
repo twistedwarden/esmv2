@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('year_level')->nullable();
             $table->string('uploaded_by')->nullable(); // citizen_id of the uploader
             $table->timestamp('uploaded_at')->useCurrent();
+            $table->timestamps(); // This adds created_at and updated_at columns
             
             // Indexes for performance
             $table->index(['school_id', 'student_id_number'], 'psed_school_student_idx');
