@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             DocumentTypeSeeder::class,
             PartnerSchoolRepresentativeSeeder::class, // Must run after SchoolSeeder
             SampleApplicationSeeder::class,
-            EnrollmentVerificationSeeder::class, // Must run after SampleApplicationSeeder
+            //EnrollmentVerificationSeeder::class, // Must run after SampleApplicationSeeder
             InterviewScheduleSeeder::class, // Must run after SampleApplicationSeeder
         ]);
     }

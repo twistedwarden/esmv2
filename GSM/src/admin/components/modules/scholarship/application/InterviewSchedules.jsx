@@ -26,7 +26,10 @@ import {
   MessageSquare,
   FileText,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Star,
+  ExternalLink,
+  ClipboardList
 } from 'lucide-react';
 
 function InterviewSchedules() {
@@ -51,6 +54,7 @@ function InterviewSchedules() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isJoinMeetingModalOpen, setIsJoinMeetingModalOpen] = useState(false);
   const [activeSchedule, setActiveSchedule] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   
@@ -68,6 +72,21 @@ function InterviewSchedules() {
   });
   const [createFormErrors, setCreateFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Interview evaluation form state
+  const [evaluationFormData, setEvaluationFormData] = useState({
+    applicantId: '',
+    interviewerName: '',
+    interviewDate: '',
+    academicMotivationScore: '',
+    leadershipInvolvementScore: '',
+    financialNeedScore: '',
+    characterValuesScore: '',
+    overallRecommendation: '',
+    remarks: ''
+  });
+  const [evaluationFormErrors, setEvaluationFormErrors] = useState({});
+  const [isSubmittingEvaluation, setIsSubmittingEvaluation] = useState(false);
 
   useEffect(() => {
     fetchSchedules();
@@ -627,7 +646,20 @@ function InterviewSchedules() {
 
   const handleJoinMeeting = (schedule) => {
     if (schedule.meetingLink) {
-      window.open(schedule.meetingLink, '_blank');
+      setActiveSchedule(schedule);
+      // Pre-populate evaluation form with schedule data
+      setEvaluationFormData({
+        applicantId: schedule.studentId,
+        interviewerName: schedule.interviewer,
+        interviewDate: schedule.interviewDate,
+        academicMotivationScore: '',
+        leadershipInvolvementScore: '',
+        financialNeedScore: '',
+        characterValuesScore: '',
+        overallRecommendation: '',
+        remarks: ''
+      });
+      setIsJoinMeetingModalOpen(true);
     } else {
       alert('No meeting link available for this interview.');
     }
@@ -737,6 +769,102 @@ function InterviewSchedules() {
       notes: ''
     });
     setCreateFormErrors({});
+  };
+
+  // Evaluation form handling functions
+  const handleEvaluationFormChange = (field, value) => {
+    setEvaluationFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (evaluationFormErrors[field]) {
+      setEvaluationFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateEvaluationForm = () => {
+    const errors = {};
+    
+    if (!evaluationFormData.academicMotivationScore) {
+      errors.academicMotivationScore = 'Please provide academic motivation score';
+    }
+    if (!evaluationFormData.leadershipInvolvementScore) {
+      errors.leadershipInvolvementScore = 'Please provide leadership & involvement score';
+    }
+    if (!evaluationFormData.financialNeedScore) {
+      errors.financialNeedScore = 'Please provide financial need score';
+    }
+    if (!evaluationFormData.characterValuesScore) {
+      errors.characterValuesScore = 'Please provide character & values score';
+    }
+    if (!evaluationFormData.overallRecommendation) {
+      errors.overallRecommendation = 'Please provide overall recommendation';
+    }
+    if (!evaluationFormData.remarks) {
+      errors.remarks = 'Please provide remarks';
+    }
+    
+    setEvaluationFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleEvaluationSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateEvaluationForm()) {
+      return;
+    }
+    
+    setIsSubmittingEvaluation(true);
+    try {
+      // Here you would make the API call to save the evaluation
+      // For now, we'll just simulate it
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update the schedule status to completed
+      if (activeSchedule) {
+        setSchedules(prev => prev.map(schedule => 
+          schedule.id === activeSchedule.id 
+            ? { ...schedule, status: 'completed', evaluationData: evaluationFormData }
+            : schedule
+        ));
+      }
+      
+      setIsJoinMeetingModalOpen(false);
+      setActiveSchedule(null);
+      setEvaluationFormData({
+        applicantId: '',
+        interviewerName: '',
+        interviewDate: '',
+        academicMotivationScore: '',
+        leadershipInvolvementScore: '',
+        financialNeedScore: '',
+        characterValuesScore: '',
+        overallRecommendation: '',
+        remarks: ''
+      });
+      setEvaluationFormErrors({});
+      
+      alert('Interview evaluation submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting evaluation:', error);
+      alert('Failed to submit evaluation: ' + error.message);
+    } finally {
+      setIsSubmittingEvaluation(false);
+    }
+  };
+
+  const resetEvaluationForm = () => {
+    setEvaluationFormData({
+      applicantId: '',
+      interviewerName: '',
+      interviewDate: '',
+      academicMotivationScore: '',
+      leadershipInvolvementScore: '',
+      financialNeedScore: '',
+      characterValuesScore: '',
+      overallRecommendation: '',
+      remarks: ''
+    });
+    setEvaluationFormErrors({});
   };
 
   // Utility function to safely format dates
@@ -1396,6 +1524,275 @@ function InterviewSchedules() {
                   <span>Join Meeting</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Meeting & Interview Output Modal */}
+      {isJoinMeetingModalOpen && activeSchedule && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsJoinMeetingModalOpen(false)} />
+          <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Join Meeting & Interview Output</h3>
+              <button 
+                onClick={() => setIsJoinMeetingModalOpen(false)} 
+                className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Meeting Link Section */}
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                  <Video className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
+                  Meeting Link
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Platform</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.platform}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Meeting Link</p>
+                    <div className="flex items-center space-x-2">
+                      <a 
+                        href={activeSchedule.meetingLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-medium text-blue-600 dark:text-blue-400 hover:underline break-all flex-1"
+                      >
+                        {activeSchedule.meetingLink}
+                      </a>
+                      <button
+                        onClick={() => window.open(activeSchedule.meetingLink, '_blank')}
+                        className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-1"
+                        title="Open in new tab"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span className="text-sm">Join</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interview Output Form */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <ClipboardList className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                  Interview Evaluation Record
+                </h4>
+                
+                <form onSubmit={handleEvaluationSubmit} className="space-y-4">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Applicant ID
+                      </label>
+                      <input
+                        type="text"
+                        value={evaluationFormData.applicantId}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Interviewer Name
+                      </label>
+                      <input
+                        type="text"
+                        value={evaluationFormData.interviewerName}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Interview Date
+                      </label>
+                      <input
+                        type="text"
+                        value={evaluationFormData.interviewDate}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Scoring Section */}
+                  <div className="space-y-4">
+                    <h5 className="font-medium text-gray-900 dark:text-white">Scoring (1-5 scale)</h5>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Academic Motivation Score
+                        </label>
+                        <select
+                          value={evaluationFormData.academicMotivationScore}
+                          onChange={(e) => handleEvaluationFormChange('academicMotivationScore', e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            evaluationFormErrors.academicMotivationScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                        >
+                          <option value="">Select score...</option>
+                          <option value="1">1 - Poor</option>
+                          <option value="2">2 - Below Average</option>
+                          <option value="3">3 - Average</option>
+                          <option value="4">4 - Good</option>
+                          <option value="5">5 - Excellent</option>
+                        </select>
+                        {evaluationFormErrors.academicMotivationScore && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.academicMotivationScore}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Leadership & Involvement Score
+                        </label>
+                        <select
+                          value={evaluationFormData.leadershipInvolvementScore}
+                          onChange={(e) => handleEvaluationFormChange('leadershipInvolvementScore', e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            evaluationFormErrors.leadershipInvolvementScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                        >
+                          <option value="">Select score...</option>
+                          <option value="1">1 - Poor</option>
+                          <option value="2">2 - Below Average</option>
+                          <option value="3">3 - Average</option>
+                          <option value="4">4 - Good</option>
+                          <option value="5">5 - Excellent</option>
+                        </select>
+                        {evaluationFormErrors.leadershipInvolvementScore && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.leadershipInvolvementScore}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Financial Need Score
+                        </label>
+                        <select
+                          value={evaluationFormData.financialNeedScore}
+                          onChange={(e) => handleEvaluationFormChange('financialNeedScore', e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            evaluationFormErrors.financialNeedScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                        >
+                          <option value="">Select score...</option>
+                          <option value="1">1 - Poor</option>
+                          <option value="2">2 - Below Average</option>
+                          <option value="3">3 - Average</option>
+                          <option value="4">4 - Good</option>
+                          <option value="5">5 - Excellent</option>
+                        </select>
+                        {evaluationFormErrors.financialNeedScore && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.financialNeedScore}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Character & Values Score
+                        </label>
+                        <select
+                          value={evaluationFormData.characterValuesScore}
+                          onChange={(e) => handleEvaluationFormChange('characterValuesScore', e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            evaluationFormErrors.characterValuesScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                        >
+                          <option value="">Select score...</option>
+                          <option value="1">1 - Poor</option>
+                          <option value="2">2 - Below Average</option>
+                          <option value="3">3 - Average</option>
+                          <option value="4">4 - Good</option>
+                          <option value="5">5 - Excellent</option>
+                        </select>
+                        {evaluationFormErrors.characterValuesScore && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.characterValuesScore}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Overall Recommendation */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Overall Recommendation
+                    </label>
+                    <select
+                      value={evaluationFormData.overallRecommendation}
+                      onChange={(e) => handleEvaluationFormChange('overallRecommendation', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        evaluationFormErrors.overallRecommendation ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      }`}
+                    >
+                      <option value="">Select recommendation...</option>
+                      <option value="recommended">✅ Recommended for SSC Review</option>
+                      <option value="not_recommended">❌ Not Recommended</option>
+                      <option value="conditional">⚠️ Conditional Recommendation</option>
+                    </select>
+                    {evaluationFormErrors.overallRecommendation && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.overallRecommendation}</p>
+                    )}
+                  </div>
+
+                  {/* Remarks */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Remarks
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={evaluationFormData.remarks}
+                      onChange={(e) => handleEvaluationFormChange('remarks', e.target.value)}
+                      placeholder="Provide detailed feedback about the candidate's performance, strengths, areas for improvement, and any other relevant observations..."
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                        evaluationFormErrors.remarks ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      }`}
+                    />
+                    {evaluationFormErrors.remarks && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.remarks}</p>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200 dark:border-slate-700">
+              <button
+                onClick={() => setIsJoinMeetingModalOpen(false)}
+                disabled={isSubmittingEvaluation}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEvaluationSubmit}
+                disabled={isSubmittingEvaluation}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {isSubmittingEvaluation ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <ClipboardList className="w-4 h-4" />
+                    <span>Submit Evaluation</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
