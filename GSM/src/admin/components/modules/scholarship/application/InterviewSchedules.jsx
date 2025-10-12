@@ -31,9 +31,12 @@ import {
   ExternalLink,
   ClipboardList
 } from 'lucide-react';
+import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
 
 function InterviewSchedules() {
   const [schedules, setSchedules] = useState([]);
+  const [pendingApplications, setPendingApplications] = useState([]);
+  const [eligibleApplications, setEligibleApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,100 +93,78 @@ function InterviewSchedules() {
 
   useEffect(() => {
     fetchSchedules();
+    fetchPendingApplications();
+    fetchEligibleApplications();
   }, []);
+
+  const fetchPendingApplications = async () => {
+    try {
+      // Fetch applications with status 'documents_reviewed' to show as pending
+      const response = await scholarshipApiService.getApplications({ 
+        status: 'documents_reviewed',
+        per_page: 100,
+        with: 'student,category,subcategory' // Include related data
+      });
+      
+      setPendingApplications(response.data || []);
+    } catch (e) {
+      console.error('Error loading pending applications:', e);
+      // Don't set error state for this as it's not critical to the main functionality
+    }
+  };
+
+  const fetchEligibleApplications = async () => {
+    try {
+      // Fetch applications with status 'documents_reviewed'
+      const response = await scholarshipApiService.getApplications({ 
+        status: 'documents_reviewed',
+        per_page: 100 // Get more applications to have a good selection
+      });
+      
+      setEligibleApplications(response.data || []);
+    } catch (e) {
+      console.error('Error loading eligible applications:', e);
+      // Don't set error state for this as it's not critical to the main functionality
+    }
+  };
 
   const fetchSchedules = async () => {
     try {
       setLoading(true);
       setError('');
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await scholarshipApiService.getInterviewSchedules();
       
-      // Use mock data for development (API not implemented yet)
-      const mockSchedules = [
-        {
-          id: 1,
-          studentName: 'Juan Dela Cruz',
-          studentId: '2024-001',
-          studentEmail: 'juan.delacruz@email.com',
-          studentPhone: '+63 912 345 6789',
-          interviewer: 'Dr. Maria Santos',
-          interviewerEmail: 'maria.santos@scholarship.gov.ph',
-          interviewDate: '2024-02-15',
-          interviewTime: '10:00',
-          duration: 30,
-          type: 'online',
-          platform: 'Zoom',
-          meetingLink: 'https://zoom.us/j/123456789',
-          status: 'scheduled',
-          notes: 'Initial interview for scholarship application',
-          documents: ['Transcript', 'Recommendation Letter'],
-          createdAt: '2024-01-20'
-        },
-        {
-          id: 2,
-          studentName: 'Maria Garcia',
-          studentId: '2024-002',
-          studentEmail: 'maria.garcia@email.com',
-          studentPhone: '+63 912 345 6790',
-          interviewer: 'Prof. John Smith',
-          interviewerEmail: 'john.smith@scholarship.gov.ph',
-          interviewDate: '2024-02-16',
-          interviewTime: '14:00',
-          duration: 45,
-          type: 'online',
-          platform: 'Microsoft Teams',
-          meetingLink: 'https://teams.microsoft.com/l/meetup-join/123456789',
-          status: 'scheduled',
-          notes: 'Follow-up interview for merit scholarship',
-          documents: ['Transcript', 'Recommendation Letter', 'Portfolio'],
-          createdAt: '2024-01-21'
-        },
-        {
-          id: 3,
-          studentName: 'Pedro Rodriguez',
-          studentId: '2024-003',
-          studentEmail: 'pedro.rodriguez@email.com',
-          studentPhone: '+63 912 345 6791',
-          interviewer: 'Dr. Ana Lopez',
-          interviewerEmail: 'ana.lopez@scholarship.gov.ph',
-          interviewDate: '2024-02-17',
-          interviewTime: '09:30',
-          duration: 60,
-          type: 'online',
-          platform: 'Google Meet',
-          meetingLink: 'https://meet.google.com/abc-defg-hij',
-          status: 'completed',
-          notes: 'Final interview for full scholarship',
-          documents: ['Transcript', 'Recommendation Letter', 'Research Proposal'],
-          createdAt: '2024-01-22'
-        },
-        {
-          id: 4,
-          studentName: 'Sofia Martinez',
-          studentId: '2024-004',
-          studentEmail: 'sofia.martinez@email.com',
-          studentPhone: '+63 912 345 6792',
-          interviewer: 'Dr. Carlos Reyes',
-          interviewerEmail: 'carlos.reyes@scholarship.gov.ph',
-          interviewDate: '2024-02-18',
-          interviewTime: '11:00',
-          duration: 30,
-          type: 'online',
-          platform: 'Cisco Webex',
-          meetingLink: 'https://company.webex.com/meet/carlos.reyes',
-          status: 'scheduled',
-          notes: 'Interview for international scholarship program',
-          documents: ['Transcript', 'Recommendation Letter', 'Language Certificate'],
-          createdAt: '2024-01-23'
-        }
-      ];
+      // Transform the API response to match the expected format
+      const transformedSchedules = response.map(schedule => ({
+        id: schedule.id,
+        studentName: schedule.student ? `${schedule.student.first_name} ${schedule.student.last_name}` : 'Unknown Student',
+        studentId: schedule.student?.student_id_number || 'N/A',
+        studentEmail: schedule.student?.email_address || 'Not provided',
+        studentPhone: schedule.student?.contact_number || 'Not provided',
+        interviewer: schedule.interviewer_name || 'TBD',
+        interviewerEmail: 'interviewer@scholarship.gov.ph', // This would come from interviewer data
+        interviewDate: schedule.interview_date,
+        interviewTime: schedule.interview_time,
+        duration: 30, // Default duration - could be added to the API model
+        type: schedule.interview_type === 'in_person' ? 'in-person' : schedule.interview_type,
+        platform: schedule.interview_type === 'online' ? 'Zoom' : null,
+        meetingLink: schedule.meeting_link,
+        status: schedule.status,
+        notes: schedule.interview_notes || '',
+        documents: ['Transcript', 'Recommendation Letter'], // This would come from application documents
+        createdAt: schedule.created_at,
+        // Add additional fields for compatibility
+        application: schedule.application,
+        student: schedule.student,
+        interviewResult: schedule.interview_result,
+        completedAt: schedule.completed_at
+      }));
       
-      setSchedules(mockSchedules);
+      setSchedules(transformedSchedules);
     } catch (e) {
       console.error('Error loading interview schedules:', e);
-      setError('Failed to load interview schedules: ' + e.message);
+      setError('Failed to load interview schedules: ' + (e.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -191,6 +172,8 @@ function InterviewSchedules() {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'pending':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
       case 'scheduled':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'completed':
@@ -206,6 +189,8 @@ function InterviewSchedules() {
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'pending':
+        return <AlertTriangle className="w-4 h-4" />;
       case 'scheduled':
         return <Clock className="w-4 h-4" />;
       case 'completed':
@@ -232,105 +217,104 @@ function InterviewSchedules() {
 
   const handleCompleteInterview = async (scheduleId, result, notes = '') => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await scholarshipApiService.completeInterview(scheduleId, result, notes);
       
-      // Update local state
-      setSchedules(prev => prev.map(schedule => 
-        schedule.id === scheduleId 
-          ? { ...schedule, status: 'completed', interviewResult: result, notes: notes }
-          : schedule
-      ));
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
       
         alert('Interview completed successfully');
     } catch (e) {
       console.error('Error completing interview:', e);
-      alert('Failed to complete interview: ' + e.message);
+      alert('Failed to complete interview: ' + (e.message || 'Unknown error'));
     }
   };
 
   const handleRescheduleInterview = async (scheduleId, newDate, newTime, reason = '') => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await scholarshipApiService.rescheduleInterview(scheduleId, newDate, newTime, reason);
       
-      // Update local state
-      setSchedules(prev => prev.map(schedule => 
-        schedule.id === scheduleId 
-          ? { ...schedule, interviewDate: newDate, interviewTime: newTime, status: 'scheduled' }
-          : schedule
-      ));
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
       
         alert('Interview rescheduled successfully');
     } catch (e) {
       console.error('Error rescheduling interview:', e);
-      alert('Failed to reschedule interview: ' + e.message);
+      alert('Failed to reschedule interview: ' + (e.message || 'Unknown error'));
     }
   };
 
   const handleCancelInterview = async (scheduleId, reason = '') => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await scholarshipApiService.cancelInterview(scheduleId, reason);
       
-      // Update local state
-      setSchedules(prev => prev.map(schedule => 
-        schedule.id === scheduleId 
-          ? { ...schedule, status: 'cancelled' }
-          : schedule
-      ));
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
       
         alert('Interview cancelled successfully');
     } catch (e) {
       console.error('Error cancelling interview:', e);
-      alert('Failed to cancel interview: ' + e.message);
+      alert('Failed to cancel interview: ' + (e.message || 'Unknown error'));
     }
   };
 
   const handleMarkNoShow = async (scheduleId, notes = '') => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Note: The API service doesn't have a markNoShow method yet, so we'll use completeInterview with a special result
+      // This should be updated when the API service adds the markNoShow method
+      await scholarshipApiService.completeInterview(scheduleId, 'failed', `No show: ${notes}`);
       
-      // Update local state
-      setSchedules(prev => prev.map(schedule => 
-        schedule.id === scheduleId 
-          ? { ...schedule, status: 'no_show' }
-          : schedule
-      ));
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
       
         alert('Interview marked as no show');
     } catch (e) {
       console.error('Error marking as no show:', e);
-      alert('Failed to mark as no show: ' + e.message);
+      alert('Failed to mark as no show: ' + (e.message || 'Unknown error'));
     }
   };
 
   const handleScheduleInterview = async (applicationId, interviewData) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await scholarshipApiService.scheduleInterview(applicationId, interviewData);
       
-      // This function would typically add a new schedule to the list
-      // For now, we'll just show a success message
-        alert('Interview scheduled successfully');
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
+      
+      alert('Interview scheduled successfully');
     } catch (e) {
       console.error('Error scheduling interview:', e);
-      alert('Failed to schedule interview: ' + e.message);
+      alert('Failed to schedule interview: ' + (e.message || 'Unknown error'));
     }
+  };
+
+  const handleScheduleFromPending = (pendingSchedule) => {
+    // Pre-populate the form with the pending application data
+    setCreateFormData({
+      interviewType: 'online',
+      platform: 'zoom',
+      meetingLink: '',
+      studentId: pendingSchedule.applicationId.toString(),
+      interviewDate: '',
+      interviewTime: '',
+      duration: '30',
+      interviewer: '',
+      notes: `Scheduling interview for ${pendingSchedule.studentName}`
+    });
+    setCreateFormErrors({});
+    setIsCreateModalOpen(true);
   };
 
   const handleAutoScheduleInterview = async (applicationId) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await scholarshipApiService.scheduleInterviewAuto(applicationId);
       
-      // This function would typically add a new schedule to the list
-      // For now, we'll just show a success message
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
+      
         alert('Interview scheduled automatically');
     } catch (e) {
       console.error('Error auto-scheduling interview:', e);
-      alert('Failed to auto-schedule interview: ' + e.message);
+      alert('Failed to auto-schedule interview: ' + (e.message || 'Unknown error'));
     }
   };
 
@@ -372,18 +356,65 @@ function InterviewSchedules() {
     }
   };
 
-  const filteredSchedules = schedules.filter(schedule => {
-    const matchesSearch = schedule.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         schedule.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         schedule.interviewer.toLowerCase().includes(searchTerm.toLowerCase());
+  // Combine schedules and pending applications for display
+  const getAllItems = () => {
+    const allItems = [];
     
-    const matchesStatus = filters.status === 'all' || schedule.status === filters.status;
-    const matchesInterviewer = filters.interviewer === 'all' || schedule.interviewer === filters.interviewer;
+    // Add existing schedules
+    schedules.forEach(schedule => {
+      allItems.push({
+        ...schedule,
+        type: 'schedule'
+      });
+    });
     
-    // Date range filter
-    const scheduleDate = new Date(schedule.interviewDate);
-    const matchesDateFrom = !filters.dateFrom || scheduleDate >= new Date(filters.dateFrom);
-    const matchesDateTo = !filters.dateTo || scheduleDate <= new Date(filters.dateTo);
+    // Add pending applications
+    pendingApplications.forEach(application => {
+      allItems.push({
+        id: `pending-${application.id}`,
+        applicationId: application.id,
+        studentName: application.student ? `${application.student.first_name} ${application.student.last_name}` : 'Unknown Student',
+        studentId: application.student?.student_id_number || 'N/A',
+        studentEmail: application.student?.email_address || 'Not provided',
+        studentPhone: application.student?.contact_number || 'Not provided',
+        interviewer: 'Not Assigned',
+        interviewerEmail: 'N/A',
+        interviewDate: 'Not Scheduled',
+        interviewTime: 'Not Scheduled',
+        duration: 0,
+        type: 'pending',
+        platform: null,
+        meetingLink: null,
+        status: 'pending',
+        notes: 'Awaiting interview scheduling',
+        documents: ['Transcript', 'Recommendation Letter'], // Default documents
+        createdAt: application.created_at,
+        application: application,
+        student: application.student,
+        category: application.category,
+        subcategory: application.subcategory
+      });
+    });
+    
+    return allItems;
+  };
+
+  const filteredSchedules = getAllItems().filter(item => {
+    const matchesSearch = item.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.interviewer.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filters.status === 'all' || item.status === filters.status;
+    const matchesInterviewer = filters.interviewer === 'all' || item.interviewer === filters.interviewer;
+    
+    // Date range filter (only applies to scheduled interviews)
+    let matchesDateFrom = true;
+    let matchesDateTo = true;
+    if (item.type === 'schedule' && item.interviewDate && item.interviewDate !== 'Not Scheduled') {
+      const scheduleDate = new Date(item.interviewDate);
+      matchesDateFrom = !filters.dateFrom || scheduleDate >= new Date(filters.dateFrom);
+      matchesDateTo = !filters.dateTo || scheduleDate <= new Date(filters.dateTo);
+    }
     
     return matchesSearch && matchesStatus && matchesInterviewer && matchesDateFrom && matchesDateTo;
   });
@@ -458,7 +489,11 @@ function InterviewSchedules() {
           <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
             <Calendar className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
             <span className="truncate">
-              {new Date(schedule.interviewDate).toLocaleDateString()} at {schedule.interviewTime}
+              {schedule.status === 'pending' ? (
+                'Awaiting interview scheduling'
+              ) : (
+                `${new Date(schedule.interviewDate).toLocaleDateString()} at ${schedule.interviewTime}`
+              )}
             </span>
           </div>
 
@@ -472,28 +507,32 @@ function InterviewSchedules() {
               <Users className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Interviewer:</span>
               <span className="font-medium text-gray-900 dark:text-white truncate">
-                {schedule.interviewer}
+                {schedule.status === 'pending' ? 'Not Assigned' : schedule.interviewer}
               </span>
             </div>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
-              {getTypeIcon(schedule.type)}
+              {schedule.status === 'pending' ? (
+                <AlertTriangle className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-orange-500 flex-shrink-0`} />
+              ) : (
+                getTypeIcon(schedule.type)
+              )}
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Type:</span>
               <span className="font-medium text-gray-900 dark:text-white truncate">
-                {schedule.type}
+                {schedule.status === 'pending' ? 'Not Determined' : schedule.type}
               </span>
             </div>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
               <Clock className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Duration:</span>
               <span className="font-medium text-gray-900 dark:text-white truncate">
-                {schedule.duration} min
+                {schedule.status === 'pending' ? 'TBD' : `${schedule.duration} min`}
               </span>
             </div>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
               <FileText className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Documents:</span>
               <span className="font-medium text-gray-900 dark:text-white truncate">
-                {schedule.documents.length}
+                {schedule.status === 'pending' ? 'Reviewed' : schedule.documents.length}
               </span>
             </div>
           </div>
@@ -539,31 +578,45 @@ function InterviewSchedules() {
                 <Eye className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
                 <span>View Details</span>
               </button>
-              {schedule.type === 'online' && schedule.meetingLink && (
+              {schedule.status === 'pending' ? (
                 <button
-                  onClick={() => handleJoinMeeting(schedule)}
-                  className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
+                  onClick={() => handleScheduleFromPending(schedule)}
+                  className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
                 >
-                  <Video className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
-                  <span>Join Meeting</span>
+                  <Plus className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
+                  <span>Schedule Interview</span>
                 </button>
+              ) : (
+                schedule.type === 'online' && schedule.meetingLink && (
+                  <button
+                    onClick={() => handleJoinMeeting(schedule)}
+                    className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
+                  >
+                    <Video className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
+                    <span>Join Meeting</span>
+                  </button>
+                )
               )}
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
-              <button 
-                onClick={() => handleEditSchedule(schedule)}
-                className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
-                title="Edit"
-              >
-                <Edit className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              </button>
-              <button 
-                onClick={() => handleDeleteSchedule(schedule)}
-                className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
-                title="Delete"
-              >
-                <Trash2 className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              </button>
+              {schedule.status !== 'pending' && (
+                <>
+                  <button 
+                    onClick={() => handleEditSchedule(schedule)}
+                    className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                    title="Edit"
+                  >
+                    <Edit className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteSchedule(schedule)}
+                    className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                    title="Delete"
+                  >
+                    <Trash2 className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -626,19 +679,22 @@ function InterviewSchedules() {
     
     setActionLoading(true);
     try {
-      // Since we're using mock data, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Note: The API doesn't have a delete endpoint for interview schedules
+      // This would need to be implemented in the backend
+      // For now, we'll cancel the interview instead
+      await scholarshipApiService.cancelInterview(activeSchedule.id, 'Deleted by administrator');
       
-      // Remove from local state
-      setSchedules(prev => prev.filter(s => s.id !== activeSchedule.id));
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
+      
       setIsDeleteModalOpen(false);
       setActiveSchedule(null);
       
       // Show success message
-      alert('Interview schedule deleted successfully!');
+      alert('Interview schedule cancelled successfully!');
     } catch (error) {
-      console.error('Error deleting interview schedule:', error);
-      alert('Failed to delete interview schedule: ' + error.message);
+      console.error('Error cancelling interview schedule:', error);
+      alert('Failed to cancel interview schedule: ' + (error.message || 'Unknown error'));
     } finally {
       setActionLoading(false);
     }
@@ -678,7 +734,7 @@ function InterviewSchedules() {
     const errors = {};
     
     if (!createFormData.studentId) {
-      errors.studentId = 'Please select a student';
+      errors.studentId = 'Please select a student with documents reviewed status';
     }
     if (!createFormData.interviewDate) {
       errors.interviewDate = 'Please select an interview date';
@@ -691,6 +747,16 @@ function InterviewSchedules() {
     }
     if (createFormData.interviewType === 'online' && !createFormData.meetingLink) {
       errors.meetingLink = 'Please enter meeting link for online interviews';
+    }
+    
+    // Additional validation: check if selected application is eligible
+    if (createFormData.studentId) {
+      const selectedApplication = eligibleApplications.find(app => app.id.toString() === createFormData.studentId);
+      if (!selectedApplication) {
+        errors.studentId = 'Selected application is not eligible for interview scheduling';
+      } else if (selectedApplication.status !== 'documents_reviewed') {
+        errors.studentId = 'Selected application must have documents reviewed status';
+      }
     }
     
     setCreateFormErrors(errors);
@@ -706,33 +772,32 @@ function InterviewSchedules() {
     
     setIsSubmitting(true);
     try {
-      // Here you would make the API call to create the interview schedule
-      // For now, we'll just simulate it
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Add the new schedule to the list (mock data)
-      const newSchedule = {
-        id: Date.now(), // Temporary ID
-        studentName: 'New Student', // This would come from the selected student
-        studentId: createFormData.studentId,
-        studentEmail: 'student@email.com',
-        studentPhone: '+63 912 345 6789',
-        interviewer: createFormData.interviewer,
-        interviewerEmail: 'interviewer@email.com',
-        interviewDate: createFormData.interviewDate,
-        interviewTime: createFormData.interviewTime,
-        duration: parseInt(createFormData.duration),
-        type: createFormData.interviewType,
-        platform: createFormData.interviewType === 'online' ? createFormData.platform : null,
-        meetingLink: createFormData.interviewType === 'online' ? createFormData.meetingLink : null,
-        location: createFormData.interviewType === 'in-person' ? 'TBD' : null,
-        status: 'scheduled',
-        notes: createFormData.notes,
-        documents: ['Transcript', 'Recommendation Letter'],
-        createdAt: new Date().toISOString()
+      // Prepare the interview data for the API
+      const interviewData = {
+        interview_date: createFormData.interviewDate,
+        interview_time: createFormData.interviewTime,
+        interview_location: createFormData.interviewType === 'in-person' ? 'TBD' : 'Online',
+        interview_type: createFormData.interviewType === 'online' ? 'online' : createFormData.interviewType,
+        meeting_link: createFormData.interviewType === 'online' ? createFormData.meetingLink : null,
+        interviewer_name: createFormData.interviewer,
+        scheduling_type: 'manual',
+        interview_notes: createFormData.notes
       };
       
-      setSchedules(prev => [newSchedule, ...prev]);
+      // Get the application ID from the selected student
+      const applicationId = parseInt(createFormData.studentId);
+      
+      if (!applicationId) {
+        throw new Error('Invalid application selected');
+      }
+      
+      await scholarshipApiService.scheduleInterview(applicationId, interviewData);
+      
+      // Refresh the schedules, pending applications, and eligible applications to get updated data
+      await fetchSchedules();
+      await fetchPendingApplications();
+      await fetchEligibleApplications();
+      
       setIsCreateModalOpen(false);
       setCreateFormData({
         interviewType: 'online',
@@ -750,7 +815,7 @@ function InterviewSchedules() {
       alert('Interview schedule created successfully!');
     } catch (error) {
       console.error('Error creating interview schedule:', error);
-      alert('Failed to create interview schedule: ' + error.message);
+      alert('Failed to create interview schedule: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -815,18 +880,36 @@ function InterviewSchedules() {
     
     setIsSubmittingEvaluation(true);
     try {
-      // Here you would make the API call to save the evaluation
-      // For now, we'll just simulate it
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update the schedule status to completed
-      if (activeSchedule) {
-        setSchedules(prev => prev.map(schedule => 
-          schedule.id === activeSchedule.id 
-            ? { ...schedule, status: 'completed', evaluationData: evaluationFormData }
-            : schedule
-        ));
+      if (!activeSchedule) {
+        throw new Error('No active schedule selected');
       }
+      
+      // Determine the interview result based on the overall recommendation
+      let interviewResult = 'needs_followup';
+      if (evaluationFormData.overallRecommendation === 'recommended') {
+        interviewResult = 'passed';
+      } else if (evaluationFormData.overallRecommendation === 'not_recommended') {
+        interviewResult = 'failed';
+      }
+      
+      // Combine all evaluation data into notes
+      const evaluationNotes = `
+Academic Motivation Score: ${evaluationFormData.academicMotivationScore}/5
+Leadership & Involvement Score: ${evaluationFormData.leadershipInvolvementScore}/5
+Financial Need Score: ${evaluationFormData.financialNeedScore}/5
+Character & Values Score: ${evaluationFormData.characterValuesScore}/5
+Overall Recommendation: ${evaluationFormData.overallRecommendation}
+Remarks: ${evaluationFormData.remarks}
+      `.trim();
+      
+      await scholarshipApiService.completeInterview(
+        activeSchedule.id, 
+        interviewResult, 
+        evaluationNotes
+      );
+      
+      // Refresh the schedules to get updated data
+      await fetchSchedules();
       
       setIsJoinMeetingModalOpen(false);
       setActiveSchedule(null);
@@ -846,7 +929,7 @@ function InterviewSchedules() {
       alert('Interview evaluation submitted successfully!');
     } catch (error) {
       console.error('Error submitting evaluation:', error);
-      alert('Failed to submit evaluation: ' + error.message);
+      alert('Failed to submit evaluation: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSubmittingEvaluation(false);
     }
@@ -898,7 +981,7 @@ function InterviewSchedules() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -907,7 +990,20 @@ function InterviewSchedules() {
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Manage and schedule scholarship interviews
+            {pendingApplications.length > 0 && (
+              <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 rounded-full text-xs font-medium">
+                {pendingApplications.length} pending interview(s)
+              </span>
+            )}
           </p>
+          {eligibleApplications.length === 0 && (
+            <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Note:</strong> No applications with "Documents Reviewed" status found. 
+                Interviews can only be scheduled for applications that have passed document review.
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-3 mt-4 lg:mt-0">
           <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center">
@@ -916,7 +1012,13 @@ function InterviewSchedules() {
           </button>
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+            disabled={eligibleApplications.length === 0}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
+              eligibleApplications.length === 0 
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                : 'bg-orange-500 hover:bg-orange-600 text-white'
+            }`}
+            title={eligibleApplications.length === 0 ? 'No eligible applications available' : 'Schedule new interview'}
           >
             <Plus className="w-4 h-4 mr-2" />
             Schedule Interview
@@ -946,6 +1048,7 @@ function InterviewSchedules() {
               className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
+              <option value="pending">Pending</option>
               <option value="scheduled">Scheduled</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
@@ -1242,7 +1345,7 @@ function InterviewSchedules() {
               {/* Student Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Select Student
+                  Select Student (Documents Reviewed Only)
                 </label>
                 <select 
                   value={createFormData.studentId}
@@ -1252,13 +1355,23 @@ function InterviewSchedules() {
                   }`}
                 >
                   <option value="">Choose a student...</option>
-                  <option value="1">John Doe (2024-001)</option>
-                  <option value="2">Jane Smith (2024-002)</option>
-                  <option value="3">Mike Johnson (2024-003)</option>
+                  {eligibleApplications.length > 0 ? (
+                    eligibleApplications.map((application) => (
+                      <option key={application.id} value={application.id}>
+                        {application.student ? `${application.student.first_name} ${application.student.last_name}` : 'Unknown Student'} 
+                        ({application.application_number || `App-${application.id}`})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No eligible applications found</option>
+                  )}
                 </select>
                 {createFormErrors.studentId && (
                   <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.studentId}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Only students with applications in "Documents Reviewed" status can be scheduled for interviews.
+                </p>
               </div>
 
               {/* Interview Date & Time */}
@@ -1401,19 +1514,23 @@ function InterviewSchedules() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Name</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.studentName}</p>
+                    <p className="font-medium text-gray-900 dark:text-white break-words">{activeSchedule.studentName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Student ID</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.studentId}</p>
+                    <p className="font-medium text-gray-900 dark:text-white break-all">{activeSchedule.studentId}</p>
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.studentEmail}</p>
+                    <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.studentEmail}>
+                      {activeSchedule.studentEmail}
+                    </p>
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.studentPhone}</p>
+                    <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.studentPhone}>
+                      {activeSchedule.studentPhone}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1424,7 +1541,7 @@ function InterviewSchedules() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Date & Time</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 dark:text-white break-words">
                       {formatDate(activeSchedule.interviewDate)} at {formatTime(activeSchedule.interviewTime)}
                     </p>
                   </div>
@@ -1478,11 +1595,15 @@ function InterviewSchedules() {
                 <div className="space-y-2">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Name</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.interviewer}</p>
+                    <p className="font-medium text-gray-900 dark:text-white break-words" title={activeSchedule.interviewer}>
+                      {activeSchedule.interviewer}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.interviewerEmail}</p>
+                    <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.interviewerEmail}>
+                      {activeSchedule.interviewerEmail}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1491,7 +1612,9 @@ function InterviewSchedules() {
               {activeSchedule.notes && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Notes</h4>
-                  <p className="text-gray-700 dark:text-gray-300">{activeSchedule.notes}</p>
+                  <p className="text-gray-700 dark:text-gray-300 break-words whitespace-pre-wrap" title={activeSchedule.notes}>
+                    {activeSchedule.notes}
+                  </p>
                 </div>
               )}
 
