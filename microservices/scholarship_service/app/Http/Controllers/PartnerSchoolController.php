@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\PartnerSchoolRepresentative;
 use App\Models\ScholarshipApplication;
 use App\Models\Student;
+use App\Models\PartnerSchoolEnrollmentData;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class PartnerSchoolController extends Controller
 {
@@ -220,9 +223,12 @@ class PartnerSchoolController extends Controller
             // Get students who have applications for this school
             $query = Student::whereHas('scholarshipApplications', function($q) use ($schoolId) {
                 $q->where('school_id', $schoolId);
-            })->with(['currentAcademicRecord', 'scholarshipApplications' => function($q) use ($schoolId) {
-                $q->where('school_id', $schoolId);
-            }]);
+            })->with([
+                'currentAcademicRecord', 
+                'scholarshipApplications' => function($q) use ($schoolId) {
+                    $q->where('school_id', $schoolId);
+                }
+            ]);
 
             // Apply search filter
             if ($request->has('search') && $request->search) {
@@ -709,6 +715,255 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to verify application.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload enrollment data CSV file
+     */
+    public function uploadEnrollmentData(Request $request): JsonResponse
+    {
+        $authUser = $request->get('auth_user');
+        
+        // Verify this is a partner school representative
+        if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Partner school representative role required.'
+            ], 403);
+        }
+
+        if (!isset($authUser['citizen_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Citizen ID not found in authentication data.'
+            ], 400);
+        }
+
+        try {
+            // Look up the representative's school
+            $representative = PartnerSchoolRepresentative::with('school')
+                ->where('citizen_id', $authUser['citizen_id'])
+                ->where('is_active', true)
+                ->first();
+
+            if (!$representative) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No school assignment found for this representative.'
+                ], 404);
+            }
+
+            $schoolId = $representative->school_id;
+
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'csv_data' => 'required|array',
+                'update_mode' => 'required|in:merge,replace'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $validator->errors()
+                ], 400);
+            }
+
+            $csvData = $request->csv_data;
+            $updateMode = $request->update_mode;
+
+            // If replace mode, clear existing data for this school
+            if ($updateMode === 'replace') {
+                PartnerSchoolEnrollmentData::where('school_id', $schoolId)->delete();
+            }
+
+            $processed = 0;
+            $errors = [];
+            $warnings = [];
+
+            DB::beginTransaction();
+
+            try {
+                foreach ($csvData as $index => $row) {
+                    try {
+                        // Validate required fields
+                        $rowValidator = Validator::make($row, [
+                            'student_id_number' => 'required|string|max:50',
+                            'first_name' => 'required|string|max:100',
+                            'last_name' => 'required|string|max:100',
+                            'enrollment_year' => 'required|string|max:20',
+                            'enrollment_term' => 'required|string|max:50',
+                            'is_currently_enrolled' => 'nullable|boolean',
+                            'enrollment_date' => 'nullable|date',
+                            'program' => 'nullable|string|max:200',
+                            'year_level' => 'nullable|string|max:50'
+                        ]);
+
+                        if ($rowValidator->fails()) {
+                            $errors[] = "Row " . ($index + 1) . ": " . implode(', ', $rowValidator->errors()->all());
+                            continue;
+                        }
+
+                        // Prepare data for insertion
+                        $enrollmentData = [
+                            'school_id' => $schoolId,
+                            'student_id_number' => $row['student_id_number'],
+                            'first_name' => $row['first_name'],
+                            'last_name' => $row['last_name'],
+                            'enrollment_year' => $row['enrollment_year'],
+                            'enrollment_term' => $row['enrollment_term'],
+                            'is_currently_enrolled' => $row['is_currently_enrolled'] ?? true,
+                            'enrollment_date' => $row['enrollment_date'] ?? null,
+                            'program' => $row['program'] ?? null,
+                            'year_level' => $row['year_level'] ?? null,
+                            'uploaded_by' => $authUser['citizen_id'],
+                            'uploaded_at' => now()
+                        ];
+
+                        // Use upsert to handle duplicates
+                        PartnerSchoolEnrollmentData::upsertEnrollment($enrollmentData);
+                        $processed++;
+
+                    } catch (\Exception $e) {
+                        $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
+                    }
+                }
+
+                DB::commit();
+
+                Log::info('Enrollment data uploaded', [
+                    'citizen_id' => $authUser['citizen_id'],
+                    'school_id' => $schoolId,
+                    'processed' => $processed,
+                    'errors' => count($errors),
+                    'update_mode' => $updateMode
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Enrollment data uploaded successfully.',
+                    'data' => [
+                        'processed' => $processed,
+                        'errors' => $errors,
+                        'warnings' => $warnings,
+                        'school_id' => $schoolId,
+                        'school_name' => $representative->school->name
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading enrollment data', [
+                'citizen_id' => $authUser['citizen_id'],
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload enrollment data.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get enrollment data for the partner school
+     */
+    public function getEnrollmentData(Request $request): JsonResponse
+    {
+        $authUser = $request->get('auth_user');
+        
+        // Verify this is a partner school representative
+        if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Partner school representative role required.'
+            ], 403);
+        }
+
+        if (!isset($authUser['citizen_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Citizen ID not found in authentication data.'
+            ], 400);
+        }
+
+        try {
+            // Look up the representative's school
+            $representative = PartnerSchoolRepresentative::with('school')
+                ->where('citizen_id', $authUser['citizen_id'])
+                ->where('is_active', true)
+                ->first();
+
+            if (!$representative) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No school assignment found for this representative.'
+                ], 404);
+            }
+
+            $schoolId = $representative->school_id;
+
+            // Get enrollment data for this school
+            $query = PartnerSchoolEnrollmentData::where('school_id', $schoolId);
+
+            // Apply search filter
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                });
+            }
+
+            // Apply status filter
+            if ($request->has('status') && $request->status !== 'all') {
+                if ($request->status === 'currently_enrolled') {
+                    $query->where('is_currently_enrolled', true);
+                } elseif ($request->status === 'not_enrolled') {
+                    $query->where('is_currently_enrolled', false);
+                }
+            }
+
+            // Apply year filter
+            if ($request->has('year') && $request->year) {
+                $query->where('enrollment_year', $request->year);
+            }
+
+            // Apply term filter
+            if ($request->has('term') && $request->term) {
+                $query->where('enrollment_term', $request->term);
+            }
+
+            $enrollmentData = $query->orderBy('uploaded_at', 'desc')
+                                  ->paginate($request->get('per_page', 15));
+
+            Log::info('Enrollment data requested', [
+                'citizen_id' => $authUser['citizen_id'],
+                'school_id' => $schoolId,
+                'total_records' => $enrollmentData->total()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $enrollmentData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching enrollment data', [
+                'citizen_id' => $authUser['citizen_id'],
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch enrollment data.'
             ], 500);
         }
     }

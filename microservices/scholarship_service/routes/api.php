@@ -113,6 +113,10 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::get('/stats', [PartnerSchoolController::class, 'getStats']);
     Route::get('/students', [PartnerSchoolController::class, 'getStudents']);
     
+    // Enrollment data routes
+    Route::post('/enrollment/upload', [PartnerSchoolController::class, 'uploadEnrollmentData']);
+    Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
+    
     // Verification routes
     Route::prefix('verification')->group(function () {
         Route::get('/applications', [PartnerSchoolController::class, 'getApplicationsForVerification']);

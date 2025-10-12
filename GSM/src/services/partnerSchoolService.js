@@ -190,3 +190,70 @@ export const fetchVerificationStats = async (token) => {
     throw error;
   }
 };
+
+/**
+ * Upload enrollment data CSV
+ */
+export const uploadEnrollmentData = async (token, csvData, updateMode = 'merge') => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/partner-school/enrollment/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        csv_data: csvData,
+        update_mode: updateMode
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to upload enrollment data');
+    }
+  } catch (error) {
+    console.error('Error uploading enrollment data:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch enrollment data for the partner school
+ */
+export const fetchEnrollmentData = async (token, params = {}) => {
+  try {
+    const queryParams = new URLSearchParams(params);
+    const response = await fetch(`${API_BASE_URL}/api/partner-school/enrollment/data?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to fetch enrollment data');
+    }
+  } catch (error) {
+    console.error('Error fetching enrollment data:', error);
+    throw error;
+  }
+};

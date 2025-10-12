@@ -20,12 +20,15 @@ class AuthFromAuthService
         
         // For testing purposes, allow requests without token or with test-token
         if (!$token) {
-            // Add mock user data for testing
+            // Add mock partner school representative data for testing
             $request->merge([
                 'auth_user' => [
                     'id' => 1,
-                    'email' => 'admin@test.com',
-                    'name' => 'Admin User'
+                    'citizen_id' => 'PSREP-001',
+                    'email' => 'psrep@ccshs.edu.ph',
+                    'first_name' => 'Maria',
+                    'last_name' => 'Santos',
+                    'role' => 'ps_rep'
                 ]
             ]);
             return $next($request);
@@ -36,8 +39,11 @@ class AuthFromAuthService
             $request->merge([
                 'auth_user' => [
                     'id' => 1,
-                    'email' => 'admin@test.com',
-                    'name' => 'Admin User'
+                    'citizen_id' => 'PSREP-001',
+                    'email' => 'psrep@ccshs.edu.ph',
+                    'first_name' => 'Maria',
+                    'last_name' => 'Santos',
+                    'role' => 'ps_rep'
                 ]
             ]);
             return $next($request);

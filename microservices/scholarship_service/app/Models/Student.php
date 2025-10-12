@@ -100,6 +100,11 @@ class Student extends Model
         return $this->hasMany(EmergencyContact::class);
     }
 
+    public function enrollmentData(): HasMany
+    {
+        return $this->hasMany(PartnerSchoolEnrollmentData::class, 'student_id_number', 'student_id_number');
+    }
+
     // Accessors
     public function getFullNameAttribute(): string
     {

@@ -35,7 +35,9 @@ import {
   fetchPartnerSchoolStudents,
   fetchApplicationsForVerification,
   fetchVerificationStats,
-  verifyApplication
+  verifyApplication,
+  uploadEnrollmentData,
+  fetchEnrollmentData
 } from '../services/partnerSchoolService';
 import { API_CONFIG } from '../config/api';
 
@@ -63,6 +65,13 @@ const PartnerSchoolDashboard = () => {
   const [verificationStats, setVerificationStats] = useState(null);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verificationError, setVerificationError] = useState(null);
+
+  // Enrollment data state
+  const [enrollmentData, setEnrollmentData] = useState([]);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadMode, setUploadMode] = useState('merge');
 
   // Mobile detection
   React.useEffect(() => {
@@ -292,6 +301,7 @@ const PartnerSchoolDashboard = () => {
   useEffect(() => {
     if (activeTab === 'students' && token) {
       fetchStudentsData();
+      fetchEnrollmentDataFromAPI();
     } else {
       // Fallback to mock data if not on students tab
       setStudents(mockStudents);
@@ -309,6 +319,24 @@ const PartnerSchoolDashboard = () => {
       console.error('Error fetching students data:', err);
       // Fallback to mock data on error
       setStudents(mockStudents);
+    }
+  };
+
+  const fetchEnrollmentDataFromAPI = async () => {
+    setEnrollmentLoading(true);
+    setEnrollmentError(null);
+    
+    try {
+      const enrollmentDataResponse = await fetchEnrollmentData(token, { 
+        status: filterStatus, 
+        search: searchTerm 
+      });
+      setEnrollmentData(enrollmentDataResponse.data || []);
+    } catch (err) {
+      console.error('Error fetching enrollment data:', err);
+      setEnrollmentError(err.message);
+    } finally {
+      setEnrollmentLoading(false);
     }
   };
 
@@ -339,26 +367,229 @@ const PartnerSchoolDashboard = () => {
     }
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
       setUploadFile(file);
-      // Simulate validation
-      setTimeout(() => {
-        setValidationResults({
-          totalRecords: 150,
-          validRecords: 145,
-          errorRecords: 3,
-          warningRecords: 2,
-          newRecords: 50,
-          updatedRecords: 95
+      setUploadProgress({ status: 'processing', message: 'Processing CSV file...' });
+      
+      try {
+        // Parse CSV file
+        let csvData = await parseCSVFile(file);
+        
+        // Process data to generate enrollment_year from enrollment_date if needed
+        csvData = csvData.map(row => {
+          // If enrollment_year is missing but enrollment_date exists, generate it
+          if ((!row.enrollment_year || row.enrollment_year.trim() === '') && 
+              row.enrollment_date && row.enrollment_date.trim() !== '') {
+            const date = new Date(row.enrollment_date);
+            const year = date.getFullYear();
+            const nextYear = year + 1;
+            row.enrollment_year = `${year}-${nextYear}`;
+          }
+          return row;
         });
-      }, 1000);
+        
+        // Validate CSV data
+        const validation = validateCSVData(csvData);
+        setValidationResults(validation);
+        
+        if (validation.errorRecords > 0) {
+          setUploadProgress({ status: 'error', message: `Found ${validation.errorRecords} errors in CSV file` });
+        } else {
+          setUploadProgress({ status: 'ready', message: 'CSV file ready for upload' });
+        }
+      } catch (error) {
+        console.error('Error processing CSV file:', error);
+        setUploadProgress({ status: 'error', message: 'Error processing CSV file: ' + error.message });
+      }
     }
   };
 
   const handleDragOver = (event) => {
     event.preventDefault();
+  };
+
+  // CSV parsing function
+  const parseCSVFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const csv = e.target.result;
+          const lines = csv.split('\n').filter(line => line.trim());
+          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+          const data = [];
+          
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+            const row = {};
+            headers.forEach((header, index) => {
+              row[header] = values[index] || '';
+            });
+            data.push(row);
+          }
+          
+          resolve(data);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  };
+
+  // CSV validation function
+  const validateCSVData = (data) => {
+    const requiredFields = ['student_id_number', 'first_name', 'last_name', 'enrollment_term'];
+    let validRecords = 0;
+    let errorRecords = 0;
+    const errors = [];
+
+    data.forEach((row, index) => {
+      let hasErrors = false;
+      const rowErrors = [];
+      
+      // Check for missing required fields
+      requiredFields.forEach(field => {
+        if (!row[field] || row[field].trim() === '') {
+          rowErrors.push(`Missing required field '${field}'`);
+          hasErrors = true;
+        }
+      });
+
+      // Check if we have either enrollment_year OR enrollment_date
+      if ((!row.enrollment_year || row.enrollment_year.trim() === '') && 
+          (!row.enrollment_date || row.enrollment_date.trim() === '')) {
+        rowErrors.push(`Must provide either 'enrollment_year' or 'enrollment_date'`);
+        hasErrors = true;
+      }
+
+      // Check for valid enrollment year format (YYYY-YYYY) if provided
+      if (row.enrollment_year && row.enrollment_year.trim() !== '' && !/^\d{4}-\d{4}$/.test(row.enrollment_year.trim())) {
+        rowErrors.push(`Invalid enrollment_year format. Expected YYYY-YYYY, got: ${row.enrollment_year}`);
+        hasErrors = true;
+      }
+
+      // Check for valid enrollment term
+      const validTerms = ['1st Semester', '2nd Semester', 'Summer', 'Midyear'];
+      if (row.enrollment_term && !validTerms.includes(row.enrollment_term.trim())) {
+        rowErrors.push(`Invalid enrollment_term. Expected one of: ${validTerms.join(', ')}, got: ${row.enrollment_term}`);
+        hasErrors = true;
+      }
+
+      // Check for valid boolean values for is_currently_enrolled
+      if (row.is_currently_enrolled) {
+        const validBooleanValues = ['true', 'false', 'yes', 'no', '1', '0', 'y', 'n'];
+        if (!validBooleanValues.includes(row.is_currently_enrolled.toLowerCase().trim())) {
+          rowErrors.push(`Invalid is_currently_enrolled value. Expected true/false/yes/no/1/0, got: ${row.is_currently_enrolled}`);
+          hasErrors = true;
+        }
+      }
+
+      // Check for valid date format if provided
+      if (row.enrollment_date && row.enrollment_date.trim() !== '') {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(row.enrollment_date.trim())) {
+          rowErrors.push(`Invalid enrollment_date format. Expected YYYY-MM-DD, got: ${row.enrollment_date}`);
+          hasErrors = true;
+        }
+      }
+
+      if (hasErrors) {
+        errorRecords++;
+        errors.push(`Row ${index + 1}: ${rowErrors.join('; ')}`);
+      } else {
+        validRecords++;
+      }
+    });
+
+    return {
+      totalRecords: data.length,
+      validRecords,
+      errorRecords,
+      warningRecords: 0,
+      newRecords: validRecords,
+      updatedRecords: 0,
+      errors
+    };
+  };
+
+  // Download CSV template
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        student_id_number: '2024-001234',
+        first_name: 'Juan',
+        last_name: 'Dela Cruz',
+        enrollment_year: '2024-2025',
+        enrollment_term: '1st Semester',
+        is_currently_enrolled: 'true',
+        enrollment_date: '2024-08-15',
+        program: 'Bachelor of Science in Computer Science',
+        year_level: '1st Year'
+      },
+      {
+        student_id_number: '2024-001235',
+        first_name: 'Maria',
+        last_name: 'Santos',
+        enrollment_year: '', // Optional - will be auto-generated from enrollment_date
+        enrollment_term: '1st Semester',
+        is_currently_enrolled: 'true',
+        enrollment_date: '2024-08-16',
+        program: 'Bachelor of Arts in Psychology',
+        year_level: '2nd Year'
+      }
+    ];
+
+    const headers = ['student_id_number', 'first_name', 'last_name', 'enrollment_year', 'enrollment_term', 'is_currently_enrolled', 'enrollment_date', 'program', 'year_level'];
+    const csvContent = [
+      headers.join(','),
+      ...templateData.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'enrollment_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Upload CSV data
+  const handleCSVUpload = async () => {
+    if (!uploadFile || !validationResults) return;
+
+    setUploadProgress({ status: 'uploading', message: 'Uploading enrollment data...' });
+
+    try {
+      const csvData = await parseCSVFile(uploadFile);
+      const result = await uploadEnrollmentData(token, csvData, uploadMode);
+      
+      setUploadProgress({ 
+        status: 'success', 
+        message: `Successfully uploaded ${result.processed} records` 
+      });
+      
+      // Refresh enrollment data
+      await fetchEnrollmentDataFromAPI();
+      
+      // Reset form
+      setUploadFile(null);
+      setValidationResults(null);
+      setUploadProgress(null);
+      
+    } catch (error) {
+      console.error('Error uploading CSV:', error);
+      setUploadProgress({ 
+        status: 'error', 
+        message: 'Upload failed: ' + error.message 
+      });
+    }
   };
 
   const handleDrop = (event) => {
@@ -645,14 +876,96 @@ const PartnerSchoolDashboard = () => {
                <p className="text-sm text-green-800 dark:text-green-300">New Records</p>
              </div>
            </div>
+          <div className="flex flex-col space-y-4">
+            {/* Upload Mode Selection */}
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Update Mode:</label>
+              <div className="flex space-x-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="uploadMode"
+                    value="merge"
+                    checked={uploadMode === 'merge'}
+                    onChange={(e) => setUploadMode(e.target.value)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Merge (Recommended)</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="uploadMode"
+                    value="replace"
+                    checked={uploadMode === 'replace'}
+                    onChange={(e) => setUploadMode(e.target.value)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Replace All</span>
+                </label>
+              </div>
+            </div>
+            
+            {/* Upload Progress */}
+            {uploadProgress && (
+              <div className={`p-4 rounded-lg ${
+                uploadProgress.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
+                uploadProgress.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300' :
+                'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  {uploadProgress.status === 'success' && <CheckCircle className="w-5 h-5" />}
+                  {uploadProgress.status === 'error' && <XCircle className="w-5 h-5" />}
+                  {uploadProgress.status === 'processing' && <Clock className="w-5 h-5 animate-spin" />}
+                  {uploadProgress.status === 'uploading' && <CloudUpload className="w-5 h-5 animate-pulse" />}
+                  <span className="font-medium">{uploadProgress.message}</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Action Buttons */}
+           {/* Error Details */}
+           {validationResults?.errors && validationResults.errors.length > 0 && (
+             <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+               <h4 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-3">Error Details:</h4>
+               <div className="max-h-60 overflow-y-auto">
+                 {validationResults.errors.slice(0, 10).map((error, index) => (
+                   <div key={index} className="text-sm text-red-700 dark:text-red-300 mb-1 p-2 bg-red-100 dark:bg-red-800/30 rounded">
+                     {error}
+                   </div>
+                 ))}
+                 {validationResults.errors.length > 10 && (
+                   <div className="text-sm text-red-600 dark:text-red-400 font-medium mt-2">
+                     ... and {validationResults.errors.length - 10} more errors
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
+
            <div className="flex space-x-4">
-             <button className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049]">
-               Preview Changes
+             {validationResults && validationResults.errorRecords === 0 && (
+               <button 
+                 onClick={handleCSVUpload}
+                 disabled={uploadProgress?.status === 'uploading'}
+                 className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049] disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {uploadProgress?.status === 'uploading' ? 'Uploading...' : 'Upload Data'}
+               </button>
+             )}
+             <button 
+               onClick={downloadTemplate}
+               className="bg-gray-600 dark:bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-700"
+             >
+               Download Template
              </button>
-             <button className="bg-gray-600 dark:bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-700">
-               Download Error Report
-             </button>
+             {validationResults?.errors && validationResults.errors.length > 0 && (
+               <button className="bg-red-600 dark:bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 dark:hover:bg-red-700">
+                 Download Error Report
+               </button>
+             )}
            </div>
+          </div>
          </div>
        )}
     </div>
@@ -727,48 +1040,72 @@ const PartnerSchoolDashboard = () => {
                   (filterStatus === 'all' || student.status === filterStatus) &&
                   (searchTerm === '' || student.name.toLowerCase().includes(searchTerm.toLowerCase()))
                 )
-                .map((student) => (
-                <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {student.studentId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {student.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      student.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
-                      student.status === 'INACTIVE' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
-                      student.status === 'GRADUATED' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
-                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
-                    }`}>
-                      {student.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {student.yearLevel}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {student.program}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {student.enrollmentDate}
-                  </td>
-                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                     <div className="flex space-x-2">
-                       <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
-                         <Eye className="w-4 h-4" />
-                       </button>
-                       <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300">
-                         <Edit className="w-4 h-4" />
-                       </button>
-                       <button className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
-                         <Trash2 className="w-4 h-4" />
-                       </button>
-                     </div>
-                   </td>
-                </tr>
-              ))}
+                .map((student) => {
+                  // Get enrollment data for this student
+                  const studentEnrollmentData = enrollmentData.filter(
+                    enrollment => enrollment.student_id_number === student.student_id_number
+                  );
+                  const latestEnrollment = studentEnrollmentData[0]; // Most recent enrollment data
+                  
+                  return (
+                    <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {student.student_id_number || student.studentId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {student.full_name || student.name || `${student.first_name} ${student.last_name}`}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col space-y-1">
+                          {/* Application Status */}
+                          {student.scholarshipApplications && student.scholarshipApplications.length > 0 && (
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              student.scholarshipApplications[0].status === 'approved' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                              student.scholarshipApplications[0].status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                              student.scholarshipApplications[0].status === 'rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
+                              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                            }`}>
+                              App: {student.scholarshipApplications[0].status}
+                            </span>
+                          )}
+                          {/* Enrollment Status */}
+                          {latestEnrollment && (
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              latestEnrollment.is_currently_enrolled ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
+                              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                            }`}>
+                              Enrolled: {latestEnrollment.is_currently_enrolled ? 'Yes' : 'No'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {latestEnrollment?.year_level || student.currentAcademicRecord?.year_level || student.yearLevel || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {latestEnrollment?.program || student.currentAcademicRecord?.program || student.program || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {latestEnrollment?.enrollment_date || student.enrollmentDate || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="View Details">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {latestEnrollment && (
+                            <button className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300" title="Enrollment Data Available">
+                              <ShieldCheck className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300" title="Edit">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
