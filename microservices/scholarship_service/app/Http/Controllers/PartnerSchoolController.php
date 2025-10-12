@@ -6,6 +6,7 @@ use App\Models\PartnerSchoolRepresentative;
 use App\Models\ScholarshipApplication;
 use App\Models\Student;
 use App\Models\PartnerSchoolEnrollmentData;
+use App\Models\FlexibleStudentData;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -1055,6 +1056,139 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch enrollment data.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload flexible CSV data (accepts any structure)
+     */
+    public function uploadFlexibleData(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->get('auth_user');
+            
+            if (!$authUser || $authUser['role'] !== 'ps_rep') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access.'
+                ], 403);
+            }
+
+            // Get school ID for the authenticated user
+            $schoolRep = PartnerSchoolRepresentative::where('citizen_id', $authUser['citizen_id'])->first();
+            if (!$schoolRep) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School not found for user.'
+                ], 404);
+            }
+
+            $schoolId = $schoolRep->school_id;
+            $csvData = $request->input('csv_data', []);
+            $headers = $request->input('headers', []);
+            $updateMode = $request->input('update_mode', 'merge');
+
+            if (empty($csvData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No CSV data provided.'
+                ], 400);
+            }
+
+            // Handle replace mode
+            if ($updateMode === 'replace') {
+                FlexibleStudentData::where('school_id', $schoolId)->delete();
+            }
+
+            $processed = 0;
+            $errors = [];
+
+            DB::beginTransaction();
+
+            try {
+                foreach ($csvData as $index => $row) {
+                    try {
+                        FlexibleStudentData::createFromCSVRow($row, (int)$schoolId, $authUser['citizen_id'], (array)$headers);
+                        $processed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
+                    }
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Flexible data uploaded successfully.',
+                    'processed' => $processed,
+                    'errors' => $errors,
+                    'total_received' => count($csvData)
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading flexible data', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload flexible data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get flexible students data
+     */
+    public function getFlexibleStudents(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->get('auth_user');
+            
+            if (!$authUser || $authUser['role'] !== 'ps_rep') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access.'
+                ], 403);
+            }
+
+            // Get school ID for the authenticated user
+            $schoolRep = PartnerSchoolRepresentative::where('citizen_id', $authUser['citizen_id'])->first();
+            if (!$schoolRep) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School not found for user.'
+                ], 404);
+            }
+
+            $schoolId = $schoolRep->school_id;
+            $perPage = $request->input('per_page', 1000); // Show up to 1000 records
+            $page = $request->input('page', 1);
+
+            $flexibleStudents = FlexibleStudentData::where('school_id', $schoolId)
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'success' => true,
+                'data' => $flexibleStudents
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching flexible students', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch flexible students.'
             ], 500);
         }
     }

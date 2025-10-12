@@ -37,7 +37,9 @@ import {
   fetchVerificationStats,
   verifyApplication,
   uploadEnrollmentData,
-  fetchEnrollmentData
+  fetchEnrollmentData,
+  uploadFlexibleData,
+  fetchFlexibleStudents
 } from '../services/partnerSchoolService';
 import { API_CONFIG } from '../config/api';
 
@@ -72,6 +74,8 @@ const PartnerSchoolDashboard = () => {
   const [enrollmentError, setEnrollmentError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadMode, setUploadMode] = useState('merge');
+  const [parsedCSVData, setParsedCSVData] = useState(null);
+  const [parsedHeaders, setParsedHeaders] = useState(null);
 
   // Mobile detection
   React.useEffect(() => {
@@ -279,29 +283,92 @@ const PartnerSchoolDashboard = () => {
 
   const fetchStudentsData = async () => {
     try {
-      const studentsData = await fetchPartnerSchoolStudents(token, { 
-        status: filterStatus, 
-        search: searchTerm 
-      });
-      console.log('Students data received:', studentsData);
-      console.log('Students array:', studentsData.data);
-      // Handle paginated response
-      const studentsArray = studentsData.data?.data || studentsData.data || [];
-      console.log('Processed students array:', studentsArray);
+      console.log('🔍 Starting fetchStudentsData...');
+      console.log('Token:', token ? 'Present' : 'Missing');
+      console.log('Filter status:', filterStatus);
+      console.log('Search term:', searchTerm);
       
-      // Debug each student's enrollment data
-      studentsArray.forEach((student, index) => {
+      // Fetch both regular students and flexible students data
+      const [studentsData, flexibleData] = await Promise.allSettled([
+        fetchPartnerSchoolStudents(token, { 
+          status: filterStatus, 
+          search: searchTerm 
+        }),
+        fetchFlexibleStudents(token, { 
+          search: searchTerm 
+        })
+      ]);
+      
+      // Handle the results
+      const studentsResult = studentsData.status === 'fulfilled' ? studentsData.value : null;
+      const flexibleResult = flexibleData.status === 'fulfilled' ? flexibleData.value : null;
+      
+      if (studentsData.status === 'rejected') {
+        console.error('❌ Error fetching regular students:', studentsData.reason);
+      }
+      if (flexibleData.status === 'rejected') {
+        console.error('❌ Error fetching flexible students:', flexibleData.reason);
+      }
+      
+      console.log('✅ Students data received:', studentsResult);
+      console.log('✅ Flexible data received:', flexibleResult);
+      
+      // Handle paginated response for regular students
+      const studentsArray = studentsResult ? (studentsResult.data?.data || studentsResult.data || []) : [];
+      const flexibleArray = flexibleResult ? (flexibleResult.data?.data || flexibleResult.data || []) : [];
+      
+      console.log('Processed students array:', studentsArray);
+      console.log('Processed flexible array:', flexibleArray);
+      
+      // Convert flexible data to student format for display
+      const flexibleStudents = flexibleArray.map(flexible => {
+        console.log('Processing flexible student:', flexible);
+        return {
+          id: flexible.id,
+          student_id_number: flexible.student_id_number,
+          first_name: flexible.first_name,
+          last_name: flexible.last_name,
+          full_name: flexible.full_name,
+          flexibleData: flexible.data,
+          headers: flexible.headers,
+          uploaded_at: flexible.uploaded_at,
+          isFlexible: true
+        };
+      });
+      
+      // Group flexible students by student_id_number and keep the most recent record
+      const groupedFlexibleStudents = flexibleStudents.reduce((acc, student) => {
+        const key = student.student_id_number;
+        if (!acc[key] || new Date(student.uploaded_at) > new Date(acc[key].uploaded_at)) {
+          acc[key] = student;
+        }
+        return acc;
+      }, {});
+      
+      // Convert back to array
+      const uniqueFlexibleStudents = Object.values(groupedFlexibleStudents);
+      
+      console.log('Grouped flexible students:', uniqueFlexibleStudents);
+      console.log('Total flexible students after grouping:', uniqueFlexibleStudents.length);
+      
+      // Combine both arrays
+      const allStudents = [...studentsArray, ...uniqueFlexibleStudents];
+      
+      // Debug each student's data
+      allStudents.forEach((student, index) => {
         console.log(`Student ${index + 1}:`, {
           id: student.id,
           student_id_number: student.student_id_number,
           first_name: student.first_name,
           last_name: student.last_name,
+          isFlexible: student.isFlexible,
+          flexibleData: student.flexibleData,
           enrollmentData: student.enrollmentData,
           scholarshipApplications: student.scholarshipApplications
         });
       });
       
-      setStudents(studentsArray);
+      setStudents(allStudents);
     } catch (err) {
       console.error('Error fetching students data:', err);
       // Set empty array on error instead of mock data
@@ -367,30 +434,22 @@ const PartnerSchoolDashboard = () => {
       
       try {
         // Parse CSV file
-        let csvData = await parseCSVFile(file);
+        const csvData = await parseCSVFile(file);
+        const headers = Object.keys(csvData[0] || {});
         
-        // Process data to generate enrollment_year from enrollment_date if needed
-        csvData = csvData.map(row => {
-          // If enrollment_year is missing but enrollment_date exists, generate it
-          if ((!row.enrollment_year || row.enrollment_year.trim() === '') && 
-              row.enrollment_date && row.enrollment_date.trim() !== '') {
-            const date = new Date(row.enrollment_date);
-            const year = date.getFullYear();
-            const nextYear = year + 1;
-            row.enrollment_year = `${year}-${nextYear}`;
-          }
-          return row;
+        console.log('Parsed CSV data:', csvData);
+        console.log('Headers:', headers);
+        console.log('Number of records:', csvData.length);
+        
+        setUploadProgress({ 
+          status: 'ready', 
+          message: `File processed successfully! ${csvData.length} student records found. Ready to upload.` 
         });
         
-        // Validate CSV data
-        const validation = validateCSVData(csvData);
-        setValidationResults(validation);
+        // Store the parsed data for upload
+        setParsedCSVData(csvData);
+        setParsedHeaders(headers);
         
-        if (validation.errorRecords > 0) {
-          setUploadProgress({ status: 'error', message: `Found ${validation.errorRecords} errors in CSV file` });
-        } else {
-          setUploadProgress({ status: 'ready', message: 'CSV file ready for upload' });
-        }
       } catch (error) {
         console.error('Error processing CSV file:', error);
         setUploadProgress({ status: 'error', message: 'Error processing CSV file: ' + error.message });
@@ -1064,30 +1123,30 @@ const PartnerSchoolDashboard = () => {
 
   // Upload CSV data
   const handleCSVUpload = async () => {
-    if (!uploadFile || !validationResults) return;
+    if (!uploadFile || !parsedCSVData) return;
 
-    setUploadProgress({ status: 'uploading', message: 'Uploading enrollment data...' });
+    setUploadProgress({ status: 'uploading', message: 'Uploading student data...' });
 
     try {
-      // Use the already parsed and validated data
-      const csvData = validationResults.validData || [];
-      console.log('Uploading CSV data:', csvData);
-      console.log('Number of valid records:', csvData.length);
-      console.log('Sample record:', csvData[0]);
-      const result = await uploadEnrollmentData(token, csvData, uploadMode);
+      console.log('Uploading flexible CSV data:', parsedCSVData);
+      console.log('Headers:', parsedHeaders);
+      console.log('Number of records:', parsedCSVData.length);
+      
+      const result = await uploadFlexibleData(token, parsedCSVData, parsedHeaders, uploadMode);
       
       setUploadProgress({ 
         status: 'success', 
-        message: `Successfully uploaded ${result.processed} records` 
+        message: `Successfully uploaded ${result.processed} student records` 
       });
       
-      // Refresh enrollment data
-      await fetchEnrollmentDataFromAPI();
+      // Refresh students data
+      await fetchStudentsData();
       
       // Reset form
       setUploadFile(null);
-      setValidationResults(null);
       setUploadProgress(null);
+      setParsedCSVData(null);
+      setParsedHeaders(null);
       
     } catch (error) {
       console.error('Error uploading CSV:', error);
@@ -1296,15 +1355,8 @@ const PartnerSchoolDashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upload Student Data</h1>
-            <p className="text-gray-600 dark:text-gray-300">Upload your school's enrollment data</p>
+            <p className="text-gray-600 dark:text-gray-300">Upload any CSV file - we'll extract the required fields automatically</p>
           </div>
-          <button
-            onClick={() => setShowFieldGuide(true)}
-            className="flex items-center space-x-2 text-[#4CAF50] hover:text-[#45A049] text-sm"
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Field Guide</span>
-          </button>
         </div>
       </div>
 
@@ -1316,12 +1368,14 @@ const PartnerSchoolDashboard = () => {
           onDrop={handleDrop}
         >
           <CloudUpload className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload Student Enrollment Data</h4>
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload Any Student Data File</h4>
           <p className="text-gray-600 dark:text-gray-300 mb-2">Drag and drop your CSV file here or click to browse</p>
           <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
-            🧠 <strong>Smart Recognition:</strong> We automatically recognize column names AND values! 
-            "Student ID" → student_id_number, "Semester" → enrollment_term, "1st sem" → "1st Semester", 
-            "CS" → "Bachelor of Science in Computer Science", etc. Your data will be intelligently normalized!
+            🎯 <strong>Smart Extraction:</strong> We automatically find and extract:
+            <br />• Student ID (any format: ID, Student Number, etc.)
+            <br />• First Name (any format: First Name, Given Name, etc.)
+            <br />• Last Name (any format: Last Name, Surname, etc.)
+            <br />• All students will be marked as "Enrolled"
           </p>
           <input
             type="file"
@@ -1364,6 +1418,100 @@ const PartnerSchoolDashboard = () => {
           </li>
         </ul>
       </div>
+
+      {/* File Information and Upload Section */}
+      {uploadFile && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">File Ready for Upload</h3>
+          
+          {/* File Details */}
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{uploadFile.name}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Size: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Type: {uploadFile.type || 'CSV file'}
+                </p>
+                {parsedCSVData && (
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    📊 {parsedCSVData.length} student records found
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Mode Selection */}
+          <div className="mb-4">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Update Mode:</label>
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="merge"
+                  checked={uploadMode === 'merge'}
+                  onChange={(e) => setUploadMode(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Merge (Add to existing data)</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="replace"
+                  checked={uploadMode === 'replace'}
+                  onChange={(e) => setUploadMode(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Replace All (Delete existing data)</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Upload Progress */}
+          {uploadProgress && (
+            <div className={`mb-4 p-4 rounded-lg ${
+              uploadProgress.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
+              uploadProgress.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300' :
+              'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+            }`}>
+              <div className="flex items-center space-x-2">
+                {uploadProgress.status === 'success' && <CheckCircle className="w-5 h-5" />}
+                {uploadProgress.status === 'error' && <XCircle className="w-5 h-5" />}
+                {uploadProgress.status === 'processing' && <Clock className="w-5 h-5 animate-spin" />}
+                {uploadProgress.status === 'uploading' && <CloudUpload className="w-5 h-5 animate-pulse" />}
+                <span className="font-medium">{uploadProgress.message}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex space-x-4">
+            <button 
+              onClick={handleCSVUpload}
+              disabled={uploadProgress?.status === 'uploading' || uploadProgress?.status === 'processing'}
+              className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {uploadProgress?.status === 'uploading' ? 'Uploading...' : 'Upload Data'}
+            </button>
+            <button 
+              onClick={() => {
+                setUploadFile(null);
+                setUploadProgress(null);
+              }}
+              className="bg-gray-600 dark:bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
        {/* Validation Results */}
        {validationResults && (
@@ -1526,10 +1674,8 @@ const PartnerSchoolDashboard = () => {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
             >
-              <option value="all">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="GRADUATED">Graduated</option>
+              <option value="all">All Students</option>
+              <option value="enrolled">Enrolled</option>
             </select>
           </div>
         </div>
@@ -1591,14 +1737,29 @@ const PartnerSchoolDashboard = () => {
                   </td>
                 </tr>
               ) : students
-                .filter(student => 
-                  (filterStatus === 'all' || student.status === filterStatus) &&
-                  (searchTerm === '' || 
+                .filter(student => {
+                  // Check status filter
+                  let statusMatch = true;
+                  if (filterStatus === 'enrolled') {
+                    // For flexible data, always show as enrolled
+                    if (student.isFlexible && student.flexibleData) {
+                      statusMatch = true;
+                    } else {
+                      // For regular enrollment data, check is_currently_enrolled
+                      const studentEnrollmentData = student.enrollmentData || [];
+                      const latestEnrollment = studentEnrollmentData[0];
+                      statusMatch = latestEnrollment && latestEnrollment.is_currently_enrolled;
+                    }
+                  }
+                  
+                  // Check search term
+                  const searchMatch = searchTerm === '' || 
                     (student.first_name && student.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (student.last_name && student.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (student.student_id_number && student.student_id_number.toLowerCase().includes(searchTerm.toLowerCase()))
-                  )
-                )
+                    (student.student_id_number && student.student_id_number.toLowerCase().includes(searchTerm.toLowerCase()));
+                  
+                  return statusMatch && searchMatch;
+                })
                 .map((student) => {
                   // Get enrollment data for this student from the student object
                   const studentEnrollmentData = student.enrollmentData || [];
@@ -1607,6 +1768,12 @@ const PartnerSchoolDashboard = () => {
                   // Debug logging
                   console.log('Student:', student.student_id_number, 'Enrollment data:', studentEnrollmentData);
                   console.log('Latest enrollment:', latestEnrollment);
+                  if (student.isFlexible && student.flexibleData) {
+                    console.log('Flexible data for', student.student_id_number, ':', student.flexibleData);
+                    console.log('Year Level:', student.flexibleData.year_level);
+                    console.log('Program:', student.flexibleData.program);
+                    console.log('Enrollment Date:', student.flexibleData.enrollment_date);
+                  }
                   
                   return (
                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
@@ -1629,8 +1796,14 @@ const PartnerSchoolDashboard = () => {
                               App: {student.scholarshipApplications[0].status}
                             </span>
                           )}
-                          {/* Enrollment Status */}
-                          {latestEnrollment && (
+                          {/* Flexible Data Status - Always Enrolled */}
+                          {student.isFlexible && student.flexibleData && (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                              Enrolled
+                            </span>
+                          )}
+                          {/* Regular Enrollment Status */}
+                          {!student.isFlexible && latestEnrollment && (
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               latestEnrollment.is_currently_enrolled ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
                               'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
@@ -1641,13 +1814,22 @@ const PartnerSchoolDashboard = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {latestEnrollment?.year_level || student.currentAcademicRecord?.year_level || student.yearLevel || 'N/A'}
+                        {student.isFlexible && student.flexibleData ? 
+                          (student.flexibleData.year_level || student.flexibleData['year level'] || student.flexibleData.grade || 'N/A') :
+                          (latestEnrollment?.year_level || student.currentAcademicRecord?.year_level || student.yearLevel || 'N/A')
+                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {latestEnrollment?.program || student.currentAcademicRecord?.program || student.program || 'N/A'}
+                        {student.isFlexible && student.flexibleData ? 
+                          (student.flexibleData.program || student.flexibleData.course || student.flexibleData.major || 'N/A') :
+                          (latestEnrollment?.program || student.currentAcademicRecord?.program || student.program || 'N/A')
+                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {latestEnrollment?.enrollment_date || student.enrollmentDate || 'N/A'}
+                        {student.isFlexible && student.flexibleData ? 
+                          (student.flexibleData.enrollment_date || student.flexibleData['enrollment date'] || student.flexibleData.date || 'N/A') :
+                          (latestEnrollment?.enrollment_date || student.enrollmentDate || 'N/A')
+                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
