@@ -10,6 +10,7 @@ use App\Http\Controllers\ScholarshipCategoryController;
 use App\Http\Controllers\PartnerSchoolController;
 use App\Http\Controllers\EnrollmentVerificationController;
 use App\Http\Controllers\InterviewScheduleController;
+use App\Http\Controllers\Api\StaffController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,6 +140,15 @@ Route::prefix('interview-schedules')->middleware(['auth.auth_service'])->group(f
     Route::post('/{schedule}/no-show', [InterviewScheduleController::class, 'markNoShow']);
     Route::get('/available-slots', [InterviewScheduleController::class, 'availableSlots']);
     Route::get('/calendar', [InterviewScheduleController::class, 'calendar']);
+});
+
+// Staff routes (protected by authentication)
+Route::prefix('staff')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/interviewers', [StaffController::class, 'getInterviewers']);
+    Route::get('/', [StaffController::class, 'getAllStaff']);
+    Route::get('/{id}', [StaffController::class, 'getStaffById']);
+    Route::post('/', [StaffController::class, 'store']);
+    Route::put('/{id}', [StaffController::class, 'update']);
 });
 
 // Partner School Enrollment Data Management routes have been removed - automatic verification is disabled

@@ -10,7 +10,6 @@ import {
   Filter,
   Download,
   Eye,
-  Edit,
   Trash2,
   Plus,
   RefreshCw,
@@ -37,6 +36,7 @@ function InterviewSchedules() {
   const [schedules, setSchedules] = useState([]);
   const [pendingApplications, setPendingApplications] = useState([]);
   const [eligibleApplications, setEligibleApplications] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,6 +58,7 @@ function InterviewSchedules() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isJoinMeetingModalOpen, setIsJoinMeetingModalOpen] = useState(false);
+  const [isBulkScheduleModalOpen, setIsBulkScheduleModalOpen] = useState(false);
   const [activeSchedule, setActiveSchedule] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   
@@ -70,15 +71,38 @@ function InterviewSchedules() {
     interviewDate: '',
     interviewTime: '',
     duration: '30',
-    interviewer: '',
+    staffId: '',
     notes: ''
   });
   const [createFormErrors, setCreateFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Bulk schedule form state
+  const [bulkFormData, setBulkFormData] = useState({
+    interviewType: 'online',
+    platform: 'zoom',
+    meetingLink: '',
+    interviewDate: '',
+    interviewTime: '',
+    duration: '30',
+    gapTime: '15',
+    staffId: '',
+    notes: ''
+  });
+  const [bulkFormErrors, setBulkFormErrors] = useState({});
+  const [isSubmittingBulk, setIsSubmittingBulk] = useState(false);
+
+  // Toast notification state
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success' // 'success', 'error', 'info'
+  });
+
   // Interview evaluation form state
   const [evaluationFormData, setEvaluationFormData] = useState({
     applicantId: '',
+    applicationId: '',
     interviewerName: '',
     interviewDate: '',
     academicMotivationScore: '',
@@ -95,6 +119,7 @@ function InterviewSchedules() {
     fetchSchedules();
     fetchPendingApplications();
     fetchEligibleApplications();
+    fetchStaffMembers();
   }, []);
 
   const fetchPendingApplications = async () => {
@@ -143,10 +168,11 @@ function InterviewSchedules() {
         studentEmail: schedule.student?.email_address || 'Not provided',
         studentPhone: schedule.student?.contact_number || 'Not provided',
         interviewer: schedule.interviewer_name || 'TBD',
+        staffId: schedule.staff_id, // Add staff ID for proper overlap detection
         interviewerEmail: 'interviewer@scholarship.gov.ph', // This would come from interviewer data
         interviewDate: schedule.interview_date,
         interviewTime: schedule.interview_time,
-        duration: 30, // Default duration - could be added to the API model
+        duration: schedule.duration || 30, // Use actual duration from database
         type: schedule.interview_type === 'in_person' ? 'in-person' : schedule.interview_type,
         platform: schedule.interview_type === 'online' ? 'Zoom' : null,
         meetingLink: schedule.meeting_link,
@@ -167,6 +193,39 @@ function InterviewSchedules() {
       setError('Failed to load interview schedules: ' + (e.message || 'Unknown error'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStaffMembers = async () => {
+    try {
+      // Try to fetch from API first
+      const response = await scholarshipApiService.getStaffInterviewers();
+      
+      if (response.success && response.data) {
+        setStaffMembers(response.data);
+      } else {
+        // Fallback to mock data if API fails
+        console.warn('API failed, using mock staff data:', response.message);
+        const mockStaff = [
+          { id: 1, name: 'Peter Santos', email: 'peter.santos@scholarship.gov.ph' },
+          { id: 2, name: 'Maria Reyes', email: 'maria.reyes@scholarship.gov.ph' },
+          { id: 3, name: 'John Cruz', email: 'john.cruz@scholarship.gov.ph' },
+          { id: 4, name: 'Ana Lopez', email: 'ana.lopez@scholarship.gov.ph' },
+          { id: 5, name: 'Carlos Mendoza', email: 'carlos.mendoza@scholarship.gov.ph' },
+        ];
+        setStaffMembers(mockStaff);
+      }
+    } catch (error) {
+      console.error('Error fetching staff members:', error);
+      // Fallback to mock data
+      const mockStaff = [
+        { id: 1, name: 'Peter Santos', email: 'peter.santos@scholarship.gov.ph' },
+        { id: 2, name: 'Maria Reyes', email: 'maria.reyes@scholarship.gov.ph' },
+        { id: 3, name: 'John Cruz', email: 'john.cruz@scholarship.gov.ph' },
+        { id: 4, name: 'Ana Lopez', email: 'ana.lopez@scholarship.gov.ph' },
+        { id: 5, name: 'Carlos Mendoza', email: 'carlos.mendoza@scholarship.gov.ph' },
+      ];
+      setStaffMembers(mockStaff);
     }
   };
 
@@ -222,26 +281,13 @@ function InterviewSchedules() {
       // Refresh the schedules to get updated data
       await fetchSchedules();
       
-        alert('Interview completed successfully');
+        showToast(`✅ Interview completed successfully!\n\n📝 Result: ${result}\n📅 Completed at: ${new Date().toLocaleString()}`, 'success');
     } catch (e) {
       console.error('Error completing interview:', e);
-      alert('Failed to complete interview: ' + (e.message || 'Unknown error'));
+      showToast(`❌ Failed to complete interview:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error');
     }
   };
 
-  const handleRescheduleInterview = async (scheduleId, newDate, newTime, reason = '') => {
-    try {
-      await scholarshipApiService.rescheduleInterview(scheduleId, newDate, newTime, reason);
-      
-      // Refresh the schedules to get updated data
-      await fetchSchedules();
-      
-        alert('Interview rescheduled successfully');
-    } catch (e) {
-      console.error('Error rescheduling interview:', e);
-      alert('Failed to reschedule interview: ' + (e.message || 'Unknown error'));
-    }
-  };
 
   const handleCancelInterview = async (scheduleId, reason = '') => {
     try {
@@ -250,10 +296,10 @@ function InterviewSchedules() {
       // Refresh the schedules to get updated data
       await fetchSchedules();
       
-        alert('Interview cancelled successfully');
+        showToast(`✅ Interview cancelled successfully!\n\n📅 Cancelled at: ${new Date().toLocaleString()}`, 'success');
     } catch (e) {
       console.error('Error cancelling interview:', e);
-      alert('Failed to cancel interview: ' + (e.message || 'Unknown error'));
+      showToast(`❌ Failed to cancel interview:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error');
     }
   };
 
@@ -266,10 +312,10 @@ function InterviewSchedules() {
       // Refresh the schedules to get updated data
       await fetchSchedules();
       
-        alert('Interview marked as no show');
+        showToast(`✅ Interview marked as no show!\n\n📝 Notes: ${notes || 'No additional notes'}\n📅 Marked at: ${new Date().toLocaleString()}`, 'success');
     } catch (e) {
       console.error('Error marking as no show:', e);
-      alert('Failed to mark as no show: ' + (e.message || 'Unknown error'));
+      showToast(`❌ Failed to mark as no show:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error');
     }
   };
 
@@ -301,6 +347,7 @@ function InterviewSchedules() {
       notes: `Scheduling interview for ${pendingSchedule.studentName}`
     });
     setCreateFormErrors({});
+    setActiveSchedule(null); // Clear any existing active schedule
     setIsCreateModalOpen(true);
   };
 
@@ -311,49 +358,53 @@ function InterviewSchedules() {
       // Refresh the schedules to get updated data
       await fetchSchedules();
       
-        alert('Interview scheduled automatically');
+        showToast(`✅ Interview scheduled automatically!\n\n📅 Scheduled for next available slot`, 'success');
     } catch (e) {
       console.error('Error auto-scheduling interview:', e);
-      alert('Failed to auto-schedule interview: ' + (e.message || 'Unknown error'));
+      showToast(`❌ Failed to auto-schedule interview:\n\n${e.message || 'Unknown error'}\n\nPlease try manual scheduling.`, 'error');
     }
   };
 
   // Bulk Operations
-  const handleBulkSendReminders = async () => {
-    if (selectedSchedules.length === 0) return;
-    
-    const confirmed = window.confirm(`Send reminders to ${selectedSchedules.length} student(s)?`);
-    if (!confirmed) return;
-
-    try {
-      // For now, just show a success message
-      // In a real implementation, this would send email/SMS reminders
-      alert(`Reminders sent to ${selectedSchedules.length} student(s)`);
+  const handleUnselectAll = () => {
       setSelectedSchedules([]);
-    } catch (e) {
-      console.error('Error sending reminders:', e);
-      alert('Failed to send some reminders: ' + e.message);
-    }
   };
 
-  const handleBulkCancel = async () => {
-    if (selectedSchedules.length === 0) return;
+  const handleSelectAll = () => {
+    const allItemIds = sortedSchedules.map(schedule => schedule.id);
+    setSelectedSchedules(allItemIds);
+  };
+
+  const handleBulkSchedule = () => {
+    // Check if all selected schedules are pending applications
+    const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
+    const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
     
-    const reason = window.prompt(`Enter reason for cancelling ${selectedSchedules.length} interview(s):`);
-    if (!reason) return;
-
-    try {
-      const promises = selectedSchedules.map(scheduleId => {
-        return handleCancelInterview(scheduleId, reason);
-      });
-
-      await Promise.all(promises);
-      setSelectedSchedules([]);
-      alert(`Successfully cancelled ${selectedSchedules.length} interview(s)`);
-    } catch (e) {
-      console.error('Error in bulk cancel:', e);
-      alert('Failed to cancel some interviews: ' + e.message);
+    if (pendingItems.length !== selectedItems.length) {
+      alert('Only pending applications (awaiting interview scheduling) can be bulk scheduled.');
+      return;
     }
+    
+    if (pendingItems.length === 0) {
+      alert('No pending applications selected for scheduling.');
+      return;
+    }
+    
+    // Reset form and open modal
+    setBulkFormData({
+      interviewType: 'online',
+      platform: 'zoom',
+      meetingLink: '',
+      interviewDate: '',
+      interviewTime: '',
+      duration: '30',
+      gapTime: '15',
+      interviewer: '',
+      notes: ''
+    });
+    setBulkFormErrors({});
+    setActiveSchedule(null); // Clear any existing active schedule
+    setIsBulkScheduleModalOpen(true);
   };
 
   // Combine schedules and pending applications for display
@@ -587,7 +638,6 @@ function InterviewSchedules() {
                   <span>Schedule Interview</span>
                 </button>
               ) : (
-                schedule.type === 'online' && schedule.meetingLink && (
                   <button
                     onClick={() => handleJoinMeeting(schedule)}
                     className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
@@ -595,27 +645,18 @@ function InterviewSchedules() {
                     <Video className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
                     <span>Join Meeting</span>
                   </button>
-                )
               )}
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
               {schedule.status !== 'pending' && (
-                <>
-                  <button 
-                    onClick={() => handleEditSchedule(schedule)}
-                    className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
-                    title="Edit"
-                  >
-                    <Edit className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteSchedule(schedule)}
-                    className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
-                    title="Delete"
-                  >
-                    <Trash2 className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-                  </button>
-                </>
+                <button 
+                  onClick={() => handleRescheduleInterview(schedule)}
+                  className={`${viewMode === 'list' ? 'px-3 py-2 text-sm' : 'px-3 py-1.5 text-sm'} bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center space-x-1`} 
+                  title="Reschedule"
+                >
+                  <Calendar className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
+                  <span>Reschedule</span>
+                </button>
               )}
             </div>
           </div>
@@ -632,13 +673,6 @@ function InterviewSchedules() {
     );
   };
 
-  const handleSelectAll = () => {
-    if (selectedSchedules.length === sortedSchedules.length) {
-      setSelectedSchedules([]);
-    } else {
-      setSelectedSchedules(sortedSchedules.map(schedule => schedule.id));
-    }
-  };
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -674,6 +708,25 @@ function InterviewSchedules() {
     setIsDeleteModalOpen(true);
   };
 
+  const handleRescheduleInterview = (schedule) => {
+    // Pre-populate the create form with existing schedule data for rescheduling
+    setCreateFormData({
+      interviewType: schedule.type === 'in-person' ? 'in-person' : 'online',
+      platform: schedule.platform || 'zoom',
+      meetingLink: schedule.meetingLink || '',
+      studentId: schedule.application?.id || schedule.applicationId || '',
+      interviewDate: schedule.interviewDate ? schedule.interviewDate.split('T')[0] : '',
+      interviewTime: schedule.interviewTime || '',
+      duration: schedule.duration?.toString() || '30',
+      staffId: schedule.staffId || '',
+      interviewer: schedule.interviewer || '',
+      notes: schedule.notes || ''
+    });
+    
+    setActiveSchedule(schedule);
+    setIsCreateModalOpen(true);
+  };
+
   const confirmDeleteSchedule = async () => {
     if (!activeSchedule) return;
     
@@ -701,13 +754,37 @@ function InterviewSchedules() {
   };
 
   const handleJoinMeeting = (schedule) => {
-    if (schedule.meetingLink) {
-      setActiveSchedule(schedule);
+    // If no meeting link exists, generate one or use a default meeting platform
+    let meetingLink = schedule.meetingLink;
+    
+    if (!meetingLink) {
+      // Generate a meeting link based on interview type
+      if (schedule.type === 'online') {
+        // For online interviews, you could integrate with a meeting platform like Zoom, Google Meet, etc.
+        // For now, we'll create a placeholder link
+        meetingLink = `https://meet.google.com/${schedule.id || 'interview-' + Date.now()}`;
+      } else {
+        // For in-person interviews, show location details
+        meetingLink = `Location: ${schedule.location || 'To be determined'}`;
+      }
+    }
+
+    // Open meeting URL in new tab if it's a valid URL
+    if (meetingLink && (meetingLink.startsWith('http://') || meetingLink.startsWith('https://'))) {
+      window.open(meetingLink, '_blank');
+    } else if (meetingLink && !meetingLink.startsWith('Location:')) {
+      // Try to add https:// if it's not a location description
+      const urlWithProtocol = meetingLink.startsWith('http') ? meetingLink : `https://${meetingLink}`;
+      window.open(urlWithProtocol, '_blank');
+    }
+
+    setActiveSchedule({ ...schedule, meetingLink });
       // Pre-populate evaluation form with schedule data
       setEvaluationFormData({
         applicantId: schedule.studentId,
+      applicationId: schedule.application?.id || schedule.applicationId || 'N/A',
         interviewerName: schedule.interviewer,
-        interviewDate: schedule.interviewDate,
+      interviewDate: formatDateForDisplay(schedule.interviewDate),
         academicMotivationScore: '',
         leadershipInvolvementScore: '',
         financialNeedScore: '',
@@ -716,9 +793,6 @@ function InterviewSchedules() {
         remarks: ''
       });
       setIsJoinMeetingModalOpen(true);
-    } else {
-      alert('No meeting link available for this interview.');
-    }
   };
 
   // Form handling functions
@@ -742,11 +816,11 @@ function InterviewSchedules() {
     if (!createFormData.interviewTime) {
       errors.interviewTime = 'Please select an interview time';
     }
-    if (!createFormData.interviewer) {
-      errors.interviewer = 'Please enter interviewer name';
+    if (!createFormData.staffId) {
+      errors.staffId = 'Please select an interviewer';
     }
-    if (createFormData.interviewType === 'online' && !createFormData.meetingLink) {
-      errors.meetingLink = 'Please enter meeting link for online interviews';
+    if (!createFormData.meetingLink) {
+      errors.meetingLink = 'Please enter meeting link';
     }
     
     // Additional validation: check if selected application is eligible
@@ -756,6 +830,29 @@ function InterviewSchedules() {
         errors.studentId = 'Selected application is not eligible for interview scheduling';
       } else if (selectedApplication.status !== 'documents_reviewed') {
         errors.studentId = 'Selected application must have documents reviewed status';
+      }
+    }
+    
+    // Check for interviewer time conflicts
+    if (createFormData.staffId && createFormData.interviewDate && createFormData.interviewTime) {
+      const selectedStaff = staffMembers.find(staff => staff.id.toString() === createFormData.staffId);
+      if (selectedStaff) {
+        const conflicts = checkInterviewerAvailability(
+          selectedStaff.name,
+          createFormData.interviewDate,
+          createFormData.interviewTime,
+          createFormData.duration,
+          null,
+          createFormData.staffId
+        );
+      
+      if (conflicts.length > 0) {
+        const conflictDetails = conflicts.map(conflict => 
+          `${conflict.studentName} (${conflict.displayStartTime} - ${conflict.displayEndTime})`
+        ).join(', ');
+        
+        errors.interviewTime = `Time conflict detected! ${selectedStaff.name} already has interview(s) at this time: ${conflictDetails}`;
+        }
       }
     }
     
@@ -773,15 +870,22 @@ function InterviewSchedules() {
     setIsSubmitting(true);
     try {
       // Prepare the interview data for the API
+          const selectedStaff = staffMembers.find(staff => staff.id.toString() === createFormData.staffId);
+          if (!selectedStaff) {
+            throw new Error('Selected interviewer not found');
+          }
+
       const interviewData = {
         interview_date: createFormData.interviewDate,
         interview_time: createFormData.interviewTime,
-        interview_location: createFormData.interviewType === 'in-person' ? 'TBD' : 'Online',
-        interview_type: createFormData.interviewType === 'online' ? 'online' : createFormData.interviewType,
-        meeting_link: createFormData.interviewType === 'online' ? createFormData.meetingLink : null,
-        interviewer_name: createFormData.interviewer,
+            interview_location: 'Online',
+            interview_type: 'online',
+            meeting_link: createFormData.meetingLink,
+            staff_id: createFormData.staffId,
+            interviewer_name: selectedStaff.name,
         scheduling_type: 'manual',
-        interview_notes: createFormData.notes
+        interview_notes: createFormData.notes,
+        duration: parseInt(createFormData.duration) || 30
       };
       
       // Get the application ID from the selected student
@@ -791,7 +895,32 @@ function InterviewSchedules() {
         throw new Error('Invalid application selected');
       }
       
-      await scholarshipApiService.scheduleInterview(applicationId, interviewData);
+      // Check if we're rescheduling an existing interview
+      if (activeSchedule && activeSchedule.id) {
+        // For rescheduling, we need to update the existing interview
+        // Note: This would require an update endpoint in the API
+        // For now, we'll create a new interview and mark the old one as cancelled
+        await scholarshipApiService.scheduleInterview(applicationId, interviewData);
+        
+        // Show reschedule success message
+        const selectedStudent = eligibleApplications.find(app => app.id === parseInt(createFormData.studentId));
+        const studentName = selectedStudent ? `${selectedStudent.student.first_name} ${selectedStudent.student.last_name}` : 'Student';
+        const interviewerName = selectedStaff?.name || 'Interviewer';
+        const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
+        
+        showToast(`✅ Interview rescheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success');
+      } else {
+        // Creating a new interview
+        await scholarshipApiService.scheduleInterview(applicationId, interviewData);
+        
+        // Show success message with details
+        const selectedStudent = eligibleApplications.find(app => app.id === parseInt(createFormData.studentId));
+        const studentName = selectedStudent ? `${selectedStudent.student.first_name} ${selectedStudent.student.last_name}` : 'Student';
+        const interviewerName = selectedStaff?.name || 'Interviewer';
+        const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
+        
+        showToast(`✅ Interview scheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success');
+      }
       
       // Refresh the schedules, pending applications, and eligible applications to get updated data
       await fetchSchedules();
@@ -799,6 +928,7 @@ function InterviewSchedules() {
       await fetchEligibleApplications();
       
       setIsCreateModalOpen(false);
+      setActiveSchedule(null);
       setCreateFormData({
         interviewType: 'online',
         platform: 'zoom',
@@ -807,15 +937,39 @@ function InterviewSchedules() {
         interviewDate: '',
         interviewTime: '',
         duration: '30',
-        interviewer: '',
+              staffId: '',
         notes: ''
       });
       setCreateFormErrors({});
-      
-      alert('Interview schedule created successfully!');
     } catch (error) {
       console.error('Error creating interview schedule:', error);
-      alert('Failed to create interview schedule: ' + (error.message || 'Unknown error'));
+      
+      // Handle conflict errors specifically
+      if (error.response?.status === 409 && error.response?.data?.conflicts) {
+        const conflicts = error.response.data.conflicts;
+        const conflictDetails = conflicts.map(conflict => 
+          `• ${conflict.student_name} (${conflict.display_start_time} - ${conflict.display_end_time})`
+        ).join('\n');
+        
+        showToast(`❌ Cannot schedule interview due to conflicts!\n\n👤 ${selectedStaff?.name || 'The interviewer'} already has interview(s) at this time:\n\n${conflictDetails}\n\nPlease choose a different time slot.`, 'error');
+        return;
+      }
+      
+      // Handle validation errors
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        const validationErrors = Object.values(error.response.data.errors).flat();
+        showToast(`❌ Validation failed:\n\n${validationErrors.map(err => `• ${err}`).join('\n')}`, 'error');
+        return;
+      }
+      
+      // Handle server errors
+      if (error.response?.status >= 500) {
+        showToast(`❌ Server error (${error.response?.status}):\n\n${error.response?.data?.message || error.message || 'Internal server error'}\n\nPlease try again or contact support.`, 'error');
+        return;
+      }
+      
+      // Generic error
+      showToast(`❌ Failed to create interview schedule:\n\n${error.message || 'Unknown error'}\n\nPlease check your input and try again.`, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -830,10 +984,354 @@ function InterviewSchedules() {
       interviewDate: '',
       interviewTime: '',
       duration: '30',
-      interviewer: '',
+      staffId: '',
       notes: ''
     });
     setCreateFormErrors({});
+    setActiveSchedule(null);
+  };
+
+  // Bulk schedule form handling functions
+  const handleBulkFormChange = (field, value) => {
+    setBulkFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (bulkFormErrors[field]) {
+      setBulkFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateBulkForm = () => {
+    const errors = {};
+    
+    if (!bulkFormData.interviewDate) {
+      errors.interviewDate = 'Please select an interview date';
+    }
+    if (!bulkFormData.interviewTime) {
+      errors.interviewTime = 'Please select an interview time';
+    }
+    if (!bulkFormData.staffId) {
+      errors.staffId = 'Please select an interviewer';
+    }
+    if (!bulkFormData.meetingLink) {
+      errors.meetingLink = 'Please enter meeting link';
+    }
+    
+    // Check for interviewer time conflicts in bulk scheduling
+    if (bulkFormData.staffId && bulkFormData.interviewDate && bulkFormData.interviewTime) {
+      const selectedStaff = staffMembers.find(staff => staff.id.toString() === bulkFormData.staffId);
+      if (selectedStaff) {
+        const conflicts = checkInterviewerAvailability(
+          selectedStaff.name,
+          bulkFormData.interviewDate,
+          bulkFormData.interviewTime,
+          bulkFormData.duration,
+          null,
+          bulkFormData.staffId
+        );
+      
+      if (conflicts.length > 0) {
+        const conflictDetails = conflicts.map(conflict => 
+          `${conflict.studentName} (${conflict.displayStartTime} - ${conflict.displayEndTime})`
+        ).join(', ');
+        
+        errors.interviewTime = `Time conflict detected! ${selectedStaff.name} already has interview(s) at this time: ${conflictDetails}`;
+        }
+      }
+      
+      // Also check if the bulk scheduling would create conflicts within itself
+      const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
+      const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
+      
+      if (pendingItems.length > 1) {
+        const interviewTimes = calculateConsecutiveTimes(
+          bulkFormData.interviewTime,
+          bulkFormData.duration,
+          bulkFormData.gapTime,
+          pendingItems.length
+        );
+        
+        // Check if any of the calculated consecutive times would conflict with existing schedules
+        for (let i = 1; i < interviewTimes.length; i++) {
+          const timeSlot = interviewTimes[i];
+          const laterConflicts = checkInterviewerAvailability(
+            selectedStaff.name,
+            bulkFormData.interviewDate,
+            timeSlot.startTime,
+            bulkFormData.duration
+          );
+          
+          if (laterConflicts.length > 0) {
+            errors.interviewTime = `Bulk scheduling would create conflicts later in the day. Consider starting earlier or increasing gap time.`;
+            break;
+          }
+        }
+      }
+    }
+    
+    setBulkFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleBulkScheduleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateBulkForm()) {
+      return;
+    }
+    
+    setIsSubmittingBulk(true);
+    try {
+      const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
+      const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
+      
+      // Calculate consecutive interview times
+      const interviewTimes = calculateConsecutiveTimes(
+        bulkFormData.interviewTime,
+        bulkFormData.duration,
+        bulkFormData.gapTime,
+        pendingItems.length
+      );
+      
+            const selectedStaff = staffMembers.find(staff => staff.id.toString() === bulkFormData.staffId);
+            if (!selectedStaff) {
+              throw new Error('Selected interviewer not found');
+            }
+
+            // Schedule interviews for all selected pending applications with consecutive times
+            const promises = pendingItems.map((item, index) => {
+              const timeSlot = interviewTimes[index];
+              const interviewData = {
+                interview_date: bulkFormData.interviewDate,
+                interview_time: timeSlot.startTime,
+                interview_location: 'Online',
+                interview_type: 'online',
+                meeting_link: bulkFormData.meetingLink,
+                staff_id: bulkFormData.staffId,
+                interviewer_name: selectedStaff.name,
+                scheduling_type: 'manual',
+                interview_notes: `${bulkFormData.notes}\n\nScheduled Time: ${timeSlot.displayTime} - ${formatTimeForDisplay(timeSlot.endTime)}`,
+                duration: parseInt(bulkFormData.duration) || 30
+              };
+              
+              return scholarshipApiService.scheduleInterview(item.applicationId, interviewData);
+            });
+
+      await Promise.all(promises);
+      
+      // Refresh the schedules, pending applications, and eligible applications to get updated data
+      await fetchSchedules();
+      await fetchPendingApplications();
+      await fetchEligibleApplications();
+      
+        setIsBulkScheduleModalOpen(false);
+        setSelectedSchedules([]);
+        setBulkFormData({
+          interviewType: 'online',
+          platform: 'zoom',
+          meetingLink: '',
+          interviewDate: '',
+          interviewTime: '',
+          duration: '30',
+          gapTime: '15',
+          staffId: '',
+          notes: ''
+        });
+      setBulkFormErrors({});
+      
+      // Show detailed success message with scheduled times
+      const timeDetails = interviewTimes.map((time, index) => 
+        `${pendingItems[index].studentName}: ${time.displayTime} - ${formatTimeForDisplay(time.endTime)}`
+      ).join('\n');
+      
+      showToast(`✅ Successfully scheduled ${pendingItems.length} interview(s)!\n\n👤 Interviewer: ${selectedStaff?.name || 'Selected interviewer'}\n📅 Date: ${bulkFormData.interviewDate}\n⏱️ Duration: ${bulkFormData.duration} minutes each\n\n📋 Scheduled Times:\n${timeDetails}`, 'success');
+    } catch (error) {
+      console.error('Error bulk scheduling interviews:', error);
+      
+      // Handle conflict errors specifically
+      if (error.response?.status === 409 && error.response?.data?.conflicts) {
+        const conflicts = error.response.data.conflicts;
+        const conflictDetails = conflicts.map(conflict => 
+          `${conflict.student_name} (${conflict.display_start_time} - ${conflict.display_end_time})`
+        ).join(', ');
+        
+        showToast(`Cannot schedule interviews due to conflicts!\n\n${selectedStaff?.name || 'The interviewer'} already has interview(s) at this time:\n${conflictDetails}`, 'error');
+        return;
+      }
+      
+      showToast('Failed to schedule some interviews: ' + (error.message || 'Unknown error'), 'error');
+    } finally {
+      setIsSubmittingBulk(false);
+    }
+  };
+
+  const resetBulkForm = () => {
+    setBulkFormData({
+      interviewType: 'online',
+      platform: 'zoom',
+      meetingLink: '',
+      interviewDate: '',
+      interviewTime: '',
+      duration: '30',
+      gapTime: '15',
+      staffId: '',
+      notes: ''
+    });
+    setBulkFormErrors({});
+  };
+
+  // Toast utility function
+  const showToast = (message, type = 'success') => {
+    setToast({
+      show: true,
+      message,
+      type
+    });
+    
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 5000);
+  };
+
+  // Time calculation utilities
+  const addMinutesToTime = (timeString, minutes) => {
+    const [hours, mins] = timeString.split(':').map(Number);
+    const totalMinutes = hours * 60 + mins + minutes;
+    const newHours = Math.floor(totalMinutes / 60);
+    const newMins = totalMinutes % 60;
+    return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+  };
+
+  const timeToMinutes = (timeString) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const minutesToTime = (totalMinutes) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  const doTimeRangesOverlap = (start1, end1, start2, end2) => {
+    return start1 < end2 && start2 < end1;
+  };
+
+  const formatTimeForDisplay = (timeString) => {
+    const [hours, mins] = timeString.split(':');
+    const hour = parseInt(hours);
+    const minute = parseInt(mins);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+  };
+
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return 'Not specified';
+    
+    try {
+      // Handle ISO date strings
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString; // Return original if invalid
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString; // Return original if parsing fails
+    }
+  };
+
+  const calculateConsecutiveTimes = (startTime, duration, gapTime, count) => {
+    const times = [];
+    let currentTime = startTime;
+    
+    for (let i = 0; i < count; i++) {
+      times.push({
+        startTime: currentTime,
+        endTime: addMinutesToTime(currentTime, parseInt(duration)),
+        displayTime: formatTimeForDisplay(currentTime)
+      });
+      
+      // Calculate next interview time (current end time + gap)
+      currentTime = addMinutesToTime(currentTime, parseInt(duration) + parseInt(gapTime));
+    }
+    
+    return times;
+  };
+
+  // Overlap detection function
+  const checkInterviewerAvailability = (interviewerName, date, time, duration, excludeScheduleId = null, staffId = null) => {
+    const conflicts = [];
+    const newStartMinutes = timeToMinutes(time);
+    const newEndMinutes = newStartMinutes + parseInt(duration);
+    
+    // Check existing schedules for the same interviewer on the same date
+    const existingSchedules = schedules.filter(schedule => {
+      const sameInterviewer = staffId ? 
+        schedule.staffId === staffId : 
+        schedule.interviewer === interviewerName;
+      
+      return sameInterviewer &&
+        schedule.interviewDate === date &&
+        schedule.status !== 'cancelled' &&
+        schedule.id !== excludeScheduleId;
+    });
+    
+    existingSchedules.forEach(schedule => {
+      const existingStartMinutes = timeToMinutes(schedule.interviewTime);
+      const existingEndMinutes = existingStartMinutes + (schedule.duration || 30);
+      
+      if (doTimeRangesOverlap(newStartMinutes, newEndMinutes, existingStartMinutes, existingEndMinutes)) {
+        conflicts.push({
+          scheduleId: schedule.id,
+          studentName: schedule.studentName,
+          startTime: schedule.interviewTime,
+          endTime: minutesToTime(existingEndMinutes),
+          displayStartTime: formatTimeForDisplay(schedule.interviewTime),
+          displayEndTime: formatTimeForDisplay(minutesToTime(existingEndMinutes))
+        });
+      }
+    });
+    
+    return conflicts;
+  };
+
+  // Helper function to suggest available time slots
+  const getAvailableTimeSlots = (interviewerName, date, duration) => {
+    const availableSlots = [];
+    const workStartHour = 8; // 8:00 AM
+    const workEndHour = 17; // 5:00 PM
+    const slotDuration = parseInt(duration);
+    
+    // Get existing schedules for the interviewer on the given date
+    const existingSchedules = schedules.filter(schedule => 
+      schedule.interviewer === interviewerName &&
+      schedule.interviewDate === date &&
+      schedule.status !== 'cancelled'
+    ).sort((a, b) => timeToMinutes(a.interviewTime) - timeToMinutes(b.interviewTime));
+    
+    let currentTime = workStartHour * 60; // Start at 8:00 AM in minutes
+    
+    while (currentTime + slotDuration <= workEndHour * 60) {
+      const currentTimeStr = minutesToTime(currentTime);
+      const conflicts = checkInterviewerAvailability(interviewerName, date, currentTimeStr, duration);
+      
+      if (conflicts.length === 0) {
+        availableSlots.push({
+          time: currentTimeStr,
+          displayTime: formatTimeForDisplay(currentTimeStr),
+          endTime: minutesToTime(currentTime + slotDuration),
+          displayEndTime: formatTimeForDisplay(minutesToTime(currentTime + slotDuration))
+        });
+      }
+      
+      currentTime += 30; // Check every 30 minutes
+    }
+    
+    return availableSlots;
   };
 
   // Evaluation form handling functions
@@ -915,6 +1413,7 @@ Remarks: ${evaluationFormData.remarks}
       setActiveSchedule(null);
       setEvaluationFormData({
         applicantId: '',
+        applicationId: '',
         interviewerName: '',
         interviewDate: '',
         academicMotivationScore: '',
@@ -938,6 +1437,7 @@ Remarks: ${evaluationFormData.remarks}
   const resetEvaluationForm = () => {
     setEvaluationFormData({
       applicantId: '',
+      applicationId: '',
       interviewerName: '',
       interviewDate: '',
       academicMotivationScore: '',
@@ -1011,7 +1511,10 @@ Remarks: ${evaluationFormData.remarks}
             Export
           </button>
           <button 
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              setActiveSchedule(null); // Clear any existing active schedule
+              setIsCreateModalOpen(true);
+            }}
             disabled={eligibleApplications.length === 0}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
               eligibleApplications.length === 0 
@@ -1185,16 +1688,25 @@ Remarks: ${evaluationFormData.remarks}
               </span>
               <div className="flex space-x-2">
                 <button 
-                  onClick={handleBulkSendReminders}
+                  onClick={handleBulkSchedule}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center space-x-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Bulk Schedule</span>
+                </button>
+                {selectedSchedules.length > 0 && selectedSchedules.length < sortedSchedules.length && (
+                  <button 
+                    onClick={handleSelectAll}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
-                  Send Reminders
+                    Select All
                 </button>
+                )}
                 <button 
-                  onClick={handleBulkCancel}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                  onClick={handleUnselectAll}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
-                  Cancel Selected
+                  Unselect All
                 </button>
               </div>
             </div>
@@ -1237,7 +1749,9 @@ Remarks: ${evaluationFormData.remarks}
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateModalOpen(false)} />
           <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Schedule New Interview</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule New Interview'}
+              </h3>
               <button 
                 onClick={() => setIsCreateModalOpen(false)} 
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -1247,59 +1761,21 @@ Remarks: ${evaluationFormData.remarks}
             </div>
             
             <form onSubmit={handleCreateSubmit} className="space-y-6">
-              {/* Interview Type Selection */}
+              {/* Interview Type - Online Only */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Interview Type
                 </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <label className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer ${
-                    createFormData.interviewType === 'online' 
-                      ? 'border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="interviewType"
-                      value="online"
-                      checked={createFormData.interviewType === 'online'}
-                      onChange={(e) => handleCreateFormChange('interviewType', e.target.value)}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center space-x-3">
-                      <Video className={`w-5 h-5 ${createFormData.interviewType === 'online' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
+                <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
                       <div>
-                        <div className={`text-sm font-medium ${createFormData.interviewType === 'online' ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-white'}`}>Online Interview</div>
-                        <div className={`text-xs ${createFormData.interviewType === 'online' ? 'text-blue-600 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>Video conference meeting</div>
+                    <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
                       </div>
-                    </div>
-                  </label>
-                  <label className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer ${
-                    createFormData.interviewType === 'in-person' 
-                      ? 'border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="interviewType"
-                      value="in-person"
-                      checked={createFormData.interviewType === 'in-person'}
-                      onChange={(e) => handleCreateFormChange('interviewType', e.target.value)}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center space-x-3">
-                      <MapPin className={`w-5 h-5 ${createFormData.interviewType === 'in-person' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
-                      <div>
-                        <div className={`text-sm font-medium ${createFormData.interviewType === 'in-person' ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-white'}`}>In-Person Interview</div>
-                        <div className={`text-xs ${createFormData.interviewType === 'in-person' ? 'text-blue-600 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>Physical meeting location</div>
-                      </div>
-                    </div>
-                  </label>
                 </div>
               </div>
 
               {/* Online Platform Selection */}
-              {createFormData.interviewType === 'online' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Online Platform
@@ -1316,10 +1792,8 @@ Remarks: ${evaluationFormData.remarks}
                     <option value="other">Other</option>
                   </select>
                 </div>
-              )}
 
               {/* Meeting Link */}
-              {createFormData.interviewType === 'online' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Meeting Link
@@ -1340,7 +1814,6 @@ Remarks: ${evaluationFormData.remarks}
                     Enter the meeting URL that students will use to join the interview
                   </p>
                 </div>
-              )}
 
               {/* Student Selection */}
               <div>
@@ -1432,17 +1905,22 @@ Remarks: ${evaluationFormData.remarks}
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Interviewer
                 </label>
-                <input
-                  type="text"
-                  value={createFormData.interviewer}
-                  onChange={(e) => handleCreateFormChange('interviewer', e.target.value)}
-                  placeholder="Enter interviewer name"
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    createFormErrors.interviewer ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                <select
+                  value={createFormData.staffId}
+                  onChange={(e) => handleCreateFormChange('staffId', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    createFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
                   }`}
-                />
-                {createFormErrors.interviewer && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.interviewer}</p>
+                >
+                  <option value="">Select an interviewer</option>
+                  {staffMembers.map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.name}
+                    </option>
+                  ))}
+                </select>
+                {createFormErrors.staffId && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.staffId}</p>
                 )}
               </div>
 
@@ -1480,10 +1958,10 @@ Remarks: ${evaluationFormData.remarks}
                   {isSubmitting ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Creating...</span>
+                      <span>{activeSchedule && activeSchedule.id ? 'Rescheduling...' : 'Creating...'}</span>
                     </>
                   ) : (
-                    <span>Schedule Interview</span>
+                    <span>{activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule Interview'}</span>
                   )}
                 </button>
               </div>
@@ -1638,7 +2116,7 @@ Remarks: ${evaluationFormData.remarks}
               >
                 Close
               </button>
-              {activeSchedule.type === 'online' && activeSchedule.meetingLink && (
+              {activeSchedule.status !== 'pending' && (
                 <button
                   onClick={() => handleJoinMeeting(activeSchedule)}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
@@ -1672,32 +2150,92 @@ Remarks: ${evaluationFormData.remarks}
               <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
                   <Video className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                  Meeting Link
+                  {(activeSchedule.type === 'online' || 
+                    activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                    activeSchedule.platform?.toLowerCase().includes('meet') ||
+                    activeSchedule.platform?.toLowerCase().includes('teams') ||
+                    activeSchedule.meetingLink?.includes('zoom') ||
+                    activeSchedule.meetingLink?.includes('meet') ||
+                    activeSchedule.meetingLink?.includes('teams') ||
+                    activeSchedule.meetingLink?.startsWith('http')) ? 'Meeting Link' : 'Interview Location'}
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Platform</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.platform}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {(activeSchedule.type === 'online' || 
+                        activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                        activeSchedule.platform?.toLowerCase().includes('meet') ||
+                        activeSchedule.platform?.toLowerCase().includes('teams') ||
+                        activeSchedule.meetingLink?.includes('zoom') ||
+                        activeSchedule.meetingLink?.includes('meet') ||
+                        activeSchedule.meetingLink?.includes('teams') ||
+                        activeSchedule.meetingLink?.startsWith('http')) ? 'Platform' : 'Type'}
+                    </p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {activeSchedule.platform || 
+                       ((activeSchedule.type === 'online' || 
+                         activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                         activeSchedule.platform?.toLowerCase().includes('meet') ||
+                         activeSchedule.platform?.toLowerCase().includes('teams') ||
+                         activeSchedule.meetingLink?.includes('zoom') ||
+                         activeSchedule.meetingLink?.includes('meet') ||
+                         activeSchedule.meetingLink?.includes('teams') ||
+                         activeSchedule.meetingLink?.startsWith('http')) ? 'Google Meet' : 'In-Person Interview')}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Meeting Link</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {(activeSchedule.type === 'online' || 
+                        activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                        activeSchedule.platform?.toLowerCase().includes('meet') ||
+                        activeSchedule.platform?.toLowerCase().includes('teams') ||
+                        activeSchedule.meetingLink?.includes('zoom') ||
+                        activeSchedule.meetingLink?.includes('meet') ||
+                        activeSchedule.meetingLink?.includes('teams') ||
+                        activeSchedule.meetingLink?.startsWith('http')) ? 'Meeting Link' : 'Location Details'}
+                    </p>
                     <div className="flex items-center space-x-2">
-                      <a 
-                        href={activeSchedule.meetingLink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="font-medium text-blue-600 dark:text-blue-400 hover:underline break-all flex-1"
-                      >
+                      {/* Check if it's an online meeting based on platform or meeting link */}
+                      {(activeSchedule.type === 'online' || 
+                        activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                        activeSchedule.platform?.toLowerCase().includes('meet') ||
+                        activeSchedule.platform?.toLowerCase().includes('teams') ||
+                        activeSchedule.meetingLink?.includes('zoom') ||
+                        activeSchedule.meetingLink?.includes('meet') ||
+                        activeSchedule.meetingLink?.includes('teams') ||
+                        activeSchedule.meetingLink?.startsWith('http')) ? (
+                        <>
+                          <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
+                            <p className="font-medium text-gray-900 dark:text-white break-all">
                         {activeSchedule.meetingLink}
-                      </a>
+                            </p>
+                          </div>
                       <button
-                        onClick={() => window.open(activeSchedule.meetingLink, '_blank')}
-                        className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-1"
-                        title="Open in new tab"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span className="text-sm">Join</span>
+                            onClick={() => {
+                              // Ensure the link has proper protocol
+                              let meetingUrl = activeSchedule.meetingLink;
+                              if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
+                                meetingUrl = 'https://' + meetingUrl;
+                              }
+                              window.open(meetingUrl, '_blank');
+                            }}
+                            className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-1 flex-shrink-0"
+                            title="Join Meeting"
+                          >
+                            <Video className="w-4 h-4" />
+                            <span className="text-sm">Join Meeting</span>
                       </button>
+                        </>
+                      ) : (
+                        <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {activeSchedule.meetingLink}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            In-person interview location
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1712,7 +2250,7 @@ Remarks: ${evaluationFormData.remarks}
                 
                 <form onSubmit={handleEvaluationSubmit} className="space-y-4">
                   {/* Basic Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Applicant ID
@@ -1720,6 +2258,17 @@ Remarks: ${evaluationFormData.remarks}
                       <input
                         type="text"
                         value={evaluationFormData.applicantId}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Application ID
+                      </label>
+                      <input
+                        type="text"
+                        value={evaluationFormData.applicationId}
                         readOnly
                         className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
                       />
@@ -1972,6 +2521,313 @@ Remarks: ${evaluationFormData.remarks}
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Schedule Modal */}
+      {isBulkScheduleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsBulkScheduleModalOpen(false)} />
+          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bulk Schedule Interviews</h3>
+              <button 
+                onClick={() => setIsBulkScheduleModalOpen(false)} 
+                className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <p className="text-sm text-orange-800 dark:text-orange-200">
+                <strong>Scheduling {selectedSchedules.length} pending application(s)</strong> with consecutive interview times.
+              </p>
+            </div>
+            
+            {/* Schedule Preview */}
+            {bulkFormData.interviewDate && bulkFormData.interviewTime && selectedSchedules.length > 0 && (
+              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
+                  Schedule Preview
+                </h4>
+                <div className="space-y-2">
+                  {(() => {
+                    const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
+                    const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
+                    const times = calculateConsecutiveTimes(
+                      bulkFormData.interviewTime,
+                      bulkFormData.duration,
+                      bulkFormData.gapTime,
+                      pendingItems.length
+                    );
+                    
+                    return pendingItems.map((item, index) => (
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <span className="text-blue-800 dark:text-blue-200 font-medium">
+                          {item.studentName}
+                        </span>
+                        <span className="text-blue-700 dark:text-blue-300">
+                          {times[index].displayTime} - {formatTimeForDisplay(times[index].endTime)}
+                        </span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+                <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Total time: {(() => {
+                      const totalMinutes = selectedSchedules.length * parseInt(bulkFormData.duration) + 
+                                         (selectedSchedules.length - 1) * parseInt(bulkFormData.gapTime);
+                      const hours = Math.floor(totalMinutes / 60);
+                      const minutes = totalMinutes % 60;
+                      return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                    })()}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <form onSubmit={handleBulkScheduleSubmit} className="space-y-6">
+              {/* Interview Type - Online Only */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Interview Type
+                </label>
+                <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
+                  <div>
+                    <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Online Platform Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Online Platform
+                </label>
+                <select 
+                  value={bulkFormData.platform}
+                  onChange={(e) => handleBulkFormChange('platform', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="zoom">Zoom</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="meet">Google Meet</option>
+                  <option value="webex">Cisco Webex</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Meeting Link */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Meeting Link
+                </label>
+                <input
+                  type="url"
+                  value={bulkFormData.meetingLink}
+                  onChange={(e) => handleBulkFormChange('meetingLink', e.target.value)}
+                  placeholder="https://zoom.us/j/123456789"
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    bulkFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                  }`}
+                />
+                {bulkFormErrors.meetingLink && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.meetingLink}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Enter the meeting URL that students will use to join the interview
+                </p>
+              </div>
+
+              {/* Interview Date & Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Interview Date
+                  </label>
+                  <input
+                    type="date"
+                    value={bulkFormData.interviewDate}
+                    onChange={(e) => handleBulkFormChange('interviewDate', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      bulkFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                    }`}
+                  />
+                  {bulkFormErrors.interviewDate && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.interviewDate}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Interview Time
+                  </label>
+                  <input
+                    type="time"
+                    value={bulkFormData.interviewTime}
+                    onChange={(e) => handleBulkFormChange('interviewTime', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      bulkFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                    }`}
+                  />
+                  {bulkFormErrors.interviewTime && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.interviewTime}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Duration and Gap Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Duration (minutes)
+                  </label>
+                  <select 
+                    value={bulkFormData.duration}
+                    onChange={(e) => handleBulkFormChange('duration', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                    <option value="90">90 minutes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gap Between Interviews (minutes)
+                  </label>
+                  <select 
+                    value={bulkFormData.gapTime}
+                    onChange={(e) => handleBulkFormChange('gapTime', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Interviewer */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Interviewer
+                </label>
+                <select
+                  value={bulkFormData.staffId}
+                  onChange={(e) => handleBulkFormChange('staffId', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    bulkFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                  }`}
+                >
+                  <option value="">Select an interviewer</option>
+                  {staffMembers.map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.name}
+                    </option>
+                  ))}
+                </select>
+                {bulkFormErrors.staffId && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.staffId}</p>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Interview Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={bulkFormData.notes}
+                  onChange={(e) => handleBulkFormChange('notes', e.target.value)}
+                  placeholder="Any special instructions or notes for the interviews..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsBulkScheduleModalOpen(false);
+                    resetBulkForm();
+                  }}
+                  disabled={isSubmittingBulk}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmittingBulk}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {isSubmittingBulk ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Scheduling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Schedule {selectedSchedules.length} Interview(s)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-50 max-w-md">
+          <div className={`p-4 rounded-lg shadow-lg border-l-4 ${
+            toast.type === 'success' 
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-400 text-green-800 dark:text-green-200' 
+              : toast.type === 'error'
+              ? 'bg-red-50 dark:bg-red-900/20 border-red-400 text-red-800 dark:text-red-200'
+              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 text-blue-800 dark:text-blue-200'
+          }`}>
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                {toast.type === 'success' ? (
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                ) : toast.type === 'error' ? (
+                  <XCircle className="w-5 h-5 text-red-400" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-blue-400" />
+                )}
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium whitespace-pre-line">
+                  {toast.message}
+                </p>
+              </div>
+              <div className="ml-4 flex-shrink-0">
+                <button
+                  onClick={() => setToast(prev => ({ ...prev, show: false }))}
+                  className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    toast.type === 'success' 
+                      ? 'text-green-500 hover:bg-green-100 dark:hover:bg-green-800/30 focus:ring-green-600' 
+                      : toast.type === 'error'
+                      ? 'text-red-500 hover:bg-red-100 dark:hover:bg-red-800/30 focus:ring-red-600'
+                      : 'text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-800/30 focus:ring-blue-600'
+                  }`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

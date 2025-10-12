@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GsmAuthController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,3 +27,11 @@ Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum')
 // GSM-compatible endpoints (migrated from sqlite PHP script)
 Route::post('/gsm/login', [GsmAuthController::class, 'login']);
 Route::post('/gsm/check-email', [GsmAuthController::class, 'checkEmail']);
+
+// User management endpoints (for other services)
+Route::prefix('users')->group(function () {
+    Route::get('/{id}', [UserController::class, 'getUserById']);
+    Route::get('/email/{email}', [UserController::class, 'getUserByEmail']);
+    Route::post('/batch', [UserController::class, 'getUsersByIds']);
+    Route::get('/staff', [UserController::class, 'getStaffUsers']);
+});

@@ -789,16 +789,22 @@ class ScholarshipApiService {
     return response.data!.data!;
   }
 
-  async rescheduleInterview(id: number, newDate: string, newTime: string, reason?: string): Promise<InterviewSchedule> {
+  async rescheduleInterview(id: number, newDate: string, newTime: string, reason?: string, duration?: number): Promise<InterviewSchedule> {
+    const body: any = { 
+      interview_date: newDate, 
+      interview_time: newTime, 
+      reschedule_reason: reason 
+    };
+    
+    if (duration !== undefined) {
+      body.duration = duration;
+    }
+    
     const response = await this.makeRequest<{ data: InterviewSchedule }>(
       `/api/interview-schedules/${id}/reschedule`,
       {
         method: 'PUT',
-        body: JSON.stringify({ 
-          interview_date: newDate, 
-          interview_time: newTime, 
-          reschedule_reason: reason 
-        }),
+        body: JSON.stringify(body),
       }
     );
     return response.data!.data!;
@@ -845,6 +851,28 @@ class ScholarshipApiService {
       '/api/interview-schedules/calendar'
     );
     return response.data!.data!;
+  }
+
+  // Staff methods
+  async getStaffInterviewers(): Promise<{ success: boolean; data: any[]; message: string }> {
+    const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
+      '/api/staff/interviewers'
+    );
+    return response.data!;
+  }
+
+  async getAllStaff(): Promise<{ success: boolean; data: any[]; message: string }> {
+    const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
+      '/api/staff'
+    );
+    return response.data!;
+  }
+
+  async getStaffById(id: number): Promise<{ success: boolean; data: any; message: string }> {
+    const response = await this.makeRequest<{ success: boolean; data: any; message: string }>(
+      `/api/staff/${id}`
+    );
+    return response.data!;
   }
 }
 

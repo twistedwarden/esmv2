@@ -15,26 +15,27 @@ class InterviewScheduleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get some applications that are in enrollment_verified status
-        $applications = ScholarshipApplication::where('status', 'enrollment_verified')
+        // Get some applications that are in documents_reviewed status
+        $applications = ScholarshipApplication::where('status', 'documents_reviewed')
             ->with(['student'])
             ->limit(15)
             ->get();
 
         if ($applications->isEmpty()) {
-            $this->command->warn('No applications found in enrollment_verified status. Creating sample applications first...');
+            $this->command->warn('No applications found in documents_reviewed status. Please create some applications first.');
             return;
         }
 
-        $interviewers = [
-            ['id' => 1, 'name' => 'Dr. Maria Santos'],
-            ['id' => 2, 'name' => 'Mr. Juan Dela Cruz'],
-            ['id' => 3, 'name' => 'Ms. Ana Rodriguez'],
-            ['id' => 4, 'name' => 'Prof. Carlos Mendoza'],
-        ];
+        // Get actual staff members from the database
+        $staffMembers = \App\Models\Staff::where('is_active', true)->get();
+        
+        if ($staffMembers->isEmpty()) {
+            $this->command->warn('No staff members found. Please run StaffSeeder first.');
+            return;
+        }
 
         foreach ($applications as $index => $application) {
-            $interviewer = $interviewers[$index % count($interviewers)];
+            $staff = $staffMembers[$index % $staffMembers->count()];
             
             // Create interview schedule
             $interviewDate = $this->getRandomInterviewDate();
@@ -48,13 +49,14 @@ class InterviewScheduleSeeder extends Seeder
                 'interview_location' => $this->getRandomLocation(),
                 'interview_type' => $this->getRandomInterviewType(),
                 'meeting_link' => $this->getRandomMeetingLink(),
-                'interviewer_id' => $interviewer['id'],
-                'interviewer_name' => $interviewer['name'],
+                'staff_id' => $staff->id,
+                'interviewer_name' => 'Staff Member ' . $staff->id,
                 'scheduling_type' => $this->getRandomSchedulingType(),
                 'status' => $this->getRandomStatus(),
                 'interview_notes' => $this->getRandomNotes(),
                 'interview_result' => $this->getRandomResult(),
                 'completed_at' => $this->getRandomCompletedAt(),
+                'duration' => $this->getRandomDuration(),
                 'scheduled_by' => 1, // Admin user
             ]);
         }
@@ -184,6 +186,12 @@ class InterviewScheduleSeeder extends Seeder
         }
         
         return null;
+    }
+
+    private function getRandomDuration(): int
+    {
+        $durations = [15, 30, 45, 60];
+        return $durations[array_rand($durations)];
     }
 }
 

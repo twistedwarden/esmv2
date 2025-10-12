@@ -20,6 +20,7 @@ class InterviewSchedule extends Model
         'interview_type',
         'meeting_link',
         'interviewer_id',
+        'staff_id',
         'interviewer_name',
         'scheduling_type',
         'status',
@@ -27,11 +28,11 @@ class InterviewSchedule extends Model
         'interview_result',
         'completed_at',
         'scheduled_by',
+        'duration',
     ];
 
     protected $casts = [
         'interview_date' => 'date',
-        'interview_time' => 'datetime:H:i',
         'completed_at' => 'datetime',
     ];
 
@@ -44,6 +45,11 @@ class InterviewSchedule extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class);
     }
 
     // Scopes
@@ -77,6 +83,11 @@ class InterviewSchedule extends Model
         return $query->where('interviewer_id', $interviewerId);
     }
 
+    public function scopeByStaff($query, $staffId)
+    {
+        return $query->where('staff_id', $staffId);
+    }
+
     public function scopeUpcoming($query)
     {
         return $query->where('interview_date', '>=', now()->toDateString())
@@ -105,18 +116,24 @@ class InterviewSchedule extends Model
         return true;
     }
 
-    public function reschedule($newDate, $newTime, $reason, $rescheduledBy): bool
+    public function reschedule($newDate, $newTime, $reason, $rescheduledBy, $newDuration = null): bool
     {
         if (!$this->canBeRescheduled()) {
             return false;
         }
 
-        $this->update([
+        $updateData = [
             'interview_date' => $newDate,
             'interview_time' => $newTime,
             'status' => 'rescheduled',
             'interview_notes' => $this->interview_notes . "\n\nRescheduled: " . $reason . " (by: " . $rescheduledBy . ")",
-        ]);
+        ];
+
+        if ($newDuration !== null) {
+            $updateData['duration'] = $newDuration;
+        }
+
+        $this->update($updateData);
 
         return true;
     }
@@ -243,10 +260,12 @@ class InterviewSchedule extends Model
             'interview_type' => $data['interview_type'] ?? 'in_person',
             'meeting_link' => $data['meeting_link'] ?? null,
             'interviewer_id' => $data['interviewer_id'] ?? null,
+            'staff_id' => $data['staff_id'] ?? null,
             'interviewer_name' => $data['interviewer_name'],
             'scheduling_type' => $data['scheduling_type'] ?? 'manual',
             'status' => 'scheduled',
             'scheduled_by' => $data['scheduled_by'],
+            'duration' => $data['duration'] ?? 30, // Default 30 minutes
         ]);
     }
 }
