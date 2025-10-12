@@ -275,15 +275,15 @@ class ScholarshipApplication extends Model
         }
 
         $this->update([
-            'status' => 'interview_scheduled',
+            'status' => 'documents_reviewed',
             'reviewed_at' => now(),
             'reviewed_by' => $reviewedBy ?? auth()->id(),
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
-            'status' => 'interview_scheduled',
-            'notes' => $notes ?? 'Application reviewed and approved - ready for interview scheduling',
+            'status' => 'documents_reviewed',
+            'notes' => $notes ?? 'Documents reviewed and approved - ready for interview scheduling',
             'changed_by' => $reviewedBy ?? auth()->id(),
             'changed_at' => now(),
         ]);
@@ -293,17 +293,18 @@ class ScholarshipApplication extends Model
 
     public function scheduleInterview($notes = null, $scheduledBy = null): bool
     {
-        if ($this->status !== 'interview_scheduled') {
+        if ($this->status !== 'documents_reviewed') {
             return false;
         }
 
         $this->update([
+            'status' => 'interview_scheduled',
             'notes' => $notes,
         ]);
 
         $this->statusHistory()->create([
             'status' => 'interview_scheduled',
-            'notes' => $notes ?? 'Interview details updated',
+            'notes' => $notes ?? 'Interview scheduled',
             'changed_by' => $scheduledBy ?? auth()->id(),
             'changed_at' => now(),
         ]);
@@ -512,11 +513,11 @@ class ScholarshipApplication extends Model
 
     /**
      * Schedule interview manually
-     * Status: enrollment_verified → interview_scheduled
+     * Status: documents_reviewed → interview_scheduled
      */
     public function scheduleInterviewManually($interviewData, $scheduledBy): bool
     {
-        if ($this->status !== 'enrollment_verified') {
+        if ($this->status !== 'documents_reviewed') {
             return false;
         }
 
@@ -575,7 +576,7 @@ class ScholarshipApplication extends Model
      */
     public function canProceedToInterview(): bool
     {
-        return $this->status === 'interview_scheduled';
+        return $this->status === 'documents_reviewed';
     }
 
     /**

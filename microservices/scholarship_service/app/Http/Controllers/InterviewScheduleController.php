@@ -137,7 +137,7 @@ class InterviewScheduleController extends Controller
             if (!$application->canProceedToInterview()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Application must be enrollment verified to schedule interview'
+                    'message' => 'Application must have documents reviewed to schedule interview'
                 ], 400);
             }
 
