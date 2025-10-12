@@ -264,38 +264,7 @@ const PartnerSchoolDashboard = () => {
     }
   ] : [];
 
-  const mockStudents = [
-    {
-      id: 1,
-      studentId: "2024-001",
-      name: "Juan Cruz Santos",
-      status: "ACTIVE",
-      yearLevel: "GRADE_11",
-      program: "STEM",
-      enrollmentDate: "2024-06-15",
-      lastUpdated: "2024-01-15"
-    },
-    {
-      id: 2,
-      studentId: "2024-002",
-      name: "Maria Santos Garcia",
-      status: "ACTIVE",
-      yearLevel: "FIRST_YEAR",
-      program: "ABM",
-      enrollmentDate: "2024-06-15",
-      lastUpdated: "2024-01-15"
-    },
-    {
-      id: 3,
-      studentId: "2024-003",
-      name: "Pedro Reyes Martinez",
-      status: "GRADUATED",
-      yearLevel: "GRADE_12",
-      program: "STEM",
-      enrollmentDate: "2023-06-15",
-      lastUpdated: "2024-01-10"
-    }
-  ];
+  // Mock data removed - using real data from API
 
   // Fetch students data when students tab is active
   useEffect(() => {
@@ -303,8 +272,8 @@ const PartnerSchoolDashboard = () => {
       fetchStudentsData();
       fetchEnrollmentDataFromAPI();
     } else {
-      // Fallback to mock data if not on students tab
-      setStudents(mockStudents);
+      // Clear students data when not on students tab
+      setStudents([]);
     }
   }, [activeTab, token]);
 
@@ -314,11 +283,29 @@ const PartnerSchoolDashboard = () => {
         status: filterStatus, 
         search: searchTerm 
       });
-      setStudents(studentsData.data || []);
+      console.log('Students data received:', studentsData);
+      console.log('Students array:', studentsData.data);
+      // Handle paginated response
+      const studentsArray = studentsData.data?.data || studentsData.data || [];
+      console.log('Processed students array:', studentsArray);
+      
+      // Debug each student's enrollment data
+      studentsArray.forEach((student, index) => {
+        console.log(`Student ${index + 1}:`, {
+          id: student.id,
+          student_id_number: student.student_id_number,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          enrollmentData: student.enrollmentData,
+          scholarshipApplications: student.scholarshipApplications
+        });
+      });
+      
+      setStudents(studentsArray);
     } catch (err) {
       console.error('Error fetching students data:', err);
-      // Fallback to mock data on error
-      setStudents(mockStudents);
+      // Set empty array on error instead of mock data
+      setStudents([]);
     }
   };
 
@@ -331,7 +318,12 @@ const PartnerSchoolDashboard = () => {
         status: filterStatus, 
         search: searchTerm 
       });
-      setEnrollmentData(enrollmentDataResponse.data || []);
+      console.log('Enrollment data received:', enrollmentDataResponse);
+      console.log('Enrollment data array:', enrollmentDataResponse.data);
+      // Handle paginated response
+      const enrollmentArray = enrollmentDataResponse.data?.data || enrollmentDataResponse.data || [];
+      console.log('Processed enrollment array:', enrollmentArray);
+      setEnrollmentData(enrollmentArray);
     } catch (err) {
       console.error('Error fetching enrollment data:', err);
       setEnrollmentError(err.message);
@@ -410,7 +402,451 @@ const PartnerSchoolDashboard = () => {
     event.preventDefault();
   };
 
-  // CSV parsing function
+  // Define a comprehensive mapping for flexible header recognition
+  const headerMap = {
+    'student_id_number': [
+      'student_id_number', 'student id', 'id number', 'student_id', 'student_no', 'student number',
+      'studentid', 'studentno', 'id', 'student', 'studentidnumber', 'studentnumber',
+      'student id number', 'student no', 'student number', 'id no', 'idno'
+    ],
+    'first_name': [
+      'first_name', 'first name', 'given name', 'fname', 'firstname', 'givenname',
+      'first', 'name', 'firstname', 'given', 'f name', 'first name'
+    ],
+    'last_name': [
+      'last_name', 'last name', 'surname', 'lname', 'lastname', 'family name',
+      'last', 'surname', 'family', 'l name', 'last name', 'familyname'
+    ],
+    'enrollment_year': [
+      'enrollment_year', 'enrollment year', 'academic year', 'school year',
+      'enrollmentyear', 'academicyear', 'schoolyear', 'academic_year', 'school_year',
+      'enrollment year', 'academic year', 'school year'
+    ],
+    'enrollment_term': [
+      'enrollment_term', 'enrollment term', 'semester', 'term', 'enrollmentterm',
+      'sem', 'semester term', 'term semester', 'enrollment term', 'enrollment',
+      'term', 'semester', 'period', 'quarter', 'trimester'
+    ],
+    'is_currently_enrolled': [
+      'is_currently_enrolled', 'currently enrolled', 'enrolled', 'current enrollment',
+      'iscurrentlyenrolled', 'currentlyenrolled', 'currentenrollment', 'enrolled status',
+      'enrollment status', 'status', 'active', 'current', 'enrolled status',
+      'currently enrolled', 'current enrollment', 'enrollment status', 'enrollment_status'
+    ],
+    'enrollment_date': [
+      'enrollment_date', 'enrollment date', 'date enrolled', 'enrollmentdate',
+      'dateenrolled', 'enroll date', 'enroll_date', 'date of enrollment',
+      'enrollment date', 'date enrolled', 'enroll date', 'date of enrollment'
+    ],
+    'program': [
+      'program', 'course', 'degree', 'program of study', 'course of study',
+      'degree program', 'major', 'field of study', 'programofstudy',
+      'courseofstudy', 'degreeprogram', 'fieldofstudy', 'program of study',
+      'course of study', 'degree program', 'field of study'
+    ],
+    'year_level': [
+      'year_level', 'year level', 'level', 'grade level', 'yearlevel',
+      'gradelevel', 'grade', 'class', 'year level', 'grade level',
+      'academic level', 'academiclevel', 'level year', 'year grade',
+      'student level', 'studentlevel', 'academic standing', 'standing'
+    ]
+  };
+
+  // Define value mappings for smart value recognition
+  const valueMaps = {
+    'enrollment_term': {
+      '1st semester': '1st Semester',
+      'first semester': '1st Semester',
+      '1st sem': '1st Semester',
+      'first sem': '1st Semester',
+      'sem 1': '1st Semester',
+      'semester 1': '1st Semester',
+      '1': '1st Semester',
+      '2nd semester': '2nd Semester',
+      'second semester': '2nd Semester',
+      '2nd sem': '2nd Semester',
+      'second sem': '2nd Semester',
+      'sem 2': '2nd Semester',
+      'semester 2': '2nd Semester',
+      '2': '2nd Semester',
+      'summer': 'Summer',
+      'summer term': 'Summer',
+      'summer semester': 'Summer',
+      'SUMMER': 'Summer', // Uppercase version
+      'midyear': 'Midyear',
+      'mid year': 'Midyear',
+      'mid-year': 'Midyear',
+      'FIRST': '1st Semester', // Uppercase version
+      'SECOND': '2nd Semester' // Uppercase version
+    },
+    'is_currently_enrolled': {
+      'true': 'true',
+      'yes': 'true',
+      'y': 'true',
+      '1': 'true',
+      'enrolled': 'true',
+      'active': 'true',
+      'current': 'true',
+      'ACTIVE': 'true', // Uppercase version
+      'false': 'false',
+      'no': 'false',
+      'n': 'false',
+      '0': 'false',
+      'not enrolled': 'false',
+      'inactive': 'false',
+      'dropped': 'false',
+      'graduated': 'false', // Treat graduated as false but with warning
+      'INACTIVE': 'false', // Uppercase version
+      'DROPPED': 'false', // Uppercase version
+      'GRADUATED': 'false' // Uppercase version
+    },
+    'year_level': {
+      '1st year': '1st Year',
+      'first year': '1st Year',
+      'first_year': '1st Year',
+      '1st yr': '1st Year',
+      'first yr': '1st Year',
+      'year 1': '1st Year',
+      '1': '1st Year',
+      '2nd year': '2nd Year',
+      'second year': '2nd Year',
+      'second_year': '2nd Year',
+      '2nd yr': '2nd Year',
+      'second yr': '2nd Year',
+      'year 2': '2nd Year',
+      '2': '2nd Year',
+      '3rd year': '3rd Year',
+      'third year': '3rd Year',
+      'third_year': '3rd Year',
+      '3rd yr': '3rd Year',
+      'third yr': '3rd Year',
+      'year 3': '3rd Year',
+      '3': '3rd Year',
+      '4th year': '4th Year',
+      'fourth year': '4th Year',
+      'fourth_year': '4th Year',
+      '4th yr': '4th Year',
+      'fourth yr': '4th Year',
+      'year 4': '4th Year',
+      '4': '4th Year',
+      '5th year': '5th Year',
+      'fifth year': '5th Year',
+      'fifth_year': '5th Year',
+      '5th yr': '5th Year',
+      'fifth yr': '5th Year',
+      'year 5': '5th Year',
+      '5': '5th Year',
+      // Handle grade levels
+      'grade 12': '12th Grade',
+      'grade_12': '12th Grade',
+      'grade12': '12th Grade',
+      '12th grade': '12th Grade',
+      'grade 11': '11th Grade',
+      'grade_11': '11th Grade',
+      'grade11': '11th Grade',
+      '11th grade': '11th Grade',
+      'grade 10': '10th Grade',
+      'grade_10': '10th Grade',
+      'grade10': '10th Grade',
+      '10th grade': '10th Grade',
+      'grade 9': '9th Grade',
+      'grade_9': '9th Grade',
+      'grade9': '9th Grade',
+      '9th grade': '9th Grade',
+      'grade 8': '8th Grade',
+      'grade_8': '8th Grade',
+      'grade8': '8th Grade',
+      '8th grade': '8th Grade',
+      'grade 7': '7th Grade',
+      'grade_7': '7th Grade',
+      'grade7': '7th Grade',
+      '7th grade': '7th Grade',
+      // Uppercase versions
+      'FIRST_YEAR': '1st Year',
+      'SECOND_YEAR': '2nd Year',
+      'THIRD_YEAR': '3rd Year',
+      'FOURTH_YEAR': '4th Year',
+      'FIFTH_YEAR': '5th Year',
+      'GRADE_12': '12th Grade',
+      'GRADE_11': '11th Grade',
+      'GRADE_10': '10th Grade',
+      'GRADE_9': '9th Grade',
+      'GRADE_8': '8th Grade',
+      'GRADE_7': '7th Grade'
+    },
+    'program': {
+      // Computer Science variations
+      'computer science': 'Bachelor of Science in Computer Science',
+      'bs computer science': 'Bachelor of Science in Computer Science',
+      'bscs': 'Bachelor of Science in Computer Science',
+      'cs': 'Bachelor of Science in Computer Science',
+      'computer sci': 'Bachelor of Science in Computer Science',
+      'comp sci': 'Bachelor of Science in Computer Science',
+      
+      // Psychology variations
+      'psychology': 'Bachelor of Arts in Psychology',
+      'ba psychology': 'Bachelor of Arts in Psychology',
+      'bapsych': 'Bachelor of Arts in Psychology',
+      'psych': 'Bachelor of Arts in Psychology',
+      
+      // Engineering variations
+      'civil engineering': 'Bachelor of Science in Civil Engineering',
+      'bs civil engineering': 'Bachelor of Science in Civil Engineering',
+      'bscivil': 'Bachelor of Science in Civil Engineering',
+      'ce': 'Bachelor of Science in Civil Engineering',
+      
+      'electrical engineering': 'Bachelor of Science in Electrical Engineering',
+      'bs electrical engineering': 'Bachelor of Science in Electrical Engineering',
+      'bsee': 'Bachelor of Science in Electrical Engineering',
+      'ee': 'Bachelor of Science in Electrical Engineering',
+      
+      'mechanical engineering': 'Bachelor of Science in Mechanical Engineering',
+      'bs mechanical engineering': 'Bachelor of Science in Mechanical Engineering',
+      'bsme': 'Bachelor of Science in Mechanical Engineering',
+      'me': 'Bachelor of Science in Mechanical Engineering',
+      
+      // Business variations
+      'business administration': 'Bachelor of Science in Business Administration',
+      'bsba': 'Bachelor of Science in Business Administration',
+      'bs business admin': 'Bachelor of Science in Business Administration',
+      'business admin': 'Bachelor of Science in Business Administration',
+      
+      // Education variations
+      'elementary education': 'Bachelor of Elementary Education',
+      'beed': 'Bachelor of Elementary Education',
+      'bs elementary ed': 'Bachelor of Elementary Education',
+      
+      'secondary education': 'Bachelor of Secondary Education',
+      'bsed': 'Bachelor of Secondary Education',
+      'bs secondary ed': 'Bachelor of Secondary Education',
+      
+      // Nursing variations
+      'nursing': 'Bachelor of Science in Nursing',
+      'bsn': 'Bachelor of Science in Nursing',
+      'bs nursing': 'Bachelor of Science in Nursing',
+      
+      // Accountancy variations
+      'accountancy': 'Bachelor of Science in Accountancy',
+      'bsa': 'Bachelor of Science in Accountancy',
+      'bs accountancy': 'Bachelor of Science in Accountancy',
+      'accounting': 'Bachelor of Science in Accountancy'
+    }
+  };
+
+  // Function to normalize a header name with fuzzy matching
+  const normalizeHeader = (csvHeader) => {
+    if (!csvHeader || typeof csvHeader !== 'string') return null;
+    
+    // Clean the header: remove quotes, extra spaces, and convert to lowercase
+    const cleanHeader = csvHeader.trim().replace(/['"]/g, '').toLowerCase();
+    
+    // Remove all non-alphanumeric characters for better matching
+    const normalizedHeader = cleanHeader.replace(/[^a-z0-9]/g, '');
+    
+    // First try exact matches
+    for (const canonicalField in headerMap) {
+      if (headerMap[canonicalField].some(alias => 
+        alias.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedHeader
+      )) {
+        return canonicalField;
+      }
+    }
+    
+    // Then try partial matches (contains)
+    for (const canonicalField in headerMap) {
+      if (headerMap[canonicalField].some(alias => 
+        normalizedHeader.includes(alias.toLowerCase().replace(/[^a-z0-9]/g, '')) ||
+        alias.toLowerCase().replace(/[^a-z0-9]/g, '').includes(normalizedHeader)
+      )) {
+        return canonicalField;
+      }
+    }
+    
+    // Finally try word-based matching
+    const words = normalizedHeader.split(/(?=[a-z])/).filter(w => w.length > 2);
+    for (const canonicalField in headerMap) {
+      for (const alias of headerMap[canonicalField]) {
+        const aliasWords = alias.toLowerCase().replace(/[^a-z0-9]/g, '').split(/(?=[a-z])/).filter(w => w.length > 2);
+        if (words.some(word => aliasWords.some(aliasWord => 
+          word.includes(aliasWord) || aliasWord.includes(word)
+        ))) {
+          return canonicalField;
+        }
+      }
+    }
+    
+    return null; // Return null if no match found
+  };
+
+  // Function to normalize field values with smart recognition
+  const normalizeValue = (field, value) => {
+    if (!value || typeof value !== 'string') return value;
+    
+    const cleanValue = value.trim().toLowerCase();
+    
+    // Handle name fields - capitalize properly
+    if (field === 'first_name' || field === 'last_name') {
+      return value.trim().split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    }
+    
+    // Handle student ID - ensure it's uppercase and clean
+    if (field === 'student_id_number') {
+      return value.trim().toUpperCase();
+    }
+    
+    // Handle enrollment year - normalize format
+    if (field === 'enrollment_year') {
+      const yearMatch = cleanValue.match(/(\d{4})[-\/]?(\d{4})?/);
+      if (yearMatch) {
+        const startYear = yearMatch[1];
+        const endYear = yearMatch[2] || (parseInt(startYear) + 1).toString();
+        return `${startYear}-${endYear}`;
+      }
+    }
+    
+    // Handle enrollment date - normalize format
+    if (field === 'enrollment_date') {
+      // Try to parse various date formats
+      const dateFormats = [
+        /(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/, // MM/DD/YYYY or MM-DD-YYYY
+        /(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/, // YYYY/MM/DD or YYYY-MM-DD
+        /(\d{1,2})\s+(\d{1,2})\s+(\d{4})/, // MM DD YYYY
+      ];
+      
+      for (const format of dateFormats) {
+        const match = value.match(format);
+        if (match) {
+          let year, month, day;
+          if (format === dateFormats[0]) {
+            // MM/DD/YYYY format
+            [, month, day, year] = match;
+          } else if (format === dateFormats[1]) {
+            // YYYY/MM/DD format
+            [, year, month, day] = match;
+          } else {
+            // MM DD YYYY format
+            [, month, day, year] = match;
+          }
+          
+          // Ensure two digits for month and day
+          month = month.padStart(2, '0');
+          day = day.padStart(2, '0');
+          
+          return `${year}-${month}-${day}`;
+        }
+      }
+    }
+    
+    // Check if this field has value mappings
+    if (valueMaps[field]) {
+      // First try exact match
+      if (valueMaps[field][cleanValue]) {
+        return valueMaps[field][cleanValue];
+      }
+      
+      // Then try partial matching
+      for (const [key, normalizedValue] of Object.entries(valueMaps[field])) {
+        if (cleanValue.includes(key) || key.includes(cleanValue)) {
+          return normalizedValue;
+        }
+      }
+      
+      // For enrollment_term, try to extract semester number
+      if (field === 'enrollment_term') {
+        const semesterMatch = cleanValue.match(/(\d+)(?:st|nd|rd|th)?\s*(?:sem|semester)/);
+        if (semesterMatch) {
+          const num = parseInt(semesterMatch[1]);
+          if (num === 1) return '1st Semester';
+          if (num === 2) return '2nd Semester';
+        }
+        
+        // Check for summer/midyear keywords
+        if (cleanValue.includes('summer')) return 'Summer';
+        if (cleanValue.includes('midyear') || cleanValue.includes('mid year')) return 'Midyear';
+      }
+      
+      // For year_level, try to extract year number
+      if (field === 'year_level') {
+        // Handle FIRST_YEAR, SECOND_YEAR, etc.
+        if (cleanValue === 'first_year') return '1st Year';
+        if (cleanValue === 'second_year') return '2nd Year';
+        if (cleanValue === 'third_year') return '3rd Year';
+        if (cleanValue === 'fourth_year') return '4th Year';
+        if (cleanValue === 'fifth_year') return '5th Year';
+        
+        // Handle GRADE_12, GRADE_11, etc.
+        const gradeMatch = cleanValue.match(/grade[_\s]*(\d+)/);
+        if (gradeMatch) {
+          const grade = parseInt(gradeMatch[1]);
+          if (grade >= 7 && grade <= 12) {
+            return `${grade}th Grade`;
+          }
+        }
+        
+        // Handle regular year patterns
+        const yearMatch = cleanValue.match(/(\d+)(?:st|nd|rd|th)?\s*(?:year|yr)/);
+        if (yearMatch) {
+          const num = parseInt(yearMatch[1]);
+          if (num >= 1 && num <= 5) {
+            const ordinals = ['', '1st', '2nd', '3rd', '4th', '5th'];
+            return `${ordinals[num]} Year`;
+          }
+        }
+      }
+      
+      // For is_currently_enrolled, try boolean detection
+      if (field === 'is_currently_enrolled') {
+        if (cleanValue === 'true' || cleanValue === 'yes' || cleanValue === '1' || 
+            cleanValue === 'y' || cleanValue === 'enrolled' || cleanValue === 'active') {
+          return 'true';
+        }
+        if (cleanValue === 'false' || cleanValue === 'no' || cleanValue === '0' || 
+            cleanValue === 'n' || cleanValue === 'not enrolled' || cleanValue === 'inactive') {
+          return 'false';
+        }
+        if (cleanValue === 'graduated') {
+          return 'false'; // Treat graduated as false
+        }
+      }
+      
+      // For program, try to find partial matches
+      if (field === 'program') {
+        for (const [key, normalizedValue] of Object.entries(valueMaps[field])) {
+          if (cleanValue.includes(key) || key.includes(cleanValue)) {
+            return normalizedValue;
+          }
+        }
+        
+        // Try to detect common program patterns
+        if (cleanValue.includes('computer') && cleanValue.includes('science')) {
+          return 'Bachelor of Science in Computer Science';
+        }
+        if (cleanValue.includes('psychology') || cleanValue.includes('psych')) {
+          return 'Bachelor of Arts in Psychology';
+        }
+        if (cleanValue.includes('engineering')) {
+          if (cleanValue.includes('civil')) return 'Bachelor of Science in Civil Engineering';
+          if (cleanValue.includes('electrical')) return 'Bachelor of Science in Electrical Engineering';
+          if (cleanValue.includes('mechanical')) return 'Bachelor of Science in Mechanical Engineering';
+        }
+        if (cleanValue.includes('business') || cleanValue.includes('admin')) {
+          return 'Bachelor of Science in Business Administration';
+        }
+        if (cleanValue.includes('nursing')) {
+          return 'Bachelor of Science in Nursing';
+        }
+        if (cleanValue.includes('accounting') || cleanValue.includes('accountancy')) {
+          return 'Bachelor of Science in Accountancy';
+        }
+      }
+    }
+    
+    return value; // Return original value if no normalization found
+  };
+
+  // CSV parsing function with intelligent header mapping
   const parseCSVFile = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -418,15 +854,53 @@ const PartnerSchoolDashboard = () => {
         try {
           const csv = e.target.result;
           const lines = csv.split('\n').filter(line => line.trim());
-          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+          const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+          
+          // Map raw headers to normalized field names
+          const headerMapping = {};
+          const normalizedHeaders = [];
+          
+          rawHeaders.forEach(rawHeader => {
+            const normalizedHeader = normalizeHeader(rawHeader);
+            if (normalizedHeader) {
+              headerMapping[rawHeader] = normalizedHeader;
+              if (!normalizedHeaders.includes(normalizedHeader)) {
+                normalizedHeaders.push(normalizedHeader);
+              }
+            }
+          });
+          
+          console.log('=== CSV HEADER MAPPING DEBUG ===');
+          console.log('Raw headers from CSV:', rawHeaders);
+          console.log('Header mapping:', headerMapping);
+          console.log('Normalized headers:', normalizedHeaders);
+          console.log('Unmapped headers:', rawHeaders.filter(h => !headerMapping[h]));
+          console.log('================================');
+          
           const data = [];
           
           for (let i = 1; i < lines.length; i++) {
             const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
             const row = {};
-            headers.forEach((header, index) => {
-              row[header] = values[index] || '';
+            
+            rawHeaders.forEach((rawHeader, index) => {
+              const normalizedHeader = headerMapping[rawHeader];
+              if (normalizedHeader) {
+                const rawValue = values[index] || '';
+                // Apply smart value normalization
+                const normalizedValue = normalizeValue(normalizedHeader, rawValue);
+                
+                // Log value transformations for debugging
+                if (rawValue !== normalizedValue) {
+                  console.log(`Value normalized: "${rawValue}" → "${normalizedValue}" (field: ${normalizedHeader})`);
+                } else {
+                  console.log(`Value kept as-is: "${rawValue}" (field: ${normalizedHeader})`);
+                }
+                
+                row[normalizedHeader] = normalizedValue;
+              }
             });
+            
             data.push(row);
           }
           
@@ -445,11 +919,16 @@ const PartnerSchoolDashboard = () => {
     const requiredFields = ['student_id_number', 'first_name', 'last_name', 'enrollment_term'];
     let validRecords = 0;
     let errorRecords = 0;
+    let warningRecords = 0;
     const errors = [];
+    const warnings = [];
+    const validData = [];
 
     data.forEach((row, index) => {
       let hasErrors = false;
+      let hasWarnings = false;
       const rowErrors = [];
+      const rowWarnings = [];
       
       // Check for missing required fields
       requiredFields.forEach(field => {
@@ -482,7 +961,12 @@ const PartnerSchoolDashboard = () => {
       // Check for valid boolean values for is_currently_enrolled
       if (row.is_currently_enrolled) {
         const validBooleanValues = ['true', 'false', 'yes', 'no', '1', '0', 'y', 'n'];
-        if (!validBooleanValues.includes(row.is_currently_enrolled.toLowerCase().trim())) {
+        const graduatedValues = ['graduated'];
+        
+        if (graduatedValues.includes(row.is_currently_enrolled.toLowerCase().trim())) {
+          rowWarnings.push(`Student is marked as '${row.is_currently_enrolled}' - treated as not currently enrolled`);
+          hasWarnings = true;
+        } else if (!validBooleanValues.includes(row.is_currently_enrolled.toLowerCase().trim())) {
           rowErrors.push(`Invalid is_currently_enrolled value. Expected true/false/yes/no/1/0, got: ${row.is_currently_enrolled}`);
           hasErrors = true;
         }
@@ -502,6 +986,11 @@ const PartnerSchoolDashboard = () => {
         errors.push(`Row ${index + 1}: ${rowErrors.join('; ')}`);
       } else {
         validRecords++;
+        validData.push(row); // Add valid row to validData array
+        if (hasWarnings) {
+          warningRecords++;
+          warnings.push(`Row ${index + 1}: ${rowWarnings.join('; ')}`);
+        }
       }
     });
 
@@ -509,10 +998,12 @@ const PartnerSchoolDashboard = () => {
       totalRecords: data.length,
       validRecords,
       errorRecords,
-      warningRecords: 0,
+      warningRecords,
       newRecords: validRecords,
       updatedRecords: 0,
-      errors
+      errors,
+      warnings,
+      validData
     };
   };
 
@@ -520,30 +1011,41 @@ const PartnerSchoolDashboard = () => {
   const downloadTemplate = () => {
     const templateData = [
       {
-        student_id_number: '2024-001234',
-        first_name: 'Juan',
-        last_name: 'Dela Cruz',
-        enrollment_year: '2024-2025',
-        enrollment_term: '1st Semester',
-        is_currently_enrolled: 'true',
-        enrollment_date: '2024-08-15',
-        program: 'Bachelor of Science in Computer Science',
-        year_level: '1st Year'
+        'Student ID': '2024-001234',
+        'First Name': 'Juan',
+        'Last Name': 'Dela Cruz',
+        'Academic Year': '2024-2025',
+        'Semester': '1st Semester',
+        'Currently Enrolled': 'true',
+        'Enrollment Date': '2024-08-15',
+        'Program': 'Bachelor of Science in Computer Science',
+        'Year Level': '1st Year'
       },
       {
-        student_id_number: '2024-001235',
-        first_name: 'Maria',
-        last_name: 'Santos',
-        enrollment_year: '', // Optional - will be auto-generated from enrollment_date
-        enrollment_term: '1st Semester',
-        is_currently_enrolled: 'true',
-        enrollment_date: '2024-08-16',
-        program: 'Bachelor of Arts in Psychology',
-        year_level: '2nd Year'
+        'Student ID': '2024-001235',
+        'First Name': 'Maria',
+        'Last Name': 'Santos',
+        'Academic Year': '', // Optional - will be auto-generated from enrollment_date
+        'Semester': '1st Semester',
+        'Currently Enrolled': 'true',
+        'Enrollment Date': '2024-08-16',
+        'Program': 'Bachelor of Arts in Psychology',
+        'Year Level': '2nd Year'
+      },
+      {
+        'Student ID': '2024-001236',
+        'First Name': 'Jose',
+        'Last Name': 'Garcia',
+        'Academic Year': '2024',
+        'Semester': '1st sem', // Will be normalized to "1st Semester"
+        'Currently Enrolled': 'yes', // Will be normalized to "true"
+        'Enrollment Date': '08/20/2024', // Will be normalized to "2024-08-20"
+        'Program': 'CS', // Will be normalized to "Bachelor of Science in Computer Science"
+        'Year Level': '1' // Will be normalized to "1st Year"
       }
     ];
 
-    const headers = ['student_id_number', 'first_name', 'last_name', 'enrollment_year', 'enrollment_term', 'is_currently_enrolled', 'enrollment_date', 'program', 'year_level'];
+    const headers = ['Student ID', 'First Name', 'Last Name', 'Academic Year', 'Semester', 'Currently Enrolled', 'Enrollment Date', 'Program', 'Year Level'];
     const csvContent = [
       headers.join(','),
       ...templateData.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
@@ -567,7 +1069,11 @@ const PartnerSchoolDashboard = () => {
     setUploadProgress({ status: 'uploading', message: 'Uploading enrollment data...' });
 
     try {
-      const csvData = await parseCSVFile(uploadFile);
+      // Use the already parsed and validated data
+      const csvData = validationResults.validData || [];
+      console.log('Uploading CSV data:', csvData);
+      console.log('Number of valid records:', csvData.length);
+      console.log('Sample record:', csvData[0]);
       const result = await uploadEnrollmentData(token, csvData, uploadMode);
       
       setUploadProgress({ 
@@ -811,7 +1317,12 @@ const PartnerSchoolDashboard = () => {
         >
           <CloudUpload className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload Student Enrollment Data</h4>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">Drag and drop your CSV file here or click to browse</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-2">Drag and drop your CSV file here or click to browse</p>
+          <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
+            🧠 <strong>Smart Recognition:</strong> We automatically recognize column names AND values! 
+            "Student ID" → student_id_number, "Semester" → enrollment_term, "1st sem" → "1st Semester", 
+            "CS" → "Bachelor of Science in Computer Science", etc. Your data will be intelligently normalized!
+          </p>
           <input
             type="file"
             accept=".csv,.xlsx"
@@ -943,6 +1454,25 @@ const PartnerSchoolDashboard = () => {
              </div>
            )}
 
+           {/* Warning Details */}
+           {validationResults?.warnings && validationResults.warnings.length > 0 && (
+             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+               <h4 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3">Warning Details:</h4>
+               <div className="max-h-60 overflow-y-auto">
+                 {validationResults.warnings.slice(0, 10).map((warning, index) => (
+                   <div key={index} className="text-sm text-yellow-700 dark:text-yellow-300 mb-1 p-2 bg-yellow-100 dark:bg-yellow-800/30 rounded">
+                     {warning}
+                   </div>
+                 ))}
+                 {validationResults.warnings.length > 10 && (
+                   <div className="text-sm text-yellow-600 dark:text-yellow-400 font-medium mt-2">
+                     ... and {validationResults.warnings.length - 10} more warnings
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
+
            <div className="flex space-x-4">
              {validationResults && validationResults.errorRecords === 0 && (
                <button 
@@ -1035,17 +1565,48 @@ const PartnerSchoolDashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-              {students
+              {students.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center space-y-4">
+                      <Users className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">No students found</h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {searchTerm || filterStatus !== 'all' 
+                            ? 'No students match your current search or filter criteria.'
+                            : 'Upload student enrollment data to get started.'
+                          }
+                        </p>
+                      </div>
+                      {!searchTerm && filterStatus === 'all' && (
+                        <button 
+                          onClick={() => setActiveTab('upload')}
+                          className="bg-[#4CAF50] text-white px-4 py-2 rounded-lg hover:bg-[#45A049] transition-colors"
+                        >
+                          Upload Student Data
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : students
                 .filter(student => 
                   (filterStatus === 'all' || student.status === filterStatus) &&
-                  (searchTerm === '' || student.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                  (searchTerm === '' || 
+                    (student.first_name && student.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (student.last_name && student.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (student.student_id_number && student.student_id_number.toLowerCase().includes(searchTerm.toLowerCase()))
+                  )
                 )
                 .map((student) => {
-                  // Get enrollment data for this student
-                  const studentEnrollmentData = enrollmentData.filter(
-                    enrollment => enrollment.student_id_number === student.student_id_number
-                  );
+                  // Get enrollment data for this student from the student object
+                  const studentEnrollmentData = student.enrollmentData || [];
                   const latestEnrollment = studentEnrollmentData[0]; // Most recent enrollment data
+                  
+                  // Debug logging
+                  console.log('Student:', student.student_id_number, 'Enrollment data:', studentEnrollmentData);
+                  console.log('Latest enrollment:', latestEnrollment);
                   
                   return (
                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
