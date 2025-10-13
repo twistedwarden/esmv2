@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // Create test citizen user
+        // Create test citizen users
         User::create([
             'citizen_id' => 'CITIZEN-001',
             'email' => 'citizen@example.com',
@@ -47,6 +47,68 @@ class UserSeeder extends Seeder
             'last_name' => 'Santos',
             'middle_name' => 'Cruz',
             'role' => 'citizen',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'citizen_id' => 'CITIZEN-002',
+            'email' => 'juan.delacruz@example.com',
+            'password' => Hash::make('citizen123'),
+            'first_name' => 'Juan',
+            'last_name' => 'Dela Cruz',
+            'middle_name' => 'Santos',
+            'role' => 'citizen',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'citizen_id' => 'CITIZEN-003',
+            'email' => 'ana.garcia@example.com',
+            'password' => Hash::make('citizen123'),
+            'first_name' => 'Ana',
+            'last_name' => 'Garcia',
+            'middle_name' => 'Lopez',
+            'role' => 'citizen',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        // Create additional staff users
+        User::create([
+            'citizen_id' => 'STAFF-002',
+            'email' => 'jane.smith@caloocan.gov.ph',
+            'password' => Hash::make('staff123'),
+            'first_name' => 'Jane',
+            'last_name' => 'Smith',
+            'middle_name' => 'A',
+            'role' => 'staff',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'citizen_id' => 'STAFF-003',
+            'email' => 'mike.johnson@caloocan.gov.ph',
+            'password' => Hash::make('staff123'),
+            'first_name' => 'Mike',
+            'last_name' => 'Johnson',
+            'middle_name' => 'B',
+            'role' => 'staff',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        // Create partner school representative
+        User::create([
+            'citizen_id' => 'PS-001',
+            'email' => 'school.rep@university.edu.ph',
+            'password' => Hash::make('psrep123'),
+            'first_name' => 'Dr. Sarah',
+            'last_name' => 'Wilson',
+            'middle_name' => 'M',
+            'role' => 'ps_rep',
             'is_active' => true,
             'email_verified_at' => now(),
         ]);

@@ -1,5 +1,5 @@
 // Sidebar items configuration for Sidebar.jsx
-import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield } from 'lucide-react';
 
 const sidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -58,6 +58,8 @@ const sidebarItems = [
             { id: 'emr-analytics', label: 'Analytics' }
         ]
     },
+    { id: 'user-management', icon: Users, label: 'User Management' },
+    { id: 'audit-logs', icon: Shield, label: 'Audit Logs' },
     { id: 'settings', icon: Settings, label: 'Settings' }
 ];
 

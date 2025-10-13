@@ -155,6 +155,52 @@ Route::prefix('staff')->middleware(['auth.auth_service'])->group(function () {
     Route::put('/{id}', [StaffController::class, 'update']);
 });
 
+// User Management routes (protected by authentication - admin only)
+Route::prefix('users')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\UserManagementController::class, 'getAllUsers']);
+    Route::get('/role/{role}', [App\Http\Controllers\Api\UserManagementController::class, 'getUsersByRole']);
+    Route::get('/stats', [App\Http\Controllers\Api\UserManagementController::class, 'getUserStats']);
+    Route::get('/{id}', [App\Http\Controllers\Api\UserManagementController::class, 'getUserById']);
+    Route::post('/', [App\Http\Controllers\Api\UserManagementController::class, 'createUser']);
+    Route::put('/{id}', [App\Http\Controllers\Api\UserManagementController::class, 'updateUser']);
+    Route::delete('/{id}', [App\Http\Controllers\Api\UserManagementController::class, 'deleteUser']);
+});
+
+// Audit Log routes (protected by authentication - admin only)
+Route::prefix('audit-logs')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\AuditLogController::class, 'index']);
+    Route::get('/statistics', [App\Http\Controllers\Api\AuditLogController::class, 'statistics']);
+    Route::get('/recent', [App\Http\Controllers\Api\AuditLogController::class, 'recent']);
+    Route::get('/filter-options', [App\Http\Controllers\Api\AuditLogController::class, 'filterOptions']);
+    Route::get('/export', [App\Http\Controllers\Api\AuditLogController::class, 'export']);
+    Route::get('/user/{userId}', [App\Http\Controllers\Api\AuditLogController::class, 'byUser']);
+    Route::get('/resource/{resourceType}/{resourceId}', [App\Http\Controllers\Api\AuditLogController::class, 'byResource']);
+    Route::get('/{id}', [App\Http\Controllers\Api\AuditLogController::class, 'show']);
+});
+
+// Test endpoint for debugging (remove in production)
+Route::get('/test/users', function () {
+    try {
+        $authServiceUrl = config('services.auth_service.url', 'http://localhost:8001');
+        $response = \Illuminate\Support\Facades\Http::timeout(10)
+            ->get("{$authServiceUrl}/api/users");
+        
+        return response()->json([
+            'success' => true,
+            'auth_service_url' => $authServiceUrl,
+            'auth_service_status' => $response->status(),
+            'auth_service_response' => $response->json(),
+            'message' => 'Test endpoint working'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'message' => 'Test endpoint failed'
+        ], 500);
+    }
+});
+
 // Partner School Enrollment Data Management routes have been removed - automatic verification is disabled
 
 // Form-specific endpoints for easy integration (protected by authentication)

@@ -30,7 +30,12 @@ Route::post('/gsm/check-email', [GsmAuthController::class, 'checkEmail']);
 
 // User management endpoints (for other services)
 Route::prefix('users')->group(function () {
+    Route::get('/', [UserController::class, 'getAllUsers']);
+    Route::get('/role/{role}', [UserController::class, 'getUsersByRole']);
+    Route::get('/stats', [UserController::class, 'getUserStats']);
     Route::get('/{id}', [UserController::class, 'getUserById']);
+    Route::post('/', [UserController::class, 'createUser']);
+    Route::put('/{id}', [UserController::class, 'updateUser']);
     Route::get('/email/{email}', [UserController::class, 'getUserByEmail']);
     Route::post('/batch', [UserController::class, 'getUsersByIds']);
     Route::get('/staff', [UserController::class, 'getStaffUsers']);

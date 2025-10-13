@@ -24,6 +24,8 @@ import PSDVerification from './modules/partnerSchool/PSDVerification'
 import PSDAnalytics from './modules/partnerSchool/PSDAnalytics'
 import PSDBulkOperations from './modules/partnerSchool/PSDBulkOperations'
 import PSDSettings from './modules/partnerSchool/PSDSettings'
+import UserManagement from './modules/UserManagement/UserManagement'
+import AuditLog from './modules/AuditLog/AuditLog'
 import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgressReport, AnalyticsCharts } from './modules/educationMonitoring'
 import SettingsOverview from './modules/settings/SettingsOverview'
 
@@ -95,8 +97,12 @@ function ContentRenderer({ activeItem, onPageChange }: Props) {
 			return <div><StudentProgressReport /></div>
 		case 'emr-analytics':
 			return <div><AnalyticsCharts /></div>
-		case 'settings':
-			return <div><SettingsOverview /></div>
+            case 'user-management':
+                return <div><UserManagement /></div>
+            case 'audit-logs':
+                return <div><AuditLog /></div>
+            case 'settings':
+                return <div><SettingsOverview /></div>
 		default:
 			return <div>Dashboard</div>
 	}
