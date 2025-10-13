@@ -11,60 +11,10 @@ function PSDProgramsPartnerships() {
     const [programs, setPrograms] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
 
-    // Mock data for demonstration
-    const mockPrograms = [
-        {
-            id: 1,
-            name: "Caloocan City Academic Excellence Scholarship",
-            type: "Merit-based",
-            school: "Caloocan City Science High School",
-            description: "Full scholarship for academically excellent students",
-            status: "active",
-            start_date: "2024-01-01",
-            end_date: "2024-12-31",
-            budget: 5000000,
-            beneficiaries: 150,
-            requirements: ["GPA 90+", "Financial need", "Good conduct"],
-            benefits: ["Full tuition", "Monthly allowance", "Book allowance"],
-            created_date: "2023-12-15",
-            last_updated: "2024-01-15"
-        },
-        {
-            id: 2,
-            name: "UCC Leadership Development Program",
-            type: "Leadership",
-            school: "University of Caloocan City",
-            description: "Scholarship for student leaders and future community leaders",
-            status: "active",
-            start_date: "2024-02-01",
-            end_date: "2024-11-30",
-            budget: 3000000,
-            beneficiaries: 80,
-            requirements: ["Leadership experience", "Community involvement", "GPA 85+"],
-            benefits: ["Partial tuition", "Leadership training", "Mentorship"],
-            created_date: "2023-11-20",
-            last_updated: "2024-01-10"
-        },
-        {
-            id: 3,
-            name: "STEM Innovation Grant",
-            type: "Research",
-            school: "Caloocan City Science High School",
-            description: "Research funding for STEM students",
-            status: "pending",
-            start_date: "2024-03-01",
-            end_date: "2024-12-31",
-            budget: 2000000,
-            beneficiaries: 50,
-            requirements: ["STEM major", "Research proposal", "Faculty recommendation"],
-            benefits: ["Research funding", "Equipment access", "Conference support"],
-            created_date: "2024-01-05",
-            last_updated: "2024-01-05"
-        }
-    ];
-
+    // Fetch programs data from API
     React.useEffect(() => {
-        setPrograms(mockPrograms);
+        // TODO: Implement API call to fetch programs data
+        setPrograms([]);
     }, []);
 
     const filteredPrograms = programs.filter(program => {

@@ -38,6 +38,7 @@ class User extends Authenticatable
         'email_verification_token',
         'email_verified_at',
         'google_id',
+        'assigned_school_id',
     ];
 
     /**
@@ -61,5 +62,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the assigned school ID for this user (for PS reps)
+     * Note: School data is fetched from scholarship service
+     */
+    public function getAssignedSchoolIdAttribute()
+    {
+        return $this->attributes['assigned_school_id'];
     }
 }

@@ -16,13 +16,10 @@ import Scholars from './modules/studentRegistry/Scholars'
 import BulkOperations from './modules/studentRegistry/BulkOperations'
 import ReportsAnalytics from './modules/studentRegistry/ReportsAnalytics'
 import ImportExport from './modules/studentRegistry/ImportExport'
-import PSDOverview from './modules/partnerSchool/PSDOverview'
 import PSDSchoolManagement from './modules/partnerSchool/PSDSchoolManagement'
-import PSDProgramsPartnerships from './modules/partnerSchool/PSDProgramsPartnerships'
 import PSDStudentPopulation from './modules/partnerSchool/PSDStudentPopulation'
 import PSDVerification from './modules/partnerSchool/PSDVerification'
 import PSDAnalytics from './modules/partnerSchool/PSDAnalytics'
-import PSDBulkOperations from './modules/partnerSchool/PSDBulkOperations'
 import PSDSettings from './modules/partnerSchool/PSDSettings'
 import UserManagement from './modules/UserManagement/UserManagement'
 import AuditLog from './modules/AuditLog/AuditLog'
@@ -71,20 +68,14 @@ function ContentRenderer({ activeItem, onPageChange }: Props) {
 			return <div><ReportsAnalytics /></div>
 		case 'studentRegistry-import-export':
 			return <div><ImportExport /></div>
-		case 'psd-overview':
-			return <div><PSDOverview /></div>
 		case 'psd-school-management':
 			return <div><PSDSchoolManagement /></div>
-		case 'psd-programs-partnerships':
-			return <div><PSDProgramsPartnerships /></div>
 		case 'psd-student-population':
 			return <div><PSDStudentPopulation /></div>
 		case 'psd-verification':
 			return <div><PSDVerification /></div>
 		case 'psd-analytics':
 			return <div><PSDAnalytics /></div>
-		case 'psd-bulk-operations':
-			return <div><PSDBulkOperations /></div>
 		case 'psd-settings':
 			return <div><PSDSettings /></div>
 		case 'emr-overview':

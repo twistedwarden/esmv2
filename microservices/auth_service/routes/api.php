@@ -39,4 +39,6 @@ Route::prefix('users')->group(function () {
     Route::get('/email/{email}', [UserController::class, 'getUserByEmail']);
     Route::post('/batch', [UserController::class, 'getUsersByIds']);
     Route::get('/staff', [UserController::class, 'getStaffUsers']);
+    Route::put('/{id}/assign-school', [UserController::class, 'assignSchool']);
+    Route::put('/{id}/unassign-school', [UserController::class, 'unassignSchool']);
 });

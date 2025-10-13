@@ -180,6 +180,7 @@ const PartnerSchoolDashboard = () => {
         return;
       }
 
+
       try {
         setLoading(true);
         setError(null);
@@ -194,36 +195,16 @@ const PartnerSchoolDashboard = () => {
         setSchoolStats(statsData);
       } catch (err) {
         console.error('Error fetching school data:', err);
-        setError(err.message);
         
-        // Fallback to mock data if API fails
-        setSchoolInfo({
-          school: {
-            name: 'Caloocan City Science High School',
-            campus: 'Main Campus',
-            full_name: 'Caloocan City Science High School - Main Campus',
-            contact_number: '+63-2-1234-5678',
-            email: 'principal@ccshs.edu.ph',
-            website: 'https://ccshs.edu.ph',
-            address: 'Caloocan City',
-            city: 'Caloocan',
-            province: 'Metro Manila',
-            region: 'NCR',
-            classification: 'PUBLIC HIGH SCHOOL'
-          },
-          representative: {
-            citizen_id: currentUser?.citizen_id || 'PSREP-001',
-            assigned_at: new Date().toISOString()
-          }
-        });
+        // Handle specific error cases
+        if (err.message.includes('No school assigned')) {
+          setError('No school has been assigned to your account. Please contact the administrator to assign a school to your account.');
+        } else {
+          setError(err.message);
+        }
         
-        setSchoolStats({
-          total_applications: 0,
-          pending_applications: 0,
-          approved_applications: 0,
-          rejected_applications: 0,
-          recent_applications: 0
-        });
+        setSchoolInfo(null);
+        setSchoolStats(null);
       } finally {
         setLoading(false);
       }
@@ -267,8 +248,6 @@ const PartnerSchoolDashboard = () => {
       color: schoolStats.rejected_applications > 0 ? "red" : "green"
     }
   ] : [];
-
-  // Mock data removed - using real data from API
 
   // Fetch students data when students tab is active
   useEffect(() => {
@@ -1132,11 +1111,11 @@ const PartnerSchoolDashboard = () => {
       console.log('Headers:', parsedHeaders);
       console.log('Number of records:', parsedCSVData.length);
       
-      const result = await uploadFlexibleData(token, parsedCSVData, parsedHeaders, uploadMode);
+      const result = await uploadEnrollmentData(token, parsedCSVData, uploadMode);
       
       setUploadProgress({ 
         status: 'success', 
-        message: `Successfully uploaded ${result.processed} student records` 
+        message: `Successfully uploaded ${result.data?.processed_count || result.processed} student records` 
       });
       
       // Refresh students data
@@ -1233,7 +1212,15 @@ const PartnerSchoolDashboard = () => {
                 )}
               </>
             ) : error ? (
-              <p className="text-red-600 dark:text-red-400">Error loading school information: {error}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+                  <div>
+                    <p className="text-red-800 dark:text-red-200 font-medium">Unable to load school information</p>
+                    <p className="text-red-600 dark:text-red-400 text-sm mt-1">{error}</p>
+                  </div>
+                </div>
+              </div>
             ) : (
               <p className="text-gray-500">Loading school information...</p>
             )}

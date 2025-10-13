@@ -230,7 +230,20 @@ class UserManagementController extends Controller
                 'system_role' => 'required_if:role,staff|in:interviewer,reviewer,administrator,coordinator',
                 'department' => 'nullable|string|max:255',
                 'position' => 'nullable|string|max:255',
+                // PS Rep-specific fields
+                'assigned_school_id' => 'required_if:role,ps_rep|integer',
             ]);
+
+            // Validate school exists for PS reps
+            if ($validated['role'] === 'ps_rep' && isset($validated['assigned_school_id'])) {
+                $school = \App\Models\School::find($validated['assigned_school_id']);
+                if (!$school) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'The selected school does not exist'
+                    ], 422);
+                }
+            }
 
             // Create user in auth service
             $response = Http::timeout(10)

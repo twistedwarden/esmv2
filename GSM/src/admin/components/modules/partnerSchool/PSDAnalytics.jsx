@@ -6,32 +6,16 @@ function PSDAnalytics() {
     const [selectedSchool, setSelectedSchool] = React.useState('all');
     const [loading, setLoading] = React.useState(false);
 
-    // Mock data for demonstration
-    const mockAnalytics = {
-        totalSchools: 15,
-        totalStudents: 25000,
-        totalScholars: 1200,
-        totalBudget: 50000000,
-        growthRate: 12.5,
-        topPerformingSchools: [
-            { name: "Caloocan City Science High School", score: 98, students: 2500, scholars: 150 },
-            { name: "University of Caloocan City", score: 95, students: 15000, scholars: 800 },
-            { name: "Caloocan City Technical Institute", score: 88, students: 3000, scholars: 120 }
-        ],
-        scholarshipDistribution: [
-            { type: "Academic Excellence", count: 600, percentage: 50 },
-            { type: "Financial Aid", count: 300, percentage: 25 },
-            { type: "Leadership", count: 180, percentage: 15 },
-            { type: "Sports", count: 120, percentage: 10 }
-        ],
-        monthlyTrends: [
-            { month: "Jan", applications: 45, approvals: 40, budget: 2500000 },
-            { month: "Feb", applications: 52, approvals: 48, budget: 2800000 },
-            { month: "Mar", applications: 38, approvals: 35, budget: 2200000 },
-            { month: "Apr", applications: 61, approvals: 55, budget: 3200000 },
-            { month: "May", applications: 47, approvals: 42, budget: 2600000 },
-            { month: "Jun", applications: 55, approvals: 50, budget: 3000000 }
-        ]
+    // Fetch analytics data from API
+    const analytics = {
+        totalSchools: 0,
+        totalStudents: 0,
+        totalScholars: 0,
+        totalBudget: 0,
+        growthRate: 0,
+        topPerformingSchools: [],
+        scholarshipDistribution: [],
+        monthlyTrends: []
     };
 
     return (
@@ -77,10 +61,10 @@ function PSDAnalytics() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Schools</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockAnalytics.totalSchools}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{analytics.totalSchools}</p>
                                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
                                     <TrendingUp className="w-3 h-3 mr-1" />
-                                    +{mockAnalytics.growthRate}% from last period
+                                    +{analytics.growthRate}% from last period
                                 </p>
                             </div>
                         </div>
@@ -92,7 +76,7 @@ function PSDAnalytics() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Students</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockAnalytics.totalStudents.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{analytics.totalStudents.toLocaleString()}</p>
                                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
                                     <TrendingUp className="w-3 h-3 mr-1" />
                                     +8.2% from last period
@@ -107,7 +91,7 @@ function PSDAnalytics() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Scholarship Recipients</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockAnalytics.totalScholars.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{analytics.totalScholars.toLocaleString()}</p>
                                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
                                     <TrendingUp className="w-3 h-3 mr-1" />
                                     +15.3% from last period
@@ -122,7 +106,7 @@ function PSDAnalytics() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Budget</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">₱{(mockAnalytics.totalBudget / 1000000).toFixed(1)}M</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">₱{(analytics.totalBudget / 1000000).toFixed(1)}M</p>
                                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
                                     <TrendingUp className="w-3 h-3 mr-1" />
                                     +22.1% from last period
@@ -193,7 +177,7 @@ function PSDAnalytics() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                                {mockAnalytics.topPerformingSchools.map((school, index) => {
+                                {analytics.topPerformingSchools.map((school, index) => {
                                     const scholarshipRate = ((school.scholars / school.students) * 100).toFixed(1);
                                     return (
                                         <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700">
@@ -246,7 +230,7 @@ function PSDAnalytics() {
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Scholarship Distribution Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {mockAnalytics.scholarshipDistribution.map((item, index) => (
+                        {analytics.scholarshipDistribution.map((item, index) => (
                             <div key={index} className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
                                 <div className="flex items-center justify-between mb-2">
                                     <h4 className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</h4>
