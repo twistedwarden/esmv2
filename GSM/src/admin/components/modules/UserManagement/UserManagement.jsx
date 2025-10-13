@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Eye, EyeOff, Lock, Mail, Phone, MapPin, Calendar, User, Building, Briefcase, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Eye, EyeOff, Lock, Mail, Phone, MapPin, Calendar, User, Building, Briefcase, AlertCircle, CheckCircle, XCircle, School } from 'lucide-react';
 import axios from 'axios';
 
 const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
@@ -39,17 +39,45 @@ const UserManagement = () => {
         system_role: 'coordinator',
         department: '',
         position: '',
+        assigned_school_id: '',
     });
     const [generatedId, setGeneratedId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formErrors, setFormErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [schools, setSchools] = useState([]);
+    const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
+    const [filteredSchools, setFilteredSchools] = useState([]);
+    
+    // Check if a role is selected to enable/disable form fields
+    const isRoleSelected = formData.role && formData.role !== '';
+    
+    // Helper function to get disabled state and styling for form fields
+    const getFieldProps = () => ({
+        disabled: !isRoleSelected,
+        className: (baseClass, errorClass = '') => `${baseClass} ${errorClass} ${!isRoleSelected ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-60' : ''}`
+    });
 
     useEffect(() => {
         fetchUsers();
         fetchStats();
+        fetchSchools();
     }, []);
+
+    // Filter schools based on search term
+    useEffect(() => {
+        if (schoolSearchTerm) {
+            const filtered = schools.filter(school =>
+                school.name.toLowerCase().includes(schoolSearchTerm.toLowerCase()) ||
+                school.campus?.toLowerCase().includes(schoolSearchTerm.toLowerCase()) ||
+                school.city?.toLowerCase().includes(schoolSearchTerm.toLowerCase())
+            );
+            setFilteredSchools(filtered);
+        } else {
+            setFilteredSchools(schools);
+        }
+    }, [schoolSearchTerm, schools]);
 
     useEffect(() => {
         filterUsers();
@@ -128,6 +156,31 @@ const UserManagement = () => {
         }
     };
 
+    const fetchSchools = async () => {
+        try {
+            const response = await fetch('http://localhost:8001/api/schools?per_page=100', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                setSchools(data.data.data || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch schools');
+            }
+        } catch (err) {
+            console.error('Error fetching schools:', err);
+        }
+    };
+
     const filterUsers = () => {
         let allUsers = [];
         
@@ -179,7 +232,8 @@ const UserManagement = () => {
                 middle_name: userData.middle_name?.trim() || '',
                 mobile: userData.mobile?.trim() || '',
                 department: userData.department?.trim() || '',
-                position: userData.position?.trim() || ''
+                position: userData.position?.trim() || '',
+                assigned_school_id: userData.assigned_school_id || null
             };
             
             const response = await axios.post(`${SCHOLARSHIP_API}/users`, sanitizedData);
@@ -291,12 +345,14 @@ const UserManagement = () => {
             system_role: 'coordinator',
             department: '',
             position: '',
+            assigned_school_id: '',
         });
         setFormErrors({});
         setIsSubmitting(false);
         setShowPassword(false);
         setShowConfirmPassword(false);
         setGeneratedId('');
+        setSchoolSearchTerm('');
     };
 
     const validateForm = () => {
@@ -381,6 +437,13 @@ const UserManagement = () => {
         // Position validation for staff
         if (formData.role === 'staff' && formData.position && formData.position.length > 100) {
             errors.position = 'Position must be less than 100 characters';
+        }
+
+        // PS Rep validation - school assignment required
+        if (formData.role === 'ps_rep') {
+            if (!formData.assigned_school_id) {
+                errors.assigned_school_id = 'School assignment is required for Partner School Representatives';
+            }
         }
         
         setFormErrors(errors);
@@ -859,6 +922,53 @@ const UserManagement = () => {
                                     </div>
                                 </div>
 
+                                {/* Role & Permissions Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Role & Permissions</h4>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <Shield className="w-4 h-4 inline mr-1" />
+                                                User Role *
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    required
+                                                    value={formData.role}
+                                                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                                    className="w-full px-4 py-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white transition-colors appearance-none"
+                                                >
+                                                    <option value="">Select a role</option>
+                                                    <option value="citizen">Citizen</option>
+                                                    <option value="staff">Staff Member</option>
+                                                    <option value="admin">Administrator</option>
+                                                    <option value="ps_rep">Partner School Representative</option>
+                                                </select>
+                                                <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                Choose the appropriate role for this user
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Role Selection Notice */}
+                                {!isRoleSelected && (
+                                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+                                        <div className="flex items-center">
+                                            <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+                                            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                                Please select a user role above to enable the form fields below.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Personal Information Section */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 mb-4">
@@ -875,15 +985,17 @@ const UserManagement = () => {
                                             <input
                                                 type="text"
                                                 required
+                                                {...getFieldProps()}
                                                 value={formData.first_name}
                                                 onChange={(e) => {
                                                     setFormData({...formData, first_name: e.target.value});
                                                     validateField('first_name', e.target.value);
                                                 }}
                                                 onBlur={(e) => validateField('first_name', e.target.value)}
-                                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                className={getFieldProps().className(
+                                                    'w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors',
                                                     formErrors.first_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-                                                }`}
+                                                )}
                                                 placeholder="Enter first name"
                                             />
                                             {formErrors.first_name && (
@@ -1105,30 +1217,6 @@ const UserManagement = () => {
                                     </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                <Shield className="w-4 h-4 inline mr-1" />
-                                                User Role *
-                                            </label>
-                                            <div className="relative">
-                                                <select
-                                                    required
-                                                    value={formData.role}
-                                                    onChange={(e) => setFormData({...formData, role: e.target.value})}
-                                                    className="w-full px-4 py-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors appearance-none"
-                                                >
-                                                    <option value="">Select a role</option>
-                                                    <option value="citizen">Citizen</option>
-                                                    <option value="staff">Staff Member</option>
-                                                    <option value="admin">Administrator</option>
-                                                    <option value="ps_rep">Partner School Representative</option>
-                                                </select>
-                                                <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            </div>
-                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                Choose the appropriate role for this user
-                                            </p>
-                                        </div>
                                     
                                         {formData.role === 'staff' && (
                                             <div className="col-span-2">
@@ -1221,6 +1309,100 @@ const UserManagement = () => {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {formData.role === 'ps_rep' && (
+                                            <div className="col-span-2">
+                                                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        <School className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                                        <h5 className="font-semibold text-orange-900 dark:text-orange-100">School Assignment</h5>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                                Search School *
+                                                            </label>
+                                                            <div className="relative">
+                                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Search schools by name, campus, or location..."
+                                                                    value={schoolSearchTerm}
+                                                                    onChange={(e) => setSchoolSearchTerm(e.target.value)}
+                                                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                                Select School *
+                                                            </label>
+                                                            <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg">
+                                                                {filteredSchools.length === 0 ? (
+                                                                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                                                        {schools.length === 0 ? 'Loading schools...' : 'No schools found'}
+                                                                    </div>
+                                                                ) : (
+                                                                    filteredSchools.map((school) => (
+                                                                        <div
+                                                                            key={school.id}
+                                                                            onClick={() => setFormData({...formData, assigned_school_id: school.id})}
+                                                                            className={`p-3 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                                                                                formData.assigned_school_id === school.id
+                                                                                    ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-500'
+                                                                                    : ''
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                                        {school.name}
+                                                                                    </h4>
+                                                                                    {school.campus && (
+                                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{school.campus}</p>
+                                                                                    )}
+                                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                                                        {[school.city, school.region].filter(Boolean).join(', ')}
+                                                                                    </p>
+                                                                                </div>
+                                                                                <div className="flex items-center space-x-2">
+                                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                                                        school.is_partner_school 
+                                                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                                                                                    }`}>
+                                                                                        {school.is_partner_school ? 'Partner' : 'Regular'}
+                                                                                    </span>
+                                                                                    {formData.assigned_school_id === school.id && (
+                                                                                        <CheckCircle className="w-4 h-4 text-orange-500" />
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                            {formErrors.assigned_school_id && (
+                                                                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{formErrors.assigned_school_id}</p>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {formData.assigned_school_id && (
+                                                            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                                                                <div className="flex items-center">
+                                                                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                                                                    <span className="text-sm text-green-700 dark:text-green-400">
+                                                                        School selected: {schools.find(s => s.id === formData.assigned_school_id)?.name}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 
@@ -1240,9 +1422,9 @@ const UserManagement = () => {
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={isSubmitting}
+                                            disabled={isSubmitting || !isRoleSelected}
                                             className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl ${
-                                                isSubmitting 
+                                                isSubmitting || !isRoleSelected
                                                     ? 'bg-gray-400 cursor-not-allowed' 
                                                     : 'bg-blue-600 hover:bg-blue-700'
                                             } text-white`}

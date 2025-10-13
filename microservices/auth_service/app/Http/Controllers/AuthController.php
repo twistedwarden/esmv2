@@ -80,6 +80,7 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                     'is_active' => $user->is_active,
+                    'assigned_school_id' => $user->assigned_school_id,
                 ]
             ]
         ]);

@@ -7,7 +7,7 @@ use App\Http\Controllers\ScholarshipApplicationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\ScholarshipCategoryController;
-use App\Http\Controllers\PartnerSchoolController;
+use App\Http\Controllers\Api\PartnerSchoolController;
 use App\Http\Controllers\EnrollmentVerificationController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\InterviewEvaluationController;
@@ -351,4 +351,17 @@ Route::fallback(function () {
             'GET /api/stats/overview'
         ]
     ], 404);
+});
+
+// Partner School routes (for PS reps) - Authentication handled manually via auth service
+Route::prefix('partner-school')->group(function () {
+    Route::get('/stats', [PartnerSchoolController::class, 'getStats']);
+    Route::get('/students', [PartnerSchoolController::class, 'getStudents']);
+    Route::get('/verification/applications', [PartnerSchoolController::class, 'getApplicationsForVerification']);
+    Route::post('/verification/applications/{id}', [PartnerSchoolController::class, 'verifyApplication']);
+    Route::get('/verification/stats', [PartnerSchoolController::class, 'getVerificationStats']);
+    Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
+    Route::post('/enrollment/upload', [PartnerSchoolController::class, 'uploadEnrollmentData']);
+    Route::post('/flexible/upload', [PartnerSchoolController::class, 'uploadFlexibleData']);
+    Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
 });

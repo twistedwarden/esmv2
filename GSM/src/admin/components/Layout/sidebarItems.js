@@ -38,13 +38,10 @@ const sidebarItems = [
     {
         id: 'psd', icon: Library, label: 'Partner School Database',
         subItems: [
-            { id: 'psd-overview', label: 'Overview' },
             { id: 'psd-school-management', label: 'School Management' },
-            { id: 'psd-programs-partnerships', label: 'Programs & Partnerships' },
             { id: 'psd-student-population', label: 'Student Population' },
             { id: 'psd-verification', label: 'Verification & Accreditation' },
             { id: 'psd-analytics', label: 'Analytics & Reports' },
-            { id: 'psd-bulk-operations', label: 'Bulk Operations' },
             { id: 'psd-settings', label: 'Settings' }
         ]
     },

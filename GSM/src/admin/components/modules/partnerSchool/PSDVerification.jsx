@@ -10,87 +10,10 @@ function PSDVerification() {
     const [schools, setSchools] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
 
-    // Mock data for demonstration
-    const mockSchools = [
-        {
-            id: 1,
-            school_name: "Caloocan City Science High School",
-            accreditation_status: "verified",
-            accreditation_type: "DepEd Accredited",
-            accreditation_date: "2023-12-15",
-            expiry_date: "2026-12-15",
-            verification_score: 95,
-            compliance_status: "compliant",
-            last_inspection: "2024-01-10",
-            next_inspection: "2024-07-10",
-            documents: [
-                { name: "DepEd Recognition", status: "verified", expiry: "2026-12-15" },
-                { name: "CHED Permit", status: "verified", expiry: "2025-06-30" },
-                { name: "Business Permit", status: "verified", expiry: "2024-12-31" },
-                { name: "Fire Safety Certificate", status: "verified", expiry: "2025-03-15" }
-            ],
-            requirements: [
-                { name: "Academic Programs", status: "compliant", notes: "All programs meet standards" },
-                { name: "Faculty Qualifications", status: "compliant", notes: "100% qualified faculty" },
-                { name: "Facilities", status: "compliant", notes: "Adequate facilities" },
-                { name: "Student Services", status: "compliant", notes: "Comprehensive services" }
-            ],
-            notes: "School maintains excellent compliance with all requirements."
-        },
-        {
-            id: 2,
-            school_name: "University of Caloocan City",
-            accreditation_status: "verified",
-            accreditation_type: "CHED Accredited",
-            accreditation_date: "2023-08-20",
-            expiry_date: "2028-08-20",
-            verification_score: 98,
-            compliance_status: "compliant",
-            last_inspection: "2024-01-05",
-            next_inspection: "2024-07-05",
-            documents: [
-                { name: "CHED Recognition", status: "verified", expiry: "2028-08-20" },
-                { name: "DepEd Permit", status: "verified", expiry: "2025-12-31" },
-                { name: "Business Permit", status: "verified", expiry: "2024-12-31" },
-                { name: "Fire Safety Certificate", status: "verified", expiry: "2025-06-15" }
-            ],
-            requirements: [
-                { name: "Academic Programs", status: "compliant", notes: "All programs accredited" },
-                { name: "Faculty Qualifications", status: "compliant", notes: "Highly qualified faculty" },
-                { name: "Facilities", status: "compliant", notes: "State-of-the-art facilities" },
-                { name: "Student Services", status: "compliant", notes: "Excellent student support" }
-            ],
-            notes: "University maintains highest standards of academic excellence."
-        },
-        {
-            id: 3,
-            school_name: "Caloocan City Technical Institute",
-            accreditation_status: "pending",
-            accreditation_type: "TESDA Accredited",
-            accreditation_date: "2023-11-10",
-            expiry_date: "2025-11-10",
-            verification_score: 78,
-            compliance_status: "partial",
-            last_inspection: "2024-01-15",
-            next_inspection: "2024-04-15",
-            documents: [
-                { name: "TESDA Recognition", status: "verified", expiry: "2025-11-10" },
-                { name: "DepEd Permit", status: "pending", expiry: "2024-03-31" },
-                { name: "Business Permit", status: "verified", expiry: "2024-12-31" },
-                { name: "Fire Safety Certificate", status: "expired", expiry: "2023-12-31" }
-            ],
-            requirements: [
-                { name: "Academic Programs", status: "compliant", notes: "Programs meet standards" },
-                { name: "Faculty Qualifications", status: "partial", notes: "Some faculty need additional training" },
-                { name: "Facilities", status: "compliant", notes: "Adequate facilities" },
-                { name: "Student Services", status: "non-compliant", notes: "Student services need improvement" }
-            ],
-            notes: "School needs to address compliance issues before full verification."
-        }
-    ];
-
+    // Fetch verification data from API
     React.useEffect(() => {
-        setSchools(mockSchools);
+        // TODO: Implement API call to fetch verification data
+        setSchools([]);
     }, []);
 
     const filteredSchools = schools.filter(school => {

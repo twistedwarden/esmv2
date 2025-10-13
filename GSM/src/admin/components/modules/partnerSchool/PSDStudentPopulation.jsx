@@ -11,68 +11,10 @@ function PSDStudentPopulation() {
     const [loading, setLoading] = React.useState(false);
     const [viewMode, setViewMode] = React.useState('table'); // table, chart
 
-    // Mock data for demonstration
-    const mockSchoolData = [
-        {
-            id: 1,
-            school_name: "Caloocan City Science High School",
-            total_students: 2500,
-            male_students: 1200,
-            female_students: 1300,
-            scholarship_recipients: 150,
-            active_scholars: 140,
-            graduated_scholars: 10,
-            pending_applications: 25,
-            rejected_applications: 5,
-            population_date: "2024-01-15",
-            last_updated: "2024-01-15",
-            demographics: {
-                grade_7: 400,
-                grade_8: 380,
-                grade_9: 420,
-                grade_10: 450,
-                grade_11: 480,
-                grade_12: 370
-            },
-            scholarship_breakdown: {
-                academic_excellence: 80,
-                financial_aid: 45,
-                leadership: 15,
-                sports: 10
-            }
-        },
-        {
-            id: 2,
-            school_name: "University of Caloocan City",
-            total_students: 15000,
-            male_students: 7200,
-            female_students: 7800,
-            scholarship_recipients: 800,
-            active_scholars: 750,
-            graduated_scholars: 50,
-            pending_applications: 120,
-            rejected_applications: 30,
-            population_date: "2024-01-10",
-            last_updated: "2024-01-10",
-            demographics: {
-                first_year: 3000,
-                second_year: 2800,
-                third_year: 2600,
-                fourth_year: 2400,
-                fifth_year: 2000,
-                graduate: 2200
-            },
-            scholarship_breakdown: {
-                academic_excellence: 400,
-                financial_aid: 250,
-                leadership: 100,
-                research: 50
-            }
-        }
-    ];
-
+    // Fetch student population data from API
     React.useEffect(() => {
-        setSchools(mockSchoolData);
+        // TODO: Implement API call to fetch student population data
+        setSchools([]);
     }, []);
 
     const filteredSchools = schools.filter(school => {

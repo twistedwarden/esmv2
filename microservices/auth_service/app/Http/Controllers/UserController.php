@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class UserController extends Controller
 {
@@ -297,6 +299,7 @@ class UserController extends Controller
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
                 'role' => 'required|in:admin,citizen,staff,ps_rep',
+                'assigned_school_id' => 'nullable|integer',
             ]);
 
             $user = User::create([
@@ -416,6 +419,95 @@ class UserController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Assign a school to a user (for PS reps)
+     */
+    public function assignSchool(Request $request, $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'school_id' => 'required|integer'
+            ]);
+
+            $user = User::findOrFail($id);
+            
+            // Only allow assignment for PS reps
+            if ($user->role !== 'ps_rep') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School assignment is only allowed for Partner School Representatives'
+                ], 400);
+            }
+
+            // Validate school exists by calling scholarship service
+            $scholarshipServiceUrl = env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8001');
+            $schoolResponse = \Http::timeout(10)
+                ->get("{$scholarshipServiceUrl}/api/schools/{$validated['school_id']}");
+
+            if (!$schoolResponse->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School not found or invalid'
+                ], 404);
+            }
+
+            // Check if the assigned_school_id column exists
+            if (!Schema::hasColumn('users', 'assigned_school_id')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'School assignment feature not available. Please run the migration first.'
+                ], 500);
+            }
+
+            $user->update(['assigned_school_id' => $validated['school_id']]);
+
+            // Get school data for response
+            $schoolData = $schoolResponse->json('data');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'School assigned successfully',
+                'data' => [
+                    'id' => $user->id,
+                    'citizen_id' => $user->citizen_id,
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'role' => $user->role,
+                    'assigned_school_id' => $user->assigned_school_id,
+                    'assigned_school' => $schoolData
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign school: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Unassign school from a user
+     */
+    public function unassignSchool(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = User::findOrFail($id);
+            $user->update(['assigned_school_id' => null]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'School unassigned successfully',
+                'data' => $user
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unassign school: ' . $e->getMessage()
             ], 500);
         }
     }

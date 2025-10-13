@@ -1,5 +1,8 @@
 import React from 'react';
-import { School as SchoolIcon, Plus, Search, Filter, Edit, Trash2, Eye, MapPin, Users, Phone, Mail, Globe, Building, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { School as SchoolIcon, Plus, Search, Filter, Edit, Trash2, Eye, MapPin, Users, Phone, Mail, Globe, Building, CheckCircle, XCircle, AlertCircle, Grid3X3, List, CheckSquare, Square } from 'lucide-react';
+import AddSchoolModal from './AddSchoolModal';
+import BulkDeleteModal from './BulkDeleteModal';
+import { getSchools, deleteSchool } from '../../../../services/schoolService';
 
 function PSDSchoolManagement() {
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -10,75 +13,118 @@ function PSDSchoolManagement() {
     const [selectedSchool, setSelectedSchool] = React.useState(null);
     const [schools, setSchools] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState(null);
+    const [viewMode, setViewMode] = React.useState('table'); // 'table' or 'grid'
+    const [selectedSchools, setSelectedSchools] = React.useState([]);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
+    const [isBulkDeleting, setIsBulkDeleting] = React.useState(false);
 
-    // Mock data for demonstration
-    const mockSchools = [
-        {
-            id: 1,
-            name: "Caloocan City Science High School",
-            type: "Public High School",
-            address: "123 Education St.",
-            city: "Caloocan City",
-            region: "NCR",
-            province: "Metro Manila",
-            status: "active",
-            contact_person: "Dr. Maria Santos",
-            phone: "+63 2 1234-5678",
-            email: "info@ccshs.edu.ph",
-            website: "www.ccshs.edu.ph",
-            accreditation: "DepEd Accredited",
-            total_students: 2500,
-            scholarship_recipients: 150,
-            last_updated: "2024-01-15"
-        },
-        {
-            id: 2,
-            name: "University of Caloocan City",
-            type: "State University",
-            address: "456 University Ave.",
-            city: "Caloocan City",
-            region: "NCR",
-            province: "Metro Manila",
-            status: "active",
-            contact_person: "Dr. Juan Dela Cruz",
-            phone: "+63 2 2345-6789",
-            email: "admin@ucc.edu.ph",
-            website: "www.ucc.edu.ph",
-            accreditation: "CHED Accredited",
-            total_students: 15000,
-            scholarship_recipients: 800,
-            last_updated: "2024-01-10"
-        }
-    ];
-
-    React.useEffect(() => {
-        setSchools(mockSchools);
-    }, []);
-
-    const filteredSchools = schools.filter(school => {
-        const matchesSearch = school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            school.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            school.type.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filterStatus === 'all' || school.status === filterStatus;
-        return matchesSearch && matchesStatus;
-    });
-
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'active': return <CheckCircle className="w-4 h-4 text-green-500" />;
-            case 'inactive': return <XCircle className="w-4 h-4 text-red-500" />;
-            case 'pending': return <AlertCircle className="w-4 h-4 text-yellow-500" />;
-            default: return <AlertCircle className="w-4 h-4 text-gray-500" />;
+    // Fetch schools from API
+    const fetchSchools = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await getSchools({
+                search: searchTerm,
+                is_active: filterStatus === 'all' ? undefined : filterStatus === 'active',
+                is_partner_school: true
+            });
+            
+            if (response.success) {
+                setSchools(response.data.data || []);
+            } else {
+                setError(response.message || 'Failed to fetch schools');
+            }
+        } catch (err) {
+            console.error('Error fetching schools:', err);
+            setError(err.message || 'Failed to fetch schools');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'active': return 'bg-green-100 text-green-800';
-            case 'inactive': return 'bg-red-100 text-red-800';
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            default: return 'bg-gray-100 text-gray-800';
+    React.useEffect(() => {
+        fetchSchools();
+    }, [searchTerm, filterStatus]);
+
+    // Handle successful school creation
+    const handleSchoolCreated = (newSchool) => {
+        setSchools(prev => [newSchool, ...prev]);
+        setShowAddModal(false);
+    };
+
+    // Handle school deletion
+    const handleDeleteSchool = async (schoolId) => {
+        if (window.confirm('Are you sure you want to delete this school?')) {
+            try {
+                const response = await deleteSchool(schoolId);
+                if (response.success) {
+                    setSchools(prev => prev.filter(school => school.id !== schoolId));
+                } else {
+                    alert(response.message || 'Failed to delete school');
+                }
+            } catch (err) {
+                console.error('Error deleting school:', err);
+                alert(err.message || 'Failed to delete school');
+            }
         }
+    };
+
+    // Handle bulk selection
+    const handleSelectSchool = (schoolId) => {
+        setSelectedSchools(prev => 
+            prev.includes(schoolId) 
+                ? prev.filter(id => id !== schoolId)
+                : [...prev, schoolId]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedSchools.length === schools.length) {
+            setSelectedSchools([]);
+        } else {
+            setSelectedSchools(schools.map(school => school.id));
+        }
+    };
+
+    // Handle bulk delete
+    const handleBulkDelete = async () => {
+        setIsBulkDeleting(true);
+        try {
+            const deletePromises = selectedSchools.map(schoolId => deleteSchool(schoolId));
+            const results = await Promise.allSettled(deletePromises);
+            
+            const successful = results.filter(result => result.status === 'fulfilled' && result.value.success);
+            const failed = results.filter(result => result.status === 'rejected' || !result.value.success);
+            
+            if (successful.length > 0) {
+                setSchools(prev => prev.filter(school => !selectedSchools.includes(school.id)));
+                setSelectedSchools([]);
+                setShowBulkDeleteModal(false);
+                alert(`Successfully deleted ${successful.length} school${successful.length !== 1 ? 's' : ''}`);
+            }
+            
+            if (failed.length > 0) {
+                alert(`Failed to delete ${failed.length} school${failed.length !== 1 ? 's' : ''}`);
+            }
+        } catch (err) {
+            console.error('Error in bulk delete:', err);
+            alert('An error occurred during bulk deletion');
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
+    const getStatusIcon = (isActive) => {
+        return isActive ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />;
+    };
+
+    const getStatusColor = (isActive) => {
+        return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    };
+
+    const getStatusText = (isActive) => {
+        return isActive ? 'Active' : 'Inactive';
     };
 
     return (
@@ -91,13 +137,57 @@ function PSDSchoolManagement() {
                             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">School Management</h1>
                             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage partner school information, contact details, and accreditation status</p>
                         </div>
-                        <button 
-                            onClick={() => setShowAddModal(true)}
-                            className="inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add New School
-                        </button>
+                        <div className="flex items-center space-x-3">
+                            {/* View Toggle */}
+                            <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
+                                <button
+                                    onClick={() => setViewMode('table')}
+                                    className={`p-2 rounded-md transition-colors ${
+                                        viewMode === 'table' 
+                                            ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' 
+                                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                                    }`}
+                                    title="Table View"
+                                >
+                                    <List className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`p-2 rounded-md transition-colors ${
+                                        viewMode === 'grid' 
+                                            ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' 
+                                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                                    }`}
+                                    title="Grid View"
+                                >
+                                    <Grid3X3 className="w-4 h-4" />
+                                </button>
+                            </div>
+                            
+                            {/* Bulk Actions */}
+                            {selectedSchools.length > 0 && (
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-600 dark:text-slate-400">
+                                        {selectedSchools.length} selected
+                                    </span>
+                                    <button
+                                        onClick={() => setShowBulkDeleteModal(true)}
+                                        className="inline-flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        Delete Selected
+                                    </button>
+                                </div>
+                            )}
+                            
+                            <button 
+                                onClick={() => setShowAddModal(true)}
+                                className="inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add New School
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -136,71 +226,176 @@ function PSDSchoolManagement() {
                     </div>
                 </div>
 
-                {/* Schools Table */}
+                {/* Error State */}
+                {error && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+                        <div className="flex items-center">
+                            <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Schools Display */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                            <thead className="bg-gray-50 dark:bg-slate-700">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">School</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Students</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                                {filteredSchools.map((school) => (
-                                    <tr key={school.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-                                                        <SchoolIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                            <span className="ml-2 text-gray-600 dark:text-slate-400">Loading schools...</span>
+                        </div>
+                    ) : viewMode === 'table' ? (
+                        // Table View
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                                <thead className="bg-gray-50 dark:bg-slate-700">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                            <button
+                                                onClick={handleSelectAll}
+                                                className="flex items-center space-x-2 hover:text-gray-700 dark:hover:text-slate-300"
+                                            >
+                                                {selectedSchools.length === schools.length && schools.length > 0 ? (
+                                                    <CheckSquare className="w-4 h-4" />
+                                                ) : (
+                                                    <Square className="w-4 h-4" />
+                                                )}
+                                                <span>School</span>
+                                            </button>
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Properties</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                                    {schools.map((school) => (
+                                        <tr key={school.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center space-x-3">
+                                                    <button
+                                                        onClick={() => handleSelectSchool(school.id)}
+                                                        className="flex-shrink-0"
+                                                    >
+                                                        {selectedSchools.includes(school.id) ? (
+                                                            <CheckSquare className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                                        ) : (
+                                                            <Square className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                                                        )}
+                                                    </button>
+                                                    <div className="flex items-center">
+                                                        <div className="flex-shrink-0 h-10 w-10">
+                                                            <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                                                                <SchoolIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900 dark:text-white">{school.name}</div>
+                                                            {school.campus && (
+                                                                <div className="text-sm text-gray-500 dark:text-slate-400">{school.campus}</div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900 dark:text-white">{school.name}</div>
-                                                    <div className="text-sm text-gray-500 dark:text-slate-400">{school.accreditation}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900 dark:text-white">{school.classification}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
+                                                    <MapPin className="w-3 h-3 mr-1" />
+                                                    {[school.address, school.city, school.region].filter(Boolean).join(', ')}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-white">{school.type}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
-                                                <MapPin className="w-3 h-3 mr-1" />
-                                                {[school.address, school.city, school.region].filter(Boolean).join(', ')}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-white">{school.contact_person}</div>
-                                            <div className="text-sm text-gray-500 dark:text-slate-400 flex items-center">
-                                                <Phone className="w-3 h-3 mr-1" />
-                                                {school.phone}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-white">{school.total_students.toLocaleString()}</div>
-                                            <div className="text-sm text-orange-600 dark:text-orange-400">{school.scholarship_recipients} scholars</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(school.status)}`}>
-                                                {getStatusIcon(school.status)}
-                                                <span className="ml-1 capitalize">{school.status}</span>
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex space-x-2">
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900 dark:text-white">{school.email || 'No email'}</div>
+                                                <div className="text-sm text-gray-500 dark:text-slate-400 flex items-center">
+                                                    <Phone className="w-3 h-3 mr-1" />
+                                                    {school.contact_number || 'No phone'}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="space-y-1">
+                                                    {school.is_public && (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                                            Public
+                                                        </span>
+                                                    )}
+                                                    {school.is_partner_school && (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                                            Partner
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(school.is_active)}`}>
+                                                    {getStatusIcon(school.is_active)}
+                                                    <span className="ml-1">{getStatusText(school.is_active)}</span>
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex space-x-2">
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedSchool(school);
+                                                            setShowViewModal(true);
+                                                        }}
+                                                        className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedSchool(school);
+                                                            setShowEditModal(true);
+                                                        }}
+                                                        className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                        title="Edit School"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDeleteSchool(school.id)}
+                                                        className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                        title="Delete School"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        // Grid View
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {schools.map((school) => (
+                                    <div key={school.id} className="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <button
+                                                onClick={() => handleSelectSchool(school.id)}
+                                                className="flex-shrink-0"
+                                            >
+                                                {selectedSchools.includes(school.id) ? (
+                                                    <CheckSquare className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                                ) : (
+                                                    <Square className="w-5 h-5 text-gray-400 dark:text-slate-500" />
+                                                )}
+                                            </button>
+                                            <div className="flex space-x-1">
                                                 <button 
                                                     onClick={() => {
                                                         setSelectedSchool(school);
                                                         setShowViewModal(true);
                                                     }}
-                                                    className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                    className="p-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                                                     title="View Details"
                                                 >
                                                     <Eye className="w-4 h-4" />
@@ -210,27 +405,71 @@ function PSDSchoolManagement() {
                                                         setSelectedSchool(school);
                                                         setShowEditModal(true);
                                                     }}
-                                                    className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                    className="p-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
                                                     title="Edit School"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button 
-                                                    className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                    onClick={() => handleDeleteSchool(school.id)}
+                                                    className="p-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                     title="Delete School"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                        
+                                        <div className="flex items-center mb-3">
+                                            <div className="h-12 w-12 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center mr-3">
+                                                <SchoolIcon className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">{school.name}</h3>
+                                                {school.campus && (
+                                                    <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{school.campus}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-2">
+                                            <div className="text-xs text-gray-600 dark:text-slate-400">
+                                                <span className="font-medium">Type:</span> {school.classification}
+                                            </div>
+                                            <div className="text-xs text-gray-600 dark:text-slate-400">
+                                                <MapPin className="w-3 h-3 inline mr-1" />
+                                                {[school.city, school.region].filter(Boolean).join(', ')}
+                                            </div>
+                                            <div className="text-xs text-gray-600 dark:text-slate-400">
+                                                <Phone className="w-3 h-3 inline mr-1" />
+                                                {school.contact_number || 'No phone'}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-3 flex flex-wrap gap-1">
+                                            {school.is_public && (
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                                    Public
+                                                </span>
+                                            )}
+                                            {school.is_partner_school && (
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                                    Partner
+                                                </span>
+                                            )}
+                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(school.is_active)}`}>
+                                                {getStatusIcon(school.is_active)}
+                                                <span className="ml-1">{getStatusText(school.is_active)}</span>
+                                            </span>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {filteredSchools.length === 0 && (
+                {!loading && schools.length === 0 && (
                     <div className="text-center py-12">
                         <SchoolIcon className="mx-auto h-12 w-12 text-gray-400" />
                         <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No schools found</h3>
@@ -242,32 +481,20 @@ function PSDSchoolManagement() {
             </div>
 
             {/* Add School Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add New School</h2>
-                                <button 
-                                    onClick={() => setShowAddModal(false)} 
-                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        </div>
-                        <div className="p-6">
-                            <div className="text-center py-8">
-                                <Building className="mx-auto h-12 w-12 text-gray-400" />
-                                <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">Add School Form</h3>
-                                <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                                    This form will be implemented to add new partner schools to the database.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AddSchoolModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={handleSchoolCreated}
+            />
+
+            {/* Bulk Delete Modal */}
+            <BulkDeleteModal
+                isOpen={showBulkDeleteModal}
+                onClose={() => setShowBulkDeleteModal(false)}
+                onConfirm={handleBulkDelete}
+                selectedSchools={schools.filter(school => selectedSchools.includes(school.id))}
+                isDeleting={isBulkDeleting}
+            />
 
             {/* View School Modal */}
             {showViewModal && selectedSchool && (
@@ -292,7 +519,10 @@ function PSDSchoolManagement() {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">{selectedSchool.name}</h3>
-                                        <p className="text-sm text-gray-600 dark:text-slate-400">{selectedSchool.type}</p>
+                                        <p className="text-sm text-gray-600 dark:text-slate-400">{selectedSchool.classification}</p>
+                                        {selectedSchool.campus && (
+                                            <p className="text-sm text-gray-500 dark:text-slate-500">{selectedSchool.campus}</p>
+                                        )}
                                     </div>
                                 </div>
                                 
@@ -301,20 +531,16 @@ function PSDSchoolManagement() {
                                         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Contact Information</h4>
                                         <div className="space-y-2">
                                             <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
-                                                <Users className="w-4 h-4 mr-2" />
-                                                {selectedSchool.contact_person}
-                                            </div>
-                                            <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
                                                 <Phone className="w-4 h-4 mr-2" />
-                                                {selectedSchool.phone}
+                                                {selectedSchool.contact_number || 'No phone number'}
                                             </div>
                                             <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
                                                 <Mail className="w-4 h-4 mr-2" />
-                                                {selectedSchool.email}
+                                                {selectedSchool.email || 'No email address'}
                                             </div>
                                             <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
                                                 <Globe className="w-4 h-4 mr-2" />
-                                                {selectedSchool.website}
+                                                {selectedSchool.website || 'No website'}
                                             </div>
                                         </div>
                                     </div>
@@ -324,29 +550,52 @@ function PSDSchoolManagement() {
                                         <div className="space-y-2">
                                             <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
                                                 <MapPin className="w-4 h-4 mr-2" />
-                                                {selectedSchool.address}
+                                                {selectedSchool.address || 'No address'}
                                             </div>
                                             <div className="text-sm text-gray-600 dark:text-slate-400">
-                                                {selectedSchool.city}, {selectedSchool.region}
+                                                {[selectedSchool.city, selectedSchool.province, selectedSchool.region].filter(Boolean).join(', ') || 'No location details'}
                                             </div>
+                                            {selectedSchool.zip_code && (
+                                                <div className="text-sm text-gray-500 dark:text-slate-500">
+                                                    ZIP: {selectedSchool.zip_code}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
-                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedSchool.total_students.toLocaleString()}</div>
-                                        <div className="text-sm text-gray-600 dark:text-slate-400">Total Students</div>
+                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                            {selectedSchool.is_public ? 'Public' : 'Private'}
+                                        </div>
+                                        <div className="text-sm text-gray-600 dark:text-slate-400">School Type</div>
                                     </div>
                                     <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-                                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{selectedSchool.scholarship_recipients}</div>
-                                        <div className="text-sm text-gray-600 dark:text-slate-400">Scholarship Recipients</div>
-                                    </div>
-                                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                            {((selectedSchool.scholarship_recipients / selectedSchool.total_students) * 100).toFixed(1)}%
+                                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                            {selectedSchool.is_partner_school ? 'Yes' : 'No'}
                                         </div>
-                                        <div className="text-sm text-gray-600 dark:text-slate-400">Scholarship Rate</div>
+                                        <div className="text-sm text-gray-600 dark:text-slate-400">Partner School</div>
+                                    </div>
+                                        </div>
+
+                                <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-lg">
+                                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">School Properties</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedSchool.is_active)}`}>
+                                            {getStatusIcon(selectedSchool.is_active)}
+                                            <span className="ml-1">{getStatusText(selectedSchool.is_active)}</span>
+                                        </span>
+                                        {selectedSchool.is_public && (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                                Public School
+                                            </span>
+                                        )}
+                                        {selectedSchool.is_partner_school && (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                                Partner School
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
