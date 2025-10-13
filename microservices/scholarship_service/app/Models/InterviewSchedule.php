@@ -33,6 +33,7 @@ class InterviewSchedule extends Model
 
     protected $casts = [
         'interview_date' => 'date',
+        'interview_time' => 'string',
         'completed_at' => 'datetime',
     ];
 
@@ -234,7 +235,7 @@ class InterviewSchedule extends Model
     public function getFormattedDateTimeAttribute(): string
     {
         $date = Carbon::parse($this->interview_date);
-        $time = Carbon::parse($this->interview_time);
+        $time = Carbon::createFromFormat('H:i:s', $this->interview_time);
         
         return $date->format('M d, Y') . ' at ' . $time->format('g:i A');
     }

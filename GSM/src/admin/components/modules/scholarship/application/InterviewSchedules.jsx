@@ -1452,9 +1452,13 @@ Remarks: ${evaluationFormData.remarks}
 
   // Utility function to safely format dates
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString || dateString === 'Invalid Date') return 'N/A';
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid date format';
+      }
+      return date.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -1462,21 +1466,25 @@ Remarks: ${evaluationFormData.remarks}
       });
     } catch (error) {
       console.error('Error formatting date:', error);
-      return 'Invalid Date';
+      return 'Invalid date format';
     }
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return 'N/A';
+    if (!timeString || timeString === 'Invalid Date') return 'N/A';
     try {
-      return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      const time = new Date(`2000-01-01T${timeString}`);
+      if (isNaN(time.getTime())) {
+        return 'Invalid time format';
+      }
+      return time.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
       });
     } catch (error) {
       console.error('Error formatting time:', error);
-      return timeString; // Return original if parsing fails
+      return 'Invalid time format';
     }
   };
 
