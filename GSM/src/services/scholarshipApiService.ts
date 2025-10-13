@@ -464,7 +464,7 @@ class ScholarshipApiService {
     // Handle different response structures
     if (response.data?.data) {
       return response.data.data;
-    } else if (response.data) {
+    } else if (response.data && typeof response.data === 'object' && !('success' in response.data)) {
       return response.data as ScholarshipApplication;
     } else {
       throw new Error('Invalid response structure from getApplication API');
@@ -532,6 +532,32 @@ class ScholarshipApiService {
       }
     );
     return response.data!.data!;
+  }
+
+  async endorseToSSC(id: number, notes?: string): Promise<ScholarshipApplication> {
+    const response = await this.makeRequest<{ data: ScholarshipApplication }>(
+      `/api/applications/${id}/endorse-to-ssc`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async bulkEndorseToSSC(applicationIds: number[], filterType: 'recommended' | 'conditional' | 'all', notes?: string): Promise<any> {
+    const response = await this.makeRequest<any>(
+      `/api/applications/bulk-endorse-to-ssc`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ 
+          application_ids: applicationIds,
+          filter_type: filterType,
+          notes 
+        }),
+      }
+    );
+    return response.data!;
   }
 
   async markAsReviewed(id: number): Promise<ScholarshipApplication> {
@@ -810,15 +836,22 @@ class ScholarshipApiService {
     return response.data!.data!;
   }
 
-  async completeInterview(id: number, result: 'passed' | 'failed' | 'needs_followup', notes?: string): Promise<InterviewSchedule> {
+  async completeInterview(id: number, result: 'passed' | 'failed' | 'needs_followup', notes?: string, evaluationData?: any): Promise<InterviewSchedule> {
+    const requestBody: any = { 
+      interview_result: result, 
+      interview_notes: notes 
+    };
+
+    // Add detailed evaluation data if provided
+    if (evaluationData) {
+      Object.assign(requestBody, evaluationData);
+    }
+
     const response = await this.makeRequest<{ data: InterviewSchedule }>(
       `/api/interview-schedules/${id}/complete`,
       {
         method: 'POST',
-        body: JSON.stringify({ 
-          interview_result: result, 
-          interview_notes: notes 
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
     return response.data!.data!;
@@ -873,6 +906,21 @@ class ScholarshipApiService {
       `/api/staff/${id}`
     );
     return response.data!;
+  }
+
+  // Interview Evaluation Methods
+  async getInterviewEvaluations(): Promise<any[]> {
+    const response = await this.makeRequest<{ data: any[] }>(
+      '/api/interview-evaluations'
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async getInterviewEvaluation(id: number): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/interview-evaluations/${id}`
+    );
+    return response.data!.data!;
   }
 }
 

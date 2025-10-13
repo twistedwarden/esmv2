@@ -61,7 +61,7 @@ function ScholarshipApplications() {
   // Filtering and search state
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    status: 'all',
+    status: 'submitted',
     category: 'all',
     level: 'all',
     school: 'all',
@@ -104,10 +104,10 @@ function ScholarshipApplications() {
   // Statistics
   const [stats, setStats] = useState({
     total: 0,
-    pending: 0,
+    submitted: 0,
+    forCompliance: 0,
     approved: 0,
-    rejected: 0,
-    underReview: 0
+    rejected: 0
   });
 
   // Fetch applications
@@ -163,10 +163,10 @@ function ScholarshipApplications() {
   const updateStats = (apps) => {
     const newStats = {
       total: apps.length,
-      pending: apps.filter(app => ['draft', 'submitted', 'for_compliance'].includes(app.status)).length,
+      submitted: apps.filter(app => app.status === 'submitted').length,
+      forCompliance: apps.filter(app => app.status === 'for_compliance').length,
       approved: apps.filter(app => app.status === 'approved').length,
-      rejected: apps.filter(app => app.status === 'rejected').length,
-      underReview: apps.filter(app => ['submitted', 'documents_reviewed'].includes(app.status)).length
+      rejected: apps.filter(app => app.status === 'rejected').length
     };
     setStats(newStats);
   };
@@ -368,7 +368,7 @@ function ScholarshipApplications() {
 
   const clearAllFilters = () => {
     setFilters({
-      status: 'all',
+      status: 'submitted',
       category: 'all',
       level: 'all',
       school: 'all',
@@ -382,7 +382,12 @@ function ScholarshipApplications() {
   };
 
   const hasActiveFilters = () => {
-    return Object.values(filters).some(value => value !== 'all' && value !== '') || searchTerm;
+    return Object.entries(filters).some(([key, value]) => {
+      if (key === 'status') {
+        return value !== 'submitted' && value !== 'all';
+      }
+      return value !== 'all' && value !== '';
+    }) || searchTerm;
   };
 
   // Action handlers
@@ -955,11 +960,11 @@ function ScholarshipApplications() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Draft & Compliance</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Submitted</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.submitted}</p>
             </div>
-            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
@@ -967,11 +972,11 @@ function ScholarshipApplications() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Submitted</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.underReview}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">For Compliance</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.forCompliance}</p>
             </div>
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/30">
+              <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             </div>
           </div>
         </div>
@@ -1227,9 +1232,6 @@ function ScholarshipApplications() {
                 </button>
               </span>
             )}
-            <button onClick={clearAllFilters} className="text-sm text-gray-600 dark:text-gray-300 underline hover:text-gray-800 dark:hover:text-gray-100">
-              Clear all filters
-            </button>
                   </div>
         )}
 

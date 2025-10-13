@@ -31,8 +31,10 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function InterviewSchedules() {
+  const { showSuccess, showError, showWarning, showInfo } = useToastContext();
   const [schedules, setSchedules] = useState([]);
   const [pendingApplications, setPendingApplications] = useState([]);
   const [eligibleApplications, setEligibleApplications] = useState([]);
@@ -41,7 +43,7 @@ function InterviewSchedules() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    status: 'all',
+    status: 'pending',
     interviewer: 'all',
     dateFrom: '',
     dateTo: ''
@@ -92,12 +94,6 @@ function InterviewSchedules() {
   const [bulkFormErrors, setBulkFormErrors] = useState({});
   const [isSubmittingBulk, setIsSubmittingBulk] = useState(false);
 
-  // Toast notification state
-  const [toast, setToast] = useState({
-    show: false,
-    message: '',
-    type: 'success' // 'success', 'error', 'info'
-  });
 
   // Interview evaluation form state
   const [evaluationFormData, setEvaluationFormData] = useState({
@@ -281,10 +277,10 @@ function InterviewSchedules() {
       // Refresh the schedules to get updated data
       await fetchSchedules();
       
-        showToast(`✅ Interview completed successfully!\n\n📝 Result: ${result}\n📅 Completed at: ${new Date().toLocaleString()}`, 'success');
+        showToast(`✅ Interview completed successfully!\n\n📝 Result: ${result}\n📅 Completed at: ${new Date().toLocaleString()}`, 'success', 'Interview Completed');
     } catch (e) {
       console.error('Error completing interview:', e);
-      showToast(`❌ Failed to complete interview:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error');
+      showToast(`❌ Failed to complete interview:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error', 'Interview Completion Failed');
     }
   };
 
@@ -637,7 +633,7 @@ function InterviewSchedules() {
                   <Plus className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
                   <span>Schedule Interview</span>
                 </button>
-              ) : (
+              ) : schedule.status !== 'completed' ? (
                   <button
                     onClick={() => handleJoinMeeting(schedule)}
                     className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
@@ -645,10 +641,10 @@ function InterviewSchedules() {
                     <Video className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
                     <span>Join Meeting</span>
                   </button>
-              )}
+              ) : null}
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
-              {schedule.status !== 'pending' && (
+              {schedule.status !== 'pending' && schedule.status !== 'completed' && (
                 <button 
                   onClick={() => handleRescheduleInterview(schedule)}
                   className={`${viewMode === 'list' ? 'px-3 py-2 text-sm' : 'px-3 py-1.5 text-sm'} bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center space-x-1`} 
@@ -680,7 +676,7 @@ function InterviewSchedules() {
 
   const clearAllFilters = () => {
     setFilters({
-      status: 'all',
+      status: 'pending', // Reset to default status
       interviewer: 'all',
       dateFrom: '',
       dateTo: ''
@@ -689,7 +685,10 @@ function InterviewSchedules() {
   };
 
   const hasActiveFilters = () => {
-    return Object.values(filters).some(value => value !== 'all' && value !== '') || searchTerm;
+    return Object.entries(filters).some(([key, value]) => {
+      if (key === 'status' && value === 'pending') return false; // pending is default, not active
+      return value !== 'all' && value !== '';
+    }) || searchTerm;
   };
 
   // Button handler functions
@@ -928,7 +927,7 @@ function InterviewSchedules() {
         const interviewerName = selectedStaff?.name || 'Interviewer';
         const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
         
-        showToast(`✅ Interview scheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success');
+        showToast(`✅ Interview scheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success', 'Interview Scheduled');
       }
       
       // Refresh the schedules, pending applications, and eligible applications to get updated data
@@ -1188,18 +1187,23 @@ function InterviewSchedules() {
     setBulkFormErrors({});
   };
 
-  // Toast utility function
-  const showToast = (message, type = 'success') => {
-    setToast({
-      show: true,
-      message,
-      type
-    });
+  // Enhanced toast utility function
+  const showToast = (message, type = 'success', title = null) => {
+    const toastTitle = title || (type === 'success' ? 'Success' : type === 'error' ? 'Error' : type === 'warning' ? 'Warning' : 'Info');
     
-    // Auto-hide toast after 5 seconds
-    setTimeout(() => {
-      setToast(prev => ({ ...prev, show: false }));
-    }, 5000);
+    switch (type) {
+      case 'success':
+        showSuccess(message, toastTitle);
+        break;
+      case 'error':
+        showError(message, toastTitle);
+        break;
+      case 'warning':
+        showWarning(message, toastTitle);
+        break;
+      default:
+        showInfo(message, toastTitle);
+    }
   };
 
   // Time calculation utilities
@@ -1399,20 +1403,24 @@ function InterviewSchedules() {
         interviewResult = 'failed';
       }
       
-      // Combine all evaluation data into notes
-      const evaluationNotes = `
-Academic Motivation Score: ${evaluationFormData.academicMotivationScore}/5
-Leadership & Involvement Score: ${evaluationFormData.leadershipInvolvementScore}/5
-Financial Need Score: ${evaluationFormData.financialNeedScore}/5
-Character & Values Score: ${evaluationFormData.characterValuesScore}/5
-Overall Recommendation: ${evaluationFormData.overallRecommendation}
-Remarks: ${evaluationFormData.remarks}
-      `.trim();
+      // Send detailed evaluation data
+      const evaluationData = {
+        academic_motivation_score: parseInt(evaluationFormData.academicMotivationScore),
+        leadership_involvement_score: parseInt(evaluationFormData.leadershipInvolvementScore),
+        financial_need_score: parseInt(evaluationFormData.financialNeedScore),
+        character_values_score: parseInt(evaluationFormData.characterValuesScore),
+        overall_recommendation: evaluationFormData.overallRecommendation,
+        remarks: evaluationFormData.remarks,
+        // Legacy fields for backward compatibility
+        interview_result: interviewResult,
+        interview_notes: evaluationFormData.remarks
+      };
       
       await scholarshipApiService.completeInterview(
         activeSchedule.id, 
         interviewResult, 
-        evaluationNotes
+        evaluationFormData.remarks,
+        evaluationData
       );
       
       // Refresh the schedules to get updated data
@@ -1434,10 +1442,33 @@ Remarks: ${evaluationFormData.remarks}
       });
       setEvaluationFormErrors({});
       
-      alert('Interview evaluation submitted successfully!');
+      // Enhanced success message with evaluation details
+      const evaluationSummary = `
+📊 Evaluation Summary:
+• Academic Motivation: ${evaluationFormData.academicMotivationScore}/5
+• Leadership & Involvement: ${evaluationFormData.leadershipInvolvementScore}/5  
+• Financial Need: ${evaluationFormData.financialNeedScore}/5
+• Character & Values: ${evaluationFormData.characterValuesScore}/5
+
+🎯 Overall Recommendation: ${evaluationFormData.overallRecommendation === 'recommended' ? 'Recommended for SSC Review' : evaluationFormData.overallRecommendation === 'not_recommended' ? 'Not Recommended' : 'Needs Follow-up'}
+
+✅ Interview evaluation has been successfully submitted and stored in the database.
+      `.trim();
+      
+      showToast(evaluationSummary, 'success', 'Interview Evaluation Submitted');
     } catch (error) {
       console.error('Error submitting evaluation:', error);
-      alert('Failed to submit evaluation: ' + (error.message || 'Unknown error'));
+      
+      // Enhanced error message
+      const errorMessage = `
+❌ Failed to submit interview evaluation
+
+${error.response?.data?.message || error.message || 'Unknown error occurred'}
+
+Please check your internet connection and try again. If the problem persists, contact the system administrator.
+      `.trim();
+      
+      showToast(errorMessage, 'error', 'Evaluation Submission Failed');
     } finally {
       setIsSubmittingEvaluation(false);
     }
@@ -2134,7 +2165,7 @@ Remarks: ${evaluationFormData.remarks}
               >
                 Close
               </button>
-              {activeSchedule.status !== 'pending' && (
+              {activeSchedule.status !== 'pending' && activeSchedule.status !== 'completed' && (
                 <button
                   onClick={() => handleJoinMeeting(activeSchedule)}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
@@ -2228,7 +2259,8 @@ Remarks: ${evaluationFormData.remarks}
                         {activeSchedule.meetingLink}
                             </p>
                           </div>
-                      <button
+                      {activeSchedule.status !== 'completed' && (
+                        <button
                             onClick={() => {
                               // Ensure the link has proper protocol
                               let meetingUrl = activeSchedule.meetingLink;
@@ -2242,7 +2274,8 @@ Remarks: ${evaluationFormData.remarks}
                           >
                             <Video className="w-4 h-4" />
                             <span className="text-sm">Join Meeting</span>
-                      </button>
+                        </button>
+                      )}
                         </>
                       ) : (
                         <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
@@ -2429,7 +2462,7 @@ Remarks: ${evaluationFormData.remarks}
                       <option value="">Select recommendation...</option>
                       <option value="recommended">✅ Recommended for SSC Review</option>
                       <option value="not_recommended">❌ Not Recommended</option>
-                      <option value="conditional">⚠️ Conditional Recommendation</option>
+                      <option value="needs_followup">⚠️ Conditional Recommendation</option>
                     </select>
                     {evaluationFormErrors.overallRecommendation && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.overallRecommendation}</p>
@@ -2807,49 +2840,6 @@ Remarks: ${evaluationFormData.remarks}
         </div>
       )}
 
-      {/* Toast Notification */}
-      {toast.show && (
-        <div className="fixed top-4 right-4 z-50 max-w-md">
-          <div className={`p-4 rounded-lg shadow-lg border-l-4 ${
-            toast.type === 'success' 
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-400 text-green-800 dark:text-green-200' 
-              : toast.type === 'error'
-              ? 'bg-red-50 dark:bg-red-900/20 border-red-400 text-red-800 dark:text-red-200'
-              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 text-blue-800 dark:text-blue-200'
-          }`}>
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                {toast.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                ) : toast.type === 'error' ? (
-                  <XCircle className="w-5 h-5 text-red-400" />
-                ) : (
-                  <AlertTriangle className="w-5 h-5 text-blue-400" />
-                )}
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium whitespace-pre-line">
-                  {toast.message}
-                </p>
-              </div>
-              <div className="ml-4 flex-shrink-0">
-                <button
-                  onClick={() => setToast(prev => ({ ...prev, show: false }))}
-                  className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                    toast.type === 'success' 
-                      ? 'text-green-500 hover:bg-green-100 dark:hover:bg-green-800/30 focus:ring-green-600' 
-                      : toast.type === 'error'
-                      ? 'text-red-500 hover:bg-red-100 dark:hover:bg-red-800/30 focus:ring-red-600'
-                      : 'text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-800/30 focus:ring-blue-600'
-                  }`}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

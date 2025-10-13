@@ -53,6 +53,11 @@ class InterviewSchedule extends Model
         return $this->belongsTo(Staff::class);
     }
 
+    public function evaluation(): BelongsTo
+    {
+        return $this->belongsTo(InterviewEvaluation::class, 'id', 'interview_schedule_id');
+    }
+
     // Scopes
     public function scopeScheduled($query)
     {

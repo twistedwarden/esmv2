@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InterviewSchedule;
+use App\Models\InterviewEvaluation;
 use App\Models\ScholarshipApplication;
 use App\Models\Student;
 use Illuminate\Http\Request;
@@ -94,7 +95,8 @@ class InterviewScheduleController extends Controller
             'application.student.financialInformation',
             'application.category',
             'application.subcategory',
-            'student'
+            'student',
+            'evaluation'
         ]);
 
         return response()->json([
@@ -274,13 +276,25 @@ class InterviewScheduleController extends Controller
     }
 
     /**
-     * Complete an interview
+     * Complete an interview with detailed evaluation
      */
     public function complete(Request $request, InterviewSchedule $schedule): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'interview_result' => 'required|in:passed,failed,needs_followup',
+            // Legacy fields for backward compatibility
+            'interview_result' => 'nullable|in:passed,failed,needs_followup',
             'interview_notes' => 'nullable|string|max:1000',
+            
+            // New detailed evaluation fields
+            'academic_motivation_score' => 'nullable|integer|min:1|max:5',
+            'leadership_involvement_score' => 'nullable|integer|min:1|max:5',
+            'financial_need_score' => 'nullable|integer|min:1|max:5',
+            'character_values_score' => 'nullable|integer|min:1|max:5',
+            'overall_recommendation' => 'nullable|in:recommended,not_recommended,needs_followup',
+            'remarks' => 'nullable|string|max:2000',
+            'strengths' => 'nullable|string|max:1000',
+            'areas_for_improvement' => 'nullable|string|max:1000',
+            'additional_notes' => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -304,36 +318,66 @@ class InterviewScheduleController extends Controller
             $authUser = $request->get('auth_user');
             $completedBy = $authUser['id'] ?? null;
 
+            // Determine interview result from overall recommendation or legacy field
+            $interviewResult = $request->overall_recommendation 
+                ? match($request->overall_recommendation) {
+                    'recommended' => 'passed',
+                    'not_recommended' => 'failed',
+                    'needs_followup' => 'needs_followup',
+                    default => 'needs_followup'
+                }
+                : $request->interview_result;
+
+            // Create detailed evaluation record
+            $evaluationData = [
+                'academic_motivation_score' => $request->academic_motivation_score,
+                'leadership_involvement_score' => $request->leadership_involvement_score,
+                'financial_need_score' => $request->financial_need_score,
+                'character_values_score' => $request->character_values_score,
+                'overall_recommendation' => $request->overall_recommendation,
+                'remarks' => $request->remarks ?: $request->interview_notes,
+                'strengths' => $request->strengths,
+                'areas_for_improvement' => $request->areas_for_improvement,
+                'additional_notes' => $request->additional_notes,
+            ];
+
+            $evaluation = InterviewEvaluation::createFromFormData($schedule, $evaluationData, $completedBy);
+
+            // Update interview schedule with basic completion info
             $schedule->markAsCompleted(
-                $request->interview_result,
-                $request->interview_notes,
+                $interviewResult,
+                $request->interview_notes ?: $request->remarks,
                 $completedBy
             );
 
-            // Update application status
-            $schedule->application->completeInterview(
-                $request->interview_result,
-                $request->interview_notes,
-                $completedBy
-            );
+            // Update application status to interview_completed
+            $schedule->application->update([
+                'status' => 'interview_completed',
+                'interview_completed_at' => now(),
+                'interview_completed_by' => $completedBy,
+            ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Interview completed successfully',
-                'data' => $schedule->fresh()
+                'message' => 'Interview evaluation submitted successfully',
+                'data' => [
+                    'schedule' => $schedule->fresh(),
+                    'evaluation' => $evaluation
+                ]
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to complete interview', [
+            Log::error('Failed to complete interview evaluation', [
                 'exception' => $e->getMessage(),
                 'schedule_id' => $schedule->id,
+                'request_data' => $request->all(),
             ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to complete interview',
+                'message' => 'Failed to submit interview evaluation',
                 'error' => $e->getMessage()
             ], 500);
         }

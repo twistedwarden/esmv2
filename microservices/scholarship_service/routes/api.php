@@ -10,6 +10,7 @@ use App\Http\Controllers\ScholarshipCategoryController;
 use App\Http\Controllers\PartnerSchoolController;
 use App\Http\Controllers\EnrollmentVerificationController;
 use App\Http\Controllers\InterviewScheduleController;
+use App\Http\Controllers\InterviewEvaluationController;
 use App\Http\Controllers\Api\StaffController;
 
 /*
@@ -71,6 +72,10 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     Route::post('/{application}/schedule-interview', [ScholarshipApplicationController::class, 'scheduleInterview']);
     Route::post('/{application}/schedule-interview-auto', [ScholarshipApplicationController::class, 'scheduleInterviewAuto']);
     Route::post('/{application}/complete-interview', [ScholarshipApplicationController::class, 'completeInterview']);
+    Route::post('/{application}/endorse-to-ssc', [ScholarshipApplicationController::class, 'endorseToSSC']);
+    
+    // Bulk operations
+    Route::post('/bulk-endorse-to-ssc', [ScholarshipApplicationController::class, 'bulkEndorseToSSC']);
 });
 
 // Document routes
@@ -144,6 +149,18 @@ Route::prefix('interview-schedules')->middleware(['auth.auth_service'])->group(f
     Route::post('/{schedule}/no-show', [InterviewScheduleController::class, 'markNoShow']);
     Route::get('/available-slots', [InterviewScheduleController::class, 'availableSlots']);
     Route::get('/calendar', [InterviewScheduleController::class, 'calendar']);
+});
+
+// Interview Evaluation routes (protected by authentication)
+Route::prefix('interview-evaluations')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/', [InterviewEvaluationController::class, 'index']);
+    Route::post('/', [InterviewEvaluationController::class, 'store']);
+    Route::get('/statistics', [InterviewEvaluationController::class, 'statistics']);
+    Route::get('/application/{applicationId}', [InterviewEvaluationController::class, 'getByApplication']);
+    Route::get('/student/{studentId}', [InterviewEvaluationController::class, 'getByStudent']);
+    Route::get('/{id}', [InterviewEvaluationController::class, 'show']);
+    Route::put('/{id}', [InterviewEvaluationController::class, 'update']);
+    Route::delete('/{id}', [InterviewEvaluationController::class, 'destroy']);
 });
 
 // Staff routes (protected by authentication)

@@ -1138,6 +1138,161 @@ class ScholarshipApplicationController extends Controller
     }
 
     /**
+     * Endorse application to SSC
+     * Status: interview_completed → endorsed_to_ssc
+     */
+    public function endorseToSSC(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if ($application->status !== 'interview_completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must have completed interview to be endorsed to SSC'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $endorsedBy = $authUser['id'] ?? null;
+
+            $application->endorseToSSC($request->notes, $endorsedBy);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application successfully endorsed to SSC',
+                'data' => $application->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to endorse application to SSC', [
+                'exception' => $e->getMessage(),
+                'application_id' => $application->id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to endorse application to SSC',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk endorse applications to SSC
+     * Status: interview_completed → endorsed_to_ssc
+     */
+    public function bulkEndorseToSSC(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'application_ids' => 'required|array|min:1',
+            'application_ids.*' => 'integer|exists:scholarship_applications,id',
+            'filter_type' => 'required|in:recommended,conditional,all',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $endorsedBy = $authUser['id'] ?? null;
+            $applicationIds = $request->application_ids;
+            $filterType = $request->filter_type;
+            $notes = $request->notes ?? 'Bulk endorsed to SSC';
+
+            // Get applications that are ready for endorsement
+            $query = ScholarshipApplication::whereIn('id', $applicationIds)
+                ->where('status', 'interview_completed')
+                ->with(['interviewSchedule.interviewEvaluation']);
+
+            // Apply filter based on interview evaluation results
+            if ($filterType === 'recommended') {
+                $query->whereHas('interviewSchedule.interviewEvaluation', function ($q) {
+                    $q->where('overall_recommendation', 'recommended');
+                });
+            } elseif ($filterType === 'conditional') {
+                $query->whereHas('interviewSchedule.interviewEvaluation', function ($q) {
+                    $q->where('overall_recommendation', 'needs_followup');
+                });
+            }
+            // 'all' doesn't add any additional filtering
+
+            $applications = $query->get();
+
+            if ($applications->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No applications found matching the criteria for bulk endorsement'
+                ], 400);
+            }
+
+            $endorsedCount = 0;
+            $failedApplications = [];
+
+            foreach ($applications as $application) {
+                try {
+                    $application->endorseToSSC($notes, $endorsedBy);
+                    $endorsedCount++;
+                } catch (\Exception $e) {
+                    $failedApplications[] = [
+                        'id' => $application->id,
+                        'application_number' => $application->application_number,
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully endorsed {$endorsedCount} application(s) to SSC",
+                'data' => [
+                    'endorsed_count' => $endorsedCount,
+                    'total_processed' => $applications->count(),
+                    'failed_applications' => $failedApplications,
+                    'filter_type' => $filterType
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to bulk endorse applications to SSC', [
+                'exception' => $e->getMessage(),
+                'application_ids' => $request->application_ids,
+                'filter_type' => $request->filter_type,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk endorse applications to SSC',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get available interview slots for auto-scheduling
      */
     private function getAvailableSlots($days = 7): array
