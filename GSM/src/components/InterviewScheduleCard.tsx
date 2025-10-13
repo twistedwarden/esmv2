@@ -112,7 +112,37 @@ const InterviewScheduleCard: React.FC<InterviewScheduleCardProps> = ({
   };
 
   const formatDateTime = (date: string, time: string) => {
-    const interviewDate = new Date(`${date}T${time}`);
+    // Validate inputs
+    if (!date || !time || date === 'Invalid Date' || time === 'Invalid Date') {
+      return {
+        date: 'Date not set',
+        time: 'Time not set'
+      };
+    }
+
+    // Try to create a valid date object
+    let interviewDate: Date;
+    
+    // Handle different date formats
+    if (date.includes('T')) {
+      // Already in ISO format
+      interviewDate = new Date(date);
+    } else if (time.includes(':')) {
+      // Combine date and time
+      interviewDate = new Date(`${date}T${time}`);
+    } else {
+      // Try parsing as separate date and time
+      interviewDate = new Date(`${date} ${time}`);
+    }
+
+    // Check if the date is valid
+    if (isNaN(interviewDate.getTime())) {
+      return {
+        date: 'Invalid date format',
+        time: 'Invalid time format'
+      };
+    }
+
     return {
       date: interviewDate.toLocaleDateString('en-US', {
         weekday: 'long',
@@ -129,9 +159,25 @@ const InterviewScheduleCard: React.FC<InterviewScheduleCardProps> = ({
   };
 
   const addToCalendar = () => {
-    if (!schedule) return;
+    if (!schedule || !schedule.interview_date || !schedule.interview_time) return;
 
-    const startDate = new Date(`${schedule.interview_date}T${schedule.interview_time}`);
+    let startDate: Date;
+    
+    // Handle different date formats
+    if (schedule.interview_date.includes('T')) {
+      startDate = new Date(schedule.interview_date);
+    } else if (schedule.interview_time.includes(':')) {
+      startDate = new Date(`${schedule.interview_date}T${schedule.interview_time}`);
+    } else {
+      startDate = new Date(`${schedule.interview_date} ${schedule.interview_time}`);
+    }
+
+    // Check if the date is valid
+    if (isNaN(startDate.getTime())) {
+      alert('Invalid interview date/time. Cannot add to calendar.');
+      return;
+    }
+
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
 
     const formatDate = (date: Date) => {
