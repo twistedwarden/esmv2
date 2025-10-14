@@ -14,16 +14,18 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Create admin user
-        User::create([
-            'citizen_id' => 'ADMIN-001',
-            'email' => 'admin@caloocan.gov.ph',
-            'password' => Hash::make('admin123'),
-            'first_name' => 'System',
-            'last_name' => 'Administrator',
-            'role' => 'admin',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@caloocan.gov.ph'],
+            [
+                'citizen_id' => 'ADMIN-001',
+                'password' => Hash::make('admin123'),
+                'first_name' => 'System',
+                'last_name' => 'Administrator',
+                'role' => 'admin',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Create staff user
         User::create([
@@ -101,16 +103,84 @@ class UserSeeder extends Seeder
         ]);
 
         // Create partner school representative
-        User::create([
-            'citizen_id' => 'PS-001',
-            'email' => 'school.rep@university.edu.ph',
-            'password' => Hash::make('psrep123'),
-            'first_name' => 'Dr. Sarah',
-            'last_name' => 'Wilson',
-            'middle_name' => 'M',
-            'role' => 'ps_rep',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'school.rep@university.edu.ph'],
+            [
+                'citizen_id' => 'PS-001',
+                'password' => Hash::make('psrep123'),
+                'first_name' => 'Dr. Sarah',
+                'last_name' => 'Wilson',
+                'middle_name' => 'M',
+                'role' => 'ps_rep',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Create interviewer staff users
+        User::firstOrCreate(
+            ['email' => 'peter.santos@scholarship.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-002',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'Peter',
+                'last_name' => 'Santos',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'maria.reyes@scholarship.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-003',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'Maria',
+                'last_name' => 'Reyes',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'john.cruz@scholarship.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-004',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'John',
+                'last_name' => 'Cruz',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'ana.lopez@scholarship.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-005',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'Ana',
+                'last_name' => 'Lopez',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'carlos.mendoza@scholarship.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-006',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'Carlos',
+                'last_name' => 'Mendoza',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

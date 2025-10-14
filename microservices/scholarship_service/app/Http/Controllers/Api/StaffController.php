@@ -194,4 +194,42 @@ class StaffController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get staff by user ID (for auth service integration)
+     */
+    public function getStaffByUserId($userId): JsonResponse
+    {
+        try {
+            $staff = Staff::where('user_id', $userId)
+                ->where('is_active', true)
+                ->first();
+            
+            if (!$staff) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Staff not found'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $staff->id,
+                    'user_id' => $staff->user_id,
+                    'citizen_id' => $staff->citizen_id,
+                    'system_role' => $staff->system_role,
+                    'department' => $staff->department,
+                    'position' => $staff->position,
+                    'is_active' => $staff->is_active,
+                ],
+                'message' => 'Staff retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve staff: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

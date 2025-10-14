@@ -278,6 +278,24 @@ class ScholarshipApiService {
     // Add authorization header if token exists
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
+      
+      // Add user information headers for SSC role detection
+      try {
+        const userData = localStorage.getItem('user_data');
+        console.log('ScholarshipApiService - User data from localStorage:', userData);
+        if (userData) {
+          const user = JSON.parse(userData);
+          console.log('ScholarshipApiService - Parsed user:', user);
+          defaultHeaders['X-User-ID'] = user.id;
+          defaultHeaders['X-User-Role'] = user.role;
+          defaultHeaders['X-User-Email'] = user.email;
+          defaultHeaders['X-User-First-Name'] = user.first_name;
+          defaultHeaders['X-User-Last-Name'] = user.last_name;
+          console.log('ScholarshipApiService - Headers being sent:', defaultHeaders);
+        }
+      } catch (error) {
+        console.warn('Failed to parse user data from localStorage:', error);
+      }
     }
 
     const config: RequestInit = {
@@ -921,6 +939,431 @@ class ScholarshipApiService {
       `/api/interview-evaluations/${id}`
     );
     return response.data!.data!;
+  }
+
+  // SSC Methods
+  async getSscPendingApplications(filters?: {
+    category_id?: number;
+    school_id?: number;
+    search?: string;
+    date_from?: string;
+    date_to?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; per_page: number; current_page: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/ssc/pending?${params.toString()}`
+    );
+    return response.data!;
+  }
+
+  async getSscStatistics(): Promise<{
+    totalApplications: number;
+    pendingReview: number;
+    approved: number;
+    rejected: number;
+    thisMonthDecisions: number;
+    averageProcessingTime: number;
+  }> {
+    const response = await this.makeRequest<{ data: any }>(
+      '/api/applications/ssc/statistics'
+    );
+    return response.data!;
+  }
+
+  async sscApproveApplication(
+    applicationId: number, 
+    approvedAmount: number, 
+    notes?: string
+  ): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc-approve`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          approved_amount: approvedAmount,
+          notes: notes
+        }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async sscRejectApplication(
+    applicationId: number, 
+    rejectionReason: string
+  ): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc-reject`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          rejection_reason: rejectionReason
+        }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async sscBulkApprove(
+    applicationIds: number[], 
+    notes?: string
+  ): Promise<{
+    approved_count: number;
+    total_processed: number;
+    failed_applications: any[];
+  }> {
+    const response = await this.makeRequest<{ data: any }>(
+      '/api/applications/ssc/bulk-approve',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          application_ids: applicationIds,
+          notes: notes
+        }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async sscBulkReject(
+    applicationIds: number[], 
+    rejectionReason: string
+  ): Promise<{
+    rejected_count: number;
+    total_processed: number;
+    failed_applications: any[];
+  }> {
+    const response = await this.makeRequest<{ data: any }>(
+      '/api/applications/ssc/bulk-reject',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          application_ids: applicationIds,
+          rejection_reason: rejectionReason
+        }),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  async getSscDecisionHistory(filters?: {
+    decision?: 'approved' | 'rejected';
+    date_from?: string;
+    date_to?: string;
+    decided_by?: number;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; per_page: number; current_page: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/ssc/decision-history?${params.toString()}`
+    );
+    return response.data!;
+  }
+
+  // Get all SSC review decisions from all stages
+  async getAllSscDecisions(filters?: {
+    stage?: 'document_verification' | 'financial_review' | 'academic_review' | 'final_approval';
+    status?: 'approved' | 'rejected';
+    date_from?: string;
+    date_to?: string;
+    reviewed_by?: number;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; per_page: number; current_page: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/ssc/all-decisions?${params.toString()}`
+    );
+    return response.data!;
+  }
+
+  // ===== NEW SSC MULTI-STAGE METHODS =====
+
+  // Get applications by stage
+  async getSscApplicationsByStage(stage: string, filters?: {
+    category_id?: number;
+    school_id?: number;
+    search?: string;
+    date_from?: string;
+    date_to?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; per_page: number; current_page: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/ssc/stage/${stage}?${params.toString()}`
+    );
+    return response.data!;
+  }
+
+  // Get my assigned applications (role-based)
+  async getMySscApplications(filters?: {
+    category_id?: number;
+    school_id?: number;
+    search?: string;
+    date_from?: string;
+    date_to?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; per_page: number; current_page: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/ssc/my-applications?${params.toString()}`
+    );
+    return response.data!;
+  }
+
+  // Stage-specific reviews
+  async sscSubmitDocumentVerification(applicationId: number, data: {
+    verified: boolean;
+    notes?: string;
+    document_issues?: string[];
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc/document-verification`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  }
+
+  async sscSubmitFinancialReview(applicationId: number, data: {
+    feasible: boolean;
+    recommended_amount: number;
+    notes?: string;
+    budget_period?: string;
+    financial_assessment_score?: number;
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc/financial-review`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  }
+
+  async sscSubmitAcademicReview(applicationId: number, data: {
+    assessment: 'excellent' | 'good' | 'satisfactory' | 'needs_improvement';
+    recommended_amount: number;
+    notes?: string;
+    program_alignment_score?: number;
+    academic_merit_score?: number;
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc/academic-review`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  }
+
+  async sscFinalApproval(applicationId: number, data: {
+    approved_amount: number;
+    notes?: string;
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc/final-approval`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  }
+
+  async sscFinalRejection(applicationId: number, data: {
+    rejection_reason: string;
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc/final-rejection`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  }
+
+  // Request revision
+  async sscRequestRevision(applicationId: number, data: {
+    stage: 'document_verification' | 'financial_review' | 'academic_review';
+    notes: string;
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/ssc/request-revision`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  }
+
+  // Get review history
+  async getSscReviewHistory(applicationId: number): Promise<any[]> {
+    const response = await this.makeRequest<{ data: any[] }>(
+      `/api/applications/${applicationId}/ssc/review-history`
+    );
+    return response.data!;
+  }
+
+  // Get current user's SSC roles
+  async getUserSscRoles(): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/ssc/my-roles`
+    );
+    console.log('ScholarshipApiService - getUserSscRoles response:', response);
+    return response.data!;
+  }
+
+  // Approve a specific stage (parallel workflow)
+  async approveStage(applicationId: number, stage: string, notes: string, reviewData: any = {}): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/applications/${applicationId}/approve-stage`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          stage,
+          notes,
+          review_data: reviewData
+        })
+      }
+    );
+    return response.data!;
+  }
+
+  // Get SSC member assignments
+  async getSscMemberAssignments(): Promise<any[]> {
+    const response = await this.makeRequest<{ data: any[] }>(
+      `/api/applications/ssc/member-assignments`
+    );
+    return response.data!;
+  }
+
+  // ===== INTERVIEWER METHODS =====
+
+  // Get interviews assigned to the logged-in interviewer
+  async getMyInterviews(filters?: {
+    status?: 'pending' | 'completed' | 'cancelled' | 'all';
+    date_from?: string;
+    date_to?: string;
+    search?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; per_page: number; current_page: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/interviewer/my-interviews?${params.toString()}`
+    );
+    return response.data!;
+  }
+
+  // Get interviewer statistics for dashboard
+  async getInterviewerStatistics(): Promise<{
+    total_interviews: number;
+    pending_interviews: number;
+    completed_this_week: number;
+    completed_this_month: number;
+    average_scores: {
+      academic_motivation: number;
+      leadership_involvement: number;
+      financial_need: number;
+      character_values: number;
+    };
+    upcoming_interviews: any[];
+  }> {
+    const response = await this.makeRequest<{ data: any }>(
+      '/api/interviewer/statistics'
+    );
+    return response.data!;
+  }
+
+  // Submit interview evaluation
+  async submitInterviewEvaluation(scheduleId: number, evaluation: {
+    academic_motivation_score: number;
+    leadership_involvement_score: number;
+    financial_need_score: number;
+    character_values_score: number;
+    overall_recommendation: 'Highly Recommended' | 'Recommended' | 'Not Recommended';
+    remarks?: string;
+  }): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      `/api/interviewer/interviews/${scheduleId}/evaluate`,
+      {
+        method: 'POST',
+        body: JSON.stringify(evaluation)
+      }
+    );
+    return response.data!;
   }
 }
 

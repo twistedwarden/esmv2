@@ -1,7 +1,7 @@
 // Sidebar items configuration for Sidebar.jsx
 import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield } from 'lucide-react';
 
-const sidebarItems = [
+const allSidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     {
          id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
@@ -60,4 +60,42 @@ const sidebarItems = [
     { id: 'settings', icon: Settings, label: 'Settings' }
 ];
 
+// Function to get sidebar items based on user role
+export const getSidebarItems = (userRole, userSystemRole = null) => {
+    // SSC members only see Scholarship module and Settings
+    if (userRole === 'ssc') {
+        return [
+            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            {
+                id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+                subItems: [
+                    { id: 'scholarship-ssc', label: 'SSC Management' }
+                ]
+            },
+            { id: 'settings', icon: Settings, label: 'Settings' }
+        ];
+    }
+    
+    // Staff with interviewer system role see only interview-related modules
+    if (userRole === 'staff' && userSystemRole === 'interviewer') {
+        return [
+            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            {
+                id: 'interviews', icon: ClipboardList, label: 'My Interviews',
+                subItems: [
+                    { id: 'interviews-pending', label: 'Pending Interviews' },
+                    { id: 'interviews-completed', label: 'Completed' },
+                    { id: 'interviews-all', label: 'All Interviews' }
+                ]
+            },
+            { id: 'settings', icon: Settings, label: 'Settings' }
+        ];
+    }
+    
+    // Admin and other staff see all modules
+    return allSidebarItems;
+};
+
+// Default export for backward compatibility
+const sidebarItems = allSidebarItems;
 export default sidebarItems; 

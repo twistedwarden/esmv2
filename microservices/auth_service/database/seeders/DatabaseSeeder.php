@@ -16,6 +16,10 @@ class DatabaseSeeder extends Seeder
             StaffUserSeeder::class,
             CreateCitizenUser::class,
             PartnerSchoolSeeder::class,
+            SscMembersSeeder::class,
+            AdminUsersSeeder::class,
+            CitizenUsersSeeder::class,
+            PartnerSchoolRepsSeeder::class,
         ]);
     }
 }

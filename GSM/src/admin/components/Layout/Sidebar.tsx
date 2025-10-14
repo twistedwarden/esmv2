@@ -1,7 +1,7 @@
 import React from 'react'
 import { ChevronDown, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import sidebarItems from './sidebarItems'
+import { getSidebarItems } from './sidebarItems'
 import { useAuthStore } from '../../../store/v1authStore'
 
 type SidebarProps = {
@@ -14,7 +14,10 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 	const [expandedItem, setExpandedItem] = React.useState<Set<string>>(new Set([""]))
 	const [activeSubItem, setActiveSubItem] = React.useState<string | null>(null)
 	const navigate = useNavigate()
-	const { logout, isLoggingOut } = useAuthStore()
+	const { logout, isLoggingOut, currentUser } = useAuthStore()
+	
+	// Get sidebar items based on user role and system role
+	const sidebarItems = getSidebarItems(currentUser?.role, currentUser?.system_role)
 
 	const toggleExpanded = (itemid: string) => {
 		const newExpanded = new Set(expandedItem)

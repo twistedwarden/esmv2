@@ -36,16 +36,38 @@ class AuthFromAuthService
         
         // Handle test tokens
         if ($token === 'test-token' || $token === 'valid-token') {
-            $request->merge([
-                'auth_user' => [
-                    'id' => 1,
-                    'citizen_id' => 'PSREP-001',
-                    'email' => 'psrep@ccshs.edu.ph',
-                    'first_name' => 'Maria',
-                    'last_name' => 'Santos',
-                    'role' => 'ps_rep'
-                ]
-            ]);
+            // Try to get user info from headers first
+            $userId = $request->header('X-User-ID');
+            $userRole = $request->header('X-User-Role');
+            $userEmail = $request->header('X-User-Email');
+            $userFirstName = $request->header('X-User-First-Name');
+            $userLastName = $request->header('X-User-Last-Name');
+            
+            // If headers are provided, use them; otherwise use default
+            if ($userId) {
+                $request->merge([
+                    'auth_user' => [
+                        'id' => (int) $userId,
+                        'citizen_id' => 'SSC-' . str_pad($userId, 3, '0', STR_PAD_LEFT),
+                        'email' => $userEmail ?: 'user' . $userId . '@caloocan.gov.ph',
+                        'first_name' => $userFirstName ?: 'User',
+                        'last_name' => $userLastName ?: $userId,
+                        'role' => $userRole ?: 'ssc'
+                    ]
+                ]);
+            } else {
+                // Default fallback for backward compatibility
+                $request->merge([
+                    'auth_user' => [
+                        'id' => 1,
+                        'citizen_id' => 'PSREP-001',
+                        'email' => 'psrep@ccshs.edu.ph',
+                        'first_name' => 'Maria',
+                        'last_name' => 'Santos',
+                        'role' => 'ps_rep'
+                    ]
+                ]);
+            }
             return $next($request);
         }
 

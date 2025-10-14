@@ -16,6 +16,7 @@ export type AuthUser = {
 	street?: string
 	barangay?: string
 	role: UserRole
+	system_role?: 'interviewer' | 'reviewer' | 'administrator' | 'coordinator'
 	is_active: boolean
 }
 
@@ -67,6 +68,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 			return
 		}
 
+		// Try to get user data from localStorage first as fallback
+		const storedUserData = localStorage.getItem('user_data')
+		let fallbackUserData = null
+		if (storedUserData) {
+			try {
+				fallbackUserData = JSON.parse(storedUserData)
+			} catch (e) {
+				console.warn('Failed to parse stored user data:', e)
+			}
+		}
+
 		// Validate token with backend
 		try {
 			const response = await fetch(`${API_BASE_URL}/user`, {
@@ -79,26 +91,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 			const data = await response.json()
 
 			if (data.success) {
+				const userData = {
+					id: String(data.data.user.id),
+					citizen_id: data.data.user.citizen_id ?? '',
+					email: data.data.user.email,
+					first_name: data.data.user.first_name,
+					last_name: data.data.user.last_name,
+					middle_name: data.data.user.middle_name,
+					extension_name: data.data.user.extension_name,
+					mobile: data.data.user.mobile,
+					birthdate: data.data.user.birthdate,
+					address: data.data.user.address,
+					house_number: data.data.user.house_number,
+					street: data.data.user.street,
+					barangay: data.data.user.barangay,
+					role: data.data.user.role,
+					// Use system_role from API if available, otherwise fallback to stored data
+					system_role: data.data.user.system_role || fallbackUserData?.system_role,
+					is_active: data.data.user.is_active,
+				};
+				
+				// Save user data to localStorage for API service
+				localStorage.setItem('user_data', JSON.stringify(userData));
+				
+				
 				set({ 
-					currentUser: {
-						id: String(data.data.user.id),
-						citizen_id: data.data.user.citizen_id ?? '',
-						email: data.data.user.email,
-						first_name: data.data.user.first_name,
-						last_name: data.data.user.last_name,
-						middle_name: data.data.user.middle_name,
-						extension_name: data.data.user.extension_name,
-						mobile: data.data.user.mobile,
-						birthdate: data.data.user.birthdate,
-						address: data.data.user.address,
-						house_number: data.data.user.house_number,
-						street: data.data.user.street,
-						barangay: data.data.user.barangay,
-						role: data.data.user.role,
-						is_active: data.data.user.is_active,
-					}, 
+					currentUser: userData, 
 					token,
-					isLoading: false
+					isLoading: false 
+				})
+			} else {
+				// If API fails but we have stored data, use it
+				if (fallbackUserData) {
+					set({ 
+						currentUser: fallbackUserData, 
+						token,
+						isLoading: false 
+					})
+				} else {
+					localStorage.removeItem('auth_token')
+					set({ 
+						currentUser: null, 
+						token: null, 
+						isLoading: false 
+					})
+				}
+			}
+		} catch {
+			// If API fails but we have stored data, use it
+			if (fallbackUserData) {
+				set({ 
+					currentUser: fallbackUserData, 
+					token,
+					isLoading: false 
 				})
 			} else {
 				localStorage.removeItem('auth_token')
@@ -108,13 +153,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					isLoading: false 
 				})
 			}
-		} catch {
-			localStorage.removeItem('auth_token')
-			set({ 
-				currentUser: null, 
-				token: null, 
-				isLoading: false 
-			})
 		}
 	},
 
@@ -139,24 +177,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 			if (data.success) {
                 const { user, token } = data.data
+                const userData = {
+                    id: String(user.id),
+                    citizen_id: user.citizen_id ?? '',
+                    email: user.email,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    middle_name: user.middle_name,
+                    extension_name: user.extension_name,
+                    mobile: user.mobile,
+                    birthdate: user.birthdate,
+                    address: user.address,
+                    house_number: user.house_number,
+                    street: user.street,
+                    barangay: user.barangay,
+                    role: user.role,
+                    system_role: user.system_role,
+                    is_active: user.status === 'active',
+                };
+                
+                // Save user data to localStorage for API service
+                localStorage.setItem('user_data', JSON.stringify(userData));
+                
+                
 				set({ 
-                    currentUser: {
-                        id: String(user.id),
-                        citizen_id: user.citizen_id ?? '',
-                        email: user.email,
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        middle_name: user.middle_name,
-                        extension_name: user.extension_name,
-                        mobile: user.mobile,
-                        birthdate: user.birthdate,
-                        address: user.address,
-                        house_number: user.house_number,
-                        street: user.street,
-                        barangay: user.barangay,
-                        role: user.role,
-                        is_active: user.status === 'active',
-                    }, 
+                    currentUser: userData, 
 					token, 
 					error: null 
 				})
@@ -319,6 +364,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 
 		localStorage.removeItem('auth_token')
+		localStorage.removeItem('user_data')
 		set({ currentUser: null, token: null, error: null, isLoggingOut: false })
 	},
 

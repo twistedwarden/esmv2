@@ -15,6 +15,7 @@ import {
   BarChart3,
   Settings
 } from 'lucide-react';
+import { sscRoleService } from '../../../../../services/sscRoleService';
 
 function SSCOverview() {
   const [stats, setStats] = useState({
@@ -33,6 +34,8 @@ function SSCOverview() {
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userRoles, setUserRoles] = useState(null);
+  const [myQueueCount, setMyQueueCount] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -40,46 +43,74 @@ function SSCOverview() {
         setLoading(true);
         setError('');
         
-        // Mock data - replace with actual API calls
+        // Fetch user's SSC roles
+        const roles = await sscRoleService.fetchUserRoles();
+        setUserRoles(roles);
+        
+        // Fetch real data from API
+        const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
+        const response = await scholarshipApiService.getSscStatistics();
+        const statsData = response.data || {};
+
+        // Fetch user's queue count
+        if (roles.has_ssc_role) {
+          try {
+            const myApps = await scholarshipApiService.getMySscApplications({ per_page: 1 });
+            setMyQueueCount(myApps.total || 0);
+          } catch (err) {
+            console.error('Error fetching my queue count:', err);
+          }
+        }
+        
+        // Fetch stage-specific counts
+        const [docVerification, financialReview, academicReview, finalApproval] = await Promise.all([
+          scholarshipApiService.getSscApplicationsByStage('document_verification', { per_page: 1 }),
+          scholarshipApiService.getSscApplicationsByStage('financial_review', { per_page: 1 }),
+          scholarshipApiService.getSscApplicationsByStage('academic_review', { per_page: 1 }),
+          scholarshipApiService.getSscApplicationsByStage('final_approval', { per_page: 1 })
+        ]);
+        
         setStats({
-          totalApplications: 1247,
-          pendingReview: 89,
-          approved: 892,
-          rejected: 234,
-          underAppeal: 32,
-          totalMembers: 12,
-          activeMembers: 10,
-          averageProcessingTime: 3.2,
-          thisMonthDecisions: 156,
-          pendingAppeals: 8
+          totalApplications: statsData.totalApplications || 0,
+          pendingReview: statsData.pendingReview || 0,
+          approved: statsData.approved || 0,
+          rejected: statsData.rejected || 0,
+          underAppeal: 0, // Will be implemented in future
+          totalMembers: 12, // Static for now
+          activeMembers: 10, // Static for now
+          averageProcessingTime: statsData.averageProcessingTime || 0,
+          thisMonthDecisions: statsData.thisMonthDecisions || 0,
+          pendingAppeals: 0, // Will be implemented in future
+          // Stage-specific counts
+          documentVerification: docVerification.total || 0,
+          financialReview: financialReview.total || 0,
+          academicReview: academicReview.total || 0,
+          finalApproval: finalApproval.total || 0
         });
 
-        setRecentActivities([
-          {
-            id: 1,
-            type: 'approval',
-            applicationId: 'APP-2024-001',
-            member: 'Dr. Maria Santos',
-            timestamp: '2024-01-15T10:30:00Z',
-            status: 'approved'
-          },
-          {
-            id: 2,
-            type: 'review',
-            applicationId: 'APP-2024-002',
-            member: 'Prof. Juan Cruz',
-            timestamp: '2024-01-15T09:15:00Z',
-            status: 'documents_reviewed'
-          },
-          {
-            id: 3,
-            type: 'appeal',
-            applicationId: 'APP-2024-003',
-            member: 'Dr. Ana Reyes',
-            timestamp: '2024-01-14T16:45:00Z',
-            status: 'appeal_received'
-          }
-        ]);
+        // Fetch recent decision history as activity
+        try {
+          const historyData = await scholarshipApiService.getSscDecisionHistory({
+            per_page: 5,
+            sort_by: 'decided_at',
+            sort_order: 'desc'
+          });
+          
+          const activities = (historyData.data || []).map((decision, index) => ({
+            id: index + 1,
+            type: decision.decision === 'approved' ? 'approval' : 'rejection',
+            applicationId: decision.application?.application_number || `APP-${decision.application_id}`,
+            studentName: `${decision.application?.student?.first_name || ''} ${decision.application?.student?.last_name || ''}`.trim(),
+            member: 'SSC Committee', // Will get from decided_by user in future
+            timestamp: decision.decided_at,
+            status: decision.decision
+          }));
+          
+          setRecentActivities(activities);
+        } catch (err) {
+          console.error('Error loading recent activities:', err);
+          setRecentActivities([]);
+        }
       } catch (err) {
         setError('Failed to load SSC data');
         console.error('Error loading SSC data:', err);
@@ -91,56 +122,124 @@ function SSCOverview() {
     loadData();
   }, []);
 
-  const statCards = [
-    {
-      title: 'Total Applications',
-      value: stats.totalApplications,
-      icon: FileText,
-      color: 'blue',
-      change: '+12%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Pending Review',
-      value: stats.pendingReview,
-      icon: Clock,
-      color: 'yellow',
-      change: '-5%',
-      changeType: 'negative'
-    },
-    {
-      title: 'Approved',
-      value: stats.approved,
-      icon: CheckCircle,
-      color: 'green',
-      change: '+8%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Rejected',
-      value: stats.rejected,
-      icon: XCircle,
-      color: 'red',
-      change: '+3%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Under Appeal',
-      value: stats.underAppeal,
-      icon: AlertTriangle,
-      color: 'orange',
-      change: '+2%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Active Members',
-      value: `${stats.activeMembers}/${stats.totalMembers}`,
-      icon: Users,
-      color: 'purple',
-      change: '100%',
-      changeType: 'neutral'
+  // Role-specific stat cards
+  const getRoleSpecificCards = () => {
+    const baseCards = [];
+
+    // My Queue - Always shown for non-chairperson roles
+    if (userRoles && !userRoles.is_chairperson && userRoles.has_ssc_role) {
+      baseCards.push({
+        title: 'My Queue',
+        value: myQueueCount,
+        icon: Award,
+        color: 'orange',
+        change: `Assigned to you`,
+        changeType: 'neutral'
+      });
     }
-  ];
+
+    // Stage-specific cards based on role
+    if (userRoles && userRoles.stages) {
+      if (userRoles.stages.includes('document_verification')) {
+        baseCards.push({
+          title: 'Document Verification',
+          value: stats.documentVerification,
+          icon: FileCheck,
+          color: 'blue',
+          change: 'Pending verification',
+          changeType: 'neutral'
+        });
+      }
+      if (userRoles.stages.includes('financial_review')) {
+        baseCards.push({
+          title: 'Financial Review',
+          value: stats.financialReview,
+          icon: DollarSign,
+          color: 'yellow',
+          change: 'Pending review',
+          changeType: 'neutral'
+        });
+      }
+      if (userRoles.stages.includes('academic_review')) {
+        baseCards.push({
+          title: 'Academic Review',
+          value: stats.academicReview,
+          icon: BarChart3,
+          color: 'purple',
+          change: 'Pending review',
+          changeType: 'neutral'
+        });
+      }
+      if (userRoles.stages.includes('final_approval') || userRoles.is_chairperson) {
+        baseCards.push({
+          title: 'Final Approval',
+          value: stats.finalApproval,
+          icon: CheckCircle,
+          color: 'green',
+          change: 'Awaiting decision',
+          changeType: 'neutral'
+        });
+      }
+    }
+
+    // Chairperson sees all stats
+    if (userRoles && userRoles.is_chairperson) {
+      return [
+        {
+          title: 'Total Applications',
+          value: stats.totalApplications,
+          icon: FileText,
+          color: 'blue',
+          change: 'In SSC process',
+          changeType: 'neutral'
+        },
+        {
+          title: 'Pending Review',
+          value: stats.pendingReview,
+          icon: Clock,
+          color: 'yellow',
+          change: 'Across all stages',
+          changeType: 'neutral'
+        },
+        {
+          title: 'Approved',
+          value: stats.approved,
+          icon: CheckCircle,
+          color: 'green',
+          change: 'Total approved',
+          changeType: 'positive'
+        },
+        {
+          title: 'Rejected',
+          value: stats.rejected,
+          icon: XCircle,
+          color: 'red',
+          change: 'Total rejected',
+          changeType: 'neutral'
+        },
+        {
+          title: 'This Month Decisions',
+          value: stats.thisMonthDecisions,
+          icon: Calendar,
+          color: 'purple',
+          change: `${stats.thisMonthDecisions} decisions`,
+          changeType: 'neutral'
+        },
+        {
+          title: 'Active Members',
+          value: `${stats.activeMembers}/${stats.totalMembers}`,
+          icon: Users,
+          color: 'purple',
+          change: 'SSC members',
+          changeType: 'neutral'
+        }
+      ];
+    }
+
+    return baseCards;
+  };
+
+  const statCards = getRoleSpecificCards();
 
   const getColorClasses = (color) => {
     const colors = {
@@ -226,71 +325,132 @@ function SSCOverview() {
         })}
       </div>
 
+      {/* Stage Pipeline Visualization */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 mb-8">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          SSC Review Pipeline
+        </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {stats.documentVerification}
+              </span>
+            </div>
+            <div className="text-sm font-medium text-gray-900 dark:text-white">Document</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Verification</div>
+          </div>
+          
+          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-yellow-500 rounded-full"></div>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {stats.financialReview}
+              </span>
+            </div>
+            <div className="text-sm font-medium text-gray-900 dark:text-white">Financial</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Review</div>
+          </div>
+          
+          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-purple-500 rounded-full"></div>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {stats.academicReview}
+              </span>
+            </div>
+            <div className="text-sm font-medium text-gray-900 dark:text-white">Academic</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Review</div>
+          </div>
+          
+          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-green-500 rounded-full"></div>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {stats.finalApproval}
+              </span>
+            </div>
+            <div className="text-sm font-medium text-gray-900 dark:text-white">Final</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Approval</div>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Pending Applications */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Pending Applications</h3>
-            <span className="bg-yellow-100 text-yellow-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Applications</h3>
+            <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-sm font-medium px-2.5 py-0.5 rounded-full">
               {stats.pendingReview} pending
             </span>
           </div>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Applications awaiting SSC review and decision
           </p>
-          <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+          <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-md transition-colors shadow-sm">
             Review Applications
           </button>
         </div>
 
-        {/* Appeals */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        {/* Processing Time */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Appeals</h3>
-            <span className="bg-orange-100 text-orange-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
-              {stats.pendingAppeals} pending
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Avg. Processing Time</h3>
+            <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 text-sm font-medium px-2.5 py-0.5 rounded-full">
+              {stats.averageProcessingTime} days
             </span>
           </div>
-          <p className="text-gray-600 mb-4">
-            Applications flagged for appeal by students
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Average time from endorsement to decision
           </p>
-          <button className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors">
-            Review Appeals
-          </button>
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">{stats.averageProcessingTime}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">days</span>
+          </div>
         </div>
       </div>
 
       {/* Recent Activities */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Activities</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+        <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
         </div>
         <div className="p-6">
           {recentActivities.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No recent activities</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-4">No recent activities</p>
           ) : (
             <div className="space-y-4">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                <div key={activity.id} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       {activity.type === 'approval' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                      {activity.type === 'rejection' && <XCircle className="h-5 w-5 text-red-500" />}
                       {activity.type === 'review' && <Clock className="h-5 w-5 text-yellow-500" />}
-                      {activity.type === 'appeal' && <AlertTriangle className="h-5 w-5 text-orange-500" />}
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {activity.type === 'approval' && 'Application approved'}
+                        {activity.type === 'rejection' && 'Application rejected'}
                         {activity.type === 'review' && 'Application under review'}
-                        {activity.type === 'appeal' && 'Appeal received'}
                       </p>
-                      <p className="text-sm text-gray-500">
-                        {activity.applicationId} • {activity.member}
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {activity.studentName} • {activity.applicationId}
                       </p>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {new Date(activity.timestamp).toLocaleDateString()}
                   </div>
                 </div>

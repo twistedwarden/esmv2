@@ -1,16 +1,18 @@
-# SSC (Student Services Committee) Management Module
+# SSC (Scholarship Screening Committee) Management Module
 
-This module provides comprehensive management tools for the Student Services Committee to handle scholarship application reviews, decisions, appeals, and collaboration.
+This module provides comprehensive management tools for the Scholarship Screening Committee to review applications endorsed by admins and make final approval/rejection decisions.
 
 ## Features
 
 ### 1. Application Review
+
 - **View Assigned Applications**: SSC members can access a list of pending applications routed to them for evaluation
 - **Application Details View**: Shows full applicant data (personal info, academic records, documents, interview results)
 - **Scorecard/Evaluation Form**: Form-based rating per criteria (GWA, income bracket, interview rating, leadership)
 - **Document Verification Integration**: Displays document verification status from the Scholarship Service
 
 ### 2. Decision Workflow
+
 - **Approve/Reject/For Review**: Each SSC member can submit their decision per application
 - **Digital Signature**: Official decision confirmation with role-based e-signature
 - **Comment & Notes Section**: Allows members to give remarks, justifications, or recommendations
@@ -18,21 +20,25 @@ This module provides comprehensive management tools for the Student Services Com
 - **Voting/Consensus System**: Automatically tallies decisions for transparency (majority vote approval)
 
 ### 3. Appeals Handling
+
 - **View Appeals**: Lists applications flagged for appeal by students
 - **Decision Override**: SSC can override previous decisions with justification
 - **Appeal Status Tracking**: Tracks resolution and date of final decision
 
 ### 4. Policy & Guidelines Management
+
 - **Upload SSC Guidelines**: Admin or Chairperson can update scholarship policy documents
 - **Create Evaluation Templates**: Set evaluation criteria (weight, scoring rules)
 - **Decision Audit Trail**: Automatically records who made what decision and when
 
 ### 5. Collaboration Tools
+
 - **Discussion Threads**: Per-application chat/forum for SSC members
 - **Internal Notifications**: Alert SSC when new applications or appeals are ready
 - **Meeting Logs**: Record meeting summaries and decisions made
 
 ### 6. Reporting & Analytics
+
 - **Approved vs Rejected Applications**: Statistical overview per category, date range, or member
 - **Scholar Demographics**: Breakdown by school, course, income level, or district
 - **Performance Dashboard**: SSC productivity and turnaround time analytics
@@ -40,6 +46,7 @@ This module provides comprehensive management tools for the Student Services Com
 ## Components
 
 ### Main Components
+
 - `SSCManagement.jsx` - Main container component with sub-navigation
 - `SSCOverview.jsx` - Dashboard with key metrics and recent activities
 - `ApplicationReview.jsx` - Application review and evaluation interface
@@ -55,6 +62,7 @@ The SSC module is accessible through:
 **Scholarship → SSC Management**
 
 ### Sub-navigation tabs:
+
 1. **Overview** - Dashboard with key metrics
 2. **Application Review** - Review and evaluate applications
 3. **Decision Workflow** - Manage decisions and approvals
@@ -66,6 +74,7 @@ The SSC module is accessible through:
 ## Key Features by Category
 
 ### Application Review
+
 - ✅ Application listing with filters (status, priority, assigned to)
 - ✅ Detailed application view with all student information
 - ✅ Evaluation form with scoring criteria
@@ -74,6 +83,7 @@ The SSC module is accessible through:
 - ✅ Priority management (high, medium, low)
 
 ### Decision Workflow
+
 - ✅ Decision submission (approve/reject/for review)
 - ✅ Scoring system (1-10 scale)
 - ✅ Comments and justification
@@ -83,6 +93,7 @@ The SSC module is accessible through:
 - ✅ Decision tracking and status updates
 
 ### Appeals Handling
+
 - ✅ Appeal listing and filtering
 - ✅ Appeal details with original decision
 - ✅ Decision override functionality
@@ -91,6 +102,7 @@ The SSC module is accessible through:
 - ✅ Status management (pending, under review, resolved)
 
 ### Policy & Guidelines
+
 - ✅ Policy document upload and management
 - ✅ Evaluation template creation
 - ✅ Audit trail for all changes
@@ -99,6 +111,7 @@ The SSC module is accessible through:
 - ✅ Download tracking
 
 ### Collaboration Tools
+
 - ✅ Discussion threads per application
 - ✅ Internal notification system
 - ✅ Meeting scheduling and management
@@ -107,6 +120,7 @@ The SSC module is accessible through:
 - ✅ Priority-based notifications
 
 ### Reporting & Analytics
+
 - ✅ Application statistics and trends
 - ✅ Member performance metrics
 - ✅ Approval/rejection rates
@@ -117,6 +131,7 @@ The SSC module is accessible through:
 ## Data Structure
 
 ### Application Review Data
+
 ```javascript
 {
   id: 'APP-2024-001',
@@ -137,6 +152,7 @@ The SSC module is accessible through:
 ```
 
 ### Decision Data
+
 ```javascript
 {
   id: 'DEC-2024-001',
@@ -157,6 +173,7 @@ The SSC module is accessible through:
 ```
 
 ### Appeal Data
+
 ```javascript
 {
   id: 'APL-2024-001',
@@ -192,6 +209,7 @@ The SSC module is accessible through:
 ## Integration
 
 The SSC module integrates with:
+
 - Scholarship Service API for application data
 - Document verification system
 - Notification system

@@ -60,6 +60,12 @@ class GsmAuthController extends Controller
             'status' => $user->is_active ? 'active' : 'inactive',
         ];
 
+        // If user is staff, fetch system role from scholarship service
+        if ($user->role === 'staff') {
+            $systemRole = $this->getStaffSystemRole($user->id);
+            $safeUser['system_role'] = $systemRole;
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
@@ -99,6 +105,34 @@ class GsmAuthController extends Controller
             'data' => [ 'exists' => (bool) $exists ],
             'timestamp' => now()->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * Get staff system role from scholarship service
+     */
+    private function getStaffSystemRole($userId)
+    {
+        try {
+            $scholarshipServiceUrl = config('services.scholarship_service.url', 'http://localhost:8001');
+            
+            $response = \Illuminate\Support\Facades\Http::timeout(10)
+                ->get("{$scholarshipServiceUrl}/api/staff/user/{$userId}");
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                if ($data['success'] && isset($data['data']['system_role'])) {
+                    return $data['data']['system_role'];
+                }
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail login
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch staff system role', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        return null;
     }
 }
 
