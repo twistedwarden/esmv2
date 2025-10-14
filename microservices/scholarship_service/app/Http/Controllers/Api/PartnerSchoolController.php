@@ -211,138 +211,6 @@ class PartnerSchoolController extends Controller
         }
     }
 
-    /**
-     * Get applications for verification
-     */
-    public function getApplicationsForVerification(Request $request): JsonResponse
-    {
-        try {
-            $user = $this->getUserFromAuthService($request);
-            
-            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No school assigned to this user'
-                ], 400);
-            }
-
-            $perPage = $request->get('per_page', 100);
-            $status = $request->get('status', 'pending');
-            
-            $query = ScholarshipApplication::whereHas('student', function($q) use ($user) {
-                $q->where('school_id', $user['assigned_school_id']);
-            })->where('status', $status);
-            
-            $applications = $query->with(['student', 'scholarshipCategory'])->paginate($perPage);
-
-            return response()->json([
-                'success' => true,
-                'data' => $applications
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch applications: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Verify an application
-     */
-    public function verifyApplication(Request $request, $applicationId): JsonResponse
-    {
-        try {
-            $user = $this->getUserFromAuthService($request);
-            
-            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No school assigned to this user'
-                ], 400);
-            }
-
-            $application = ScholarshipApplication::whereHas('student', function($q) use ($user) {
-                $q->where('school_id', $user['assigned_school_id']);
-            })->findOrFail($applicationId);
-
-            $validated = $request->validate([
-                'status' => 'required|in:approved,rejected',
-                'notes' => 'nullable|string|max:1000',
-                'verified_by' => 'required|string|max:255',
-            ]);
-
-            $application->update([
-                'status' => $validated['status'],
-                'verification_notes' => $validated['notes'] ?? null,
-                'verified_by' => $validated['verified_by'],
-                'verified_at' => now(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application verification updated successfully',
-                'data' => $application->fresh()
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to verify application: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get verification statistics
-     */
-    public function getVerificationStats(Request $request): JsonResponse
-    {
-        try {
-            $user = $this->getUserFromAuthService($request);
-            
-            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No school assigned to this user'
-                ], 400);
-            }
-
-            $schoolId = $user['assigned_school_id'];
-            
-            $stats = [
-                'pending_verification' => ScholarshipApplication::whereHas('student', function($q) use ($schoolId) {
-                    $q->where('school_id', $schoolId);
-                })->where('status', 'pending')->count(),
-                
-                'verified_today' => ScholarshipApplication::whereHas('student', function($q) use ($schoolId) {
-                    $q->where('school_id', $schoolId);
-                })->whereDate('verified_at', today())->count(),
-                
-                'verified_this_week' => ScholarshipApplication::whereHas('student', function($q) use ($schoolId) {
-                    $q->where('school_id', $schoolId);
-                })->whereBetween('verified_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-                
-                'verified_this_month' => ScholarshipApplication::whereHas('student', function($q) use ($schoolId) {
-                    $q->where('school_id', $schoolId);
-                })->whereMonth('verified_at', now()->month)
-                ->whereYear('verified_at', now()->year)
-                ->count(),
-            ];
-
-            return response()->json([
-                'success' => true,
-                'data' => $stats
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch verification statistics: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Get enrollment data for the partner school
@@ -792,73 +660,124 @@ class PartnerSchoolController extends Controller
     }
 
     /**
-     * Update student enrollment status
+     * Get student population data for all schools
      */
-    public function updateEnrollmentStatus(Request $request, $studentId): JsonResponse
+    public function getStudentPopulation(Request $request)
     {
         try {
-            $user = $this->getUserFromAuthService($request);
+            $schoolId = $request->query('school_id');
+            $search = $request->query('search');
             
-            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No school assigned to this user'
-                ], 400);
-            }
-
-            $validated = $request->validate([
-                'is_currently_enrolled' => 'required|boolean',
-                'verification_notes' => 'nullable|string|max:500'
-            ]);
-
-            $schoolId = $user['assigned_school_id'];
+            // Get all schools
+            $query = \App\Models\School::query();
             
-            // Find the student and verify they belong to this school
-            $student = Student::whereHas('academicRecords', function($q) use ($schoolId) {
-                $q->where('school_id', $schoolId);
-            })->find($studentId);
-
-            if (!$student) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Student not found or not assigned to this school'
-                ], 404);
+            if ($schoolId && $schoolId !== 'all') {
+                $query->where('id', $schoolId);
             }
-
-            // Update student enrollment status
-            $student->update([
-                'is_currently_enrolled' => $validated['is_currently_enrolled']
-            ]);
-
-            // Update academic record if needed
-            $academicRecord = $student->academicRecords()
-                ->where('school_id', $schoolId)
-                ->where('is_current', true)
-                ->first();
-
-            if ($academicRecord) {
-                $academicRecord->update([
-                    'is_current' => $validated['is_currently_enrolled']
-                ]);
+            
+            if ($search) {
+                $query->where('name', 'like', '%' . $search . '%');
             }
-
+            
+            $schools = $query->get();
+            
+            $populationData = $schools->map(function ($school) {
+                // Get students from unified table
+                $studentsQuery = \App\Models\UnifiedSchoolStudentData::where('school_id', $school->id);
+                $students = $studentsQuery->get();
+                
+                $totalStudents = $students->count();
+                
+                // Count by gender
+                $maleStudents = $students->where('sex', 'Male')->count();
+                $femaleStudents = $students->where('sex', 'Female')->count();
+                
+                // Get scholarship data from scholarship applications
+                $scholarshipApplications = \App\Models\ScholarshipApplication::where('school_id', $school->id)
+                    ->where('status', 'approved')
+                    ->get();
+                
+                $scholarshipRecipients = $scholarshipApplications->count();
+                $activeScholars = $scholarshipApplications->where('status', 'approved')->count();
+                $graduatedScholars = $scholarshipApplications->where('status', 'completed')->count();
+                
+                $scholarshipRate = $totalStudents > 0 ? round(($scholarshipRecipients / $totalStudents) * 100, 1) : 0;
+                
+                return [
+                    'id' => $school->id,
+                    'school_name' => $school->name,
+                    'total_students' => $totalStudents,
+                    'male_students' => $maleStudents,
+                    'female_students' => $femaleStudents,
+                    'scholarship_recipients' => $scholarshipRecipients,
+                    'active_scholars' => $activeScholars,
+                    'graduated_scholars' => $graduatedScholars,
+                    'scholarship_rate' => $scholarshipRate,
+                    'last_updated' => $school->updated_at->toISOString(),
+                    'population_date' => $school->updated_at->toISOString(),
+                    'pending_applications' => \App\Models\ScholarshipApplication::where('school_id', $school->id)
+                        ->where('status', 'submitted')
+                        ->count(),
+                    'scholarship_breakdown' => [
+                        'merit' => $scholarshipApplications->where('category_id', 1)->count(),
+                        'need_based' => $scholarshipApplications->where('category_id', 2)->count(),
+                        'athletic' => $scholarshipApplications->where('category_id', 3)->count(),
+                    ]
+                ];
+            });
+            
+            // Calculate totals
+            $totals = [
+                'total_students' => $populationData->sum('total_students'),
+                'total_scholars' => $populationData->sum('scholarship_recipients'),
+                'active_scholars' => $populationData->sum('active_scholars'),
+                'graduated_scholars' => $populationData->sum('graduated_scholars'),
+                'scholarship_rate' => $populationData->sum('total_students') > 0 
+                    ? round(($populationData->sum('scholarship_recipients') / $populationData->sum('total_students')) * 100, 1) 
+                    : 0
+            ];
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Student enrollment status updated successfully',
-                'data' => [
-                    'student_id' => $student->id,
-                    'is_currently_enrolled' => $student->is_currently_enrolled,
-                    'verification_notes' => $validated['verification_notes'] ?? null
-                ]
+                'data' => $populationData,
+                'totals' => $totals,
+                'message' => 'Student population data retrieved successfully'
             ]);
-
+            
         } catch (\Exception $e) {
-            \Log::error('PartnerSchool updateEnrollmentStatus error: ' . $e->getMessage());
+            \Log::error('PartnerSchool getStudentPopulation error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update enrollment status: ' . $e->getMessage()
+                'message' => 'Failed to fetch student population data: ' . $e->getMessage()
             ], 500);
         }
     }
+
+    /**
+     * Get all schools for filtering
+     */
+    public function getSchools(Request $request)
+    {
+        try {
+            $schools = \App\Models\School::select('id', 'name')
+                ->orderBy('name')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $schools,
+                'message' => 'Schools retrieved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('PartnerSchool getSchools error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch schools: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

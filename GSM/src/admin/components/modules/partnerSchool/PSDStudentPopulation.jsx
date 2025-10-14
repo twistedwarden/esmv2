@@ -1,6 +1,8 @@
 import React from 'react';
 import { Users, TrendingUp, TrendingDown, Plus, Search, Filter, Download, Eye, BarChart3, PieChart, Activity, UserCheck, UserX, GraduationCap } from 'lucide-react';
 
+const API_BASE_URL = 'http://localhost:8001/api';
+
 function PSDStudentPopulation() {
     const [searchTerm, setSearchTerm] = React.useState('');
     const [filterSchool, setFilterSchool] = React.useState('all');
@@ -8,26 +10,105 @@ function PSDStudentPopulation() {
     const [showViewModal, setShowViewModal] = React.useState(false);
     const [selectedSchool, setSelectedSchool] = React.useState(null);
     const [schools, setSchools] = React.useState([]);
+    const [schoolOptions, setSchoolOptions] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
     const [viewMode, setViewMode] = React.useState('table'); // table, chart
+    const [totals, setTotals] = React.useState({
+        total_students: 0,
+        total_scholars: 0,
+        active_scholars: 0,
+        graduated_scholars: 0,
+        scholarship_rate: 0
+    });
 
     // Fetch student population data from API
     React.useEffect(() => {
-        // TODO: Implement API call to fetch student population data
-        setSchools([]);
-    }, []);
+        fetchStudentPopulation();
+        fetchSchools();
+    }, [filterSchool, searchTerm]);
+
+    const fetchStudentPopulation = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (filterSchool !== 'all') {
+                params.append('school_id', filterSchool);
+            }
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/partner-school/student-population?${params}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setSchools(data.data || []);
+                setTotals(data.totals || {
+                    total_students: 0,
+                    total_scholars: 0,
+                    active_scholars: 0,
+                    graduated_scholars: 0,
+                    scholarship_rate: 0
+                });
+            } else {
+                console.error('Failed to fetch student population:', data.message);
+                setSchools([]);
+            }
+        } catch (error) {
+            console.error('Error fetching student population:', error);
+            setSchools([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchSchools = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/partner-school/schools`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setSchoolOptions(data.data || []);
+            } else {
+                console.error('Failed to fetch schools:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching schools:', error);
+        }
+    };
+
+    const handleExport = () => {
+        const csvContent = [
+            ['School', 'Total Students', 'Male Students', 'Female Students', 'Scholars', 'Active Scholars', 'Graduated Scholars', 'Scholarship Rate (%)', 'Last Updated'],
+            ...filteredSchools.map(school => [
+                school.school_name,
+                school.total_students,
+                school.male_students,
+                school.female_students,
+                school.scholarship_recipients,
+                school.active_scholars,
+                school.graduated_scholars,
+                school.scholarship_rate,
+                new Date(school.last_updated).toLocaleDateString()
+            ])
+        ].map(row => row.join(',')).join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `student-population-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    };
 
     const filteredSchools = schools.filter(school => {
         const matchesSearch = school.school_name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesSchool = filterSchool === 'all' || school.id.toString() === filterSchool;
         return matchesSearch && matchesSchool;
     });
-
-    const totalStudents = schools.reduce((sum, school) => sum + school.total_students, 0);
-    const totalScholars = schools.reduce((sum, school) => sum + school.scholarship_recipients, 0);
-    const totalActiveScholars = schools.reduce((sum, school) => sum + school.active_scholars, 0);
-    const totalGraduatedScholars = schools.reduce((sum, school) => sum + school.graduated_scholars, 0);
-    const scholarshipRate = totalStudents > 0 ? ((totalScholars / totalStudents) * 100).toFixed(1) : 0;
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
@@ -84,7 +165,7 @@ function PSDStudentPopulation() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Students</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalStudents.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.total_students.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -95,7 +176,7 @@ function PSDStudentPopulation() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Scholars</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalScholars.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.total_scholars.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -106,7 +187,7 @@ function PSDStudentPopulation() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Active Scholars</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalActiveScholars.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.active_scholars.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -117,7 +198,7 @@ function PSDStudentPopulation() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Scholarship Rate</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{scholarshipRate}%</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.scholarship_rate}%</p>
                             </div>
                         </div>
                     </div>
@@ -128,7 +209,7 @@ function PSDStudentPopulation() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Graduated</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalGraduatedScholars.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.graduated_scholars.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -158,12 +239,15 @@ function PSDStudentPopulation() {
                                     className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white"
                                 >
                                     <option value="all">All Schools</option>
-                                    {schools.map(school => (
-                                        <option key={school.id} value={school.id}>{school.school_name}</option>
+                                    {schoolOptions.map(school => (
+                                        <option key={school.id} value={school.id}>{school.name}</option>
                                     ))}
                                 </select>
                             </div>
-                            <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md">
+                            <button 
+                                onClick={handleExport}
+                                className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                            >
                                 <Download className="w-4 h-4 mr-2" />
                                 Export
                             </button>
@@ -189,7 +273,17 @@ function PSDStudentPopulation() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                                    {filteredSchools.map((school) => {
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="7" className="px-6 py-12 text-center">
+                                                <div className="flex items-center justify-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                                                    <span className="ml-2 text-gray-600 dark:text-slate-400">Loading student population data...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredSchools.map((school) => {
                                         const scholarshipRate = school.total_students > 0 ? ((school.scholarship_recipients / school.total_students) * 100).toFixed(1) : 0;
                                         const malePercentage = school.total_students > 0 ? ((school.male_students / school.total_students) * 100).toFixed(1) : 0;
                                         const femalePercentage = school.total_students > 0 ? ((school.female_students / school.total_students) * 100).toFixed(1) : 0;
@@ -270,7 +364,8 @@ function PSDStudentPopulation() {
                                                 </td>
                                             </tr>
                                         );
-                                    })}
+                                        })
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -295,12 +390,12 @@ function PSDStudentPopulation() {
                     </div>
                 )}
 
-                {filteredSchools.length === 0 && (
+                {!loading && filteredSchools.length === 0 && (
                     <div className="text-center py-12">
                         <Users className="mx-auto h-12 w-12 text-gray-400" />
                         <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No data found</h3>
                         <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                            {searchTerm ? 'Try adjusting your search criteria.' : 'Get started by adding population data.'}
+                            {searchTerm || filterSchool !== 'all' ? 'Try adjusting your search criteria.' : 'No student population data available.'}
                         </p>
                     </div>
                 )}

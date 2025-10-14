@@ -25,23 +25,21 @@ import {
   Bell,
   Menu,
   User,
-  Shield,
-  UserCheck,
-  XCircle
+  RefreshCw,
+  EyeOff,
+  Lock,
 } from 'lucide-react';
 import { 
   fetchPartnerSchoolInfo, 
   fetchPartnerSchoolStats, 
   fetchPartnerSchoolStudents,
-  fetchApplicationsForVerification,
-  fetchVerificationStats,
-  verifyApplication,
   uploadEnrollmentData,
   fetchEnrollmentData,
   uploadFlexibleData,
   fetchFlexibleStudents
 } from '../services/partnerSchoolService';
 import { API_CONFIG } from '../config/api';
+// import * as XLSX from 'xlsx';
 
 const PartnerSchoolDashboard = () => {
   const { currentUser, logout, isLoggingOut, token } = useAuthStore();
@@ -49,6 +47,7 @@ const PartnerSchoolDashboard = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [validationResults, setValidationResults] = useState(null);
   const [students, setStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFieldGuide, setShowFieldGuide] = useState(false);
@@ -62,16 +61,28 @@ const PartnerSchoolDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Verification state
-  const [verificationApplications, setVerificationApplications] = useState([]);
-  const [verificationStats, setVerificationStats] = useState(null);
-  const [verificationLoading, setVerificationLoading] = useState(false);
-  const [verificationError, setVerificationError] = useState(null);
 
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadMode, setUploadMode] = useState('merge');
   const [parsedCSVData, setParsedCSVData] = useState(null);
   const [parsedHeaders, setParsedHeaders] = useState(null);
+
+  // Password change state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    feedback: []
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Mobile detection
   React.useEffect(() => {
@@ -115,38 +126,6 @@ const PartnerSchoolDashboard = () => {
     }
   };
 
-  const handleVerifyEnrollment = async (applicationId, isEnrolled) => {
-    try {
-      const studentId = verificationApplications.find(app => app.id === applicationId)?.studentId;
-      if (!studentId) {
-        console.error('Student ID not found for application:', applicationId);
-        return;
-      }
-
-      const response = await fetch(`${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/api/partner-school/verification/students/${studentId}/enrollment`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          is_currently_enrolled: isEnrolled,
-          verification_notes: isEnrolled ? 'Verified as currently enrolled by partner school' : 'Confirmed not currently enrolled by partner school'
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh the verification data
-        await fetchVerificationData();
-        console.log(`Enrollment status updated for application ${applicationId}: ${isEnrolled ? 'enrolled' : 'not enrolled'}`);
-      } else {
-        console.error('Failed to update enrollment status:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error updating enrollment status:', error);
-    }
-  };
 
   const handleSidebarToggle = () => {
     if (isMobile) {
@@ -156,12 +135,130 @@ const PartnerSchoolDashboard = () => {
     }
   };
 
+  // Password strength validation
+  const validatePasswordStrength = (password) => {
+    const feedback = [];
+    let score = 0;
+
+    // At least 8 characters
+    if (password.length >= 8) {
+      feedback.push({ text: 'At least 8 characters', valid: true });
+      score += 20;
+    } else {
+      feedback.push({ text: 'At least 8 characters', valid: false });
+    }
+
+    // One lowercase letter
+    if (/[a-z]/.test(password)) {
+      feedback.push({ text: 'One lowercase letter', valid: true });
+      score += 20;
+    } else {
+      feedback.push({ text: 'One lowercase letter', valid: false });
+    }
+
+    // One uppercase letter
+    if (/[A-Z]/.test(password)) {
+      feedback.push({ text: 'One uppercase letter', valid: true });
+      score += 20;
+    } else {
+      feedback.push({ text: 'One uppercase letter', valid: false });
+    }
+
+    // One number
+    if (/\d/.test(password)) {
+      feedback.push({ text: 'One number', valid: true });
+      score += 20;
+    } else {
+      feedback.push({ text: 'One number', valid: false });
+    }
+
+    // One special character
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      feedback.push({ text: 'One special character', valid: true });
+      score += 20;
+    } else {
+      feedback.push({ text: 'One special character', valid: false });
+    }
+
+    return { score, feedback };
+  };
+
+  // Handle password form changes
+  const handlePasswordChange = (field, value) => {
+    setPasswordForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    if (field === 'newPassword') {
+      const strength = validatePasswordStrength(value);
+      setPasswordStrength(strength);
+    }
+  };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  // Handle password change submission
+  const handlePasswordChangeSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+
+    if (passwordStrength.score < 100) {
+      alert('Please ensure all password requirements are met');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/change-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          current_password: passwordForm.currentPassword,
+          new_password: passwordForm.newPassword,
+          confirm_password: passwordForm.confirmPassword
+        }),
+      });
+
+      if (response.ok) {
+        alert('Password changed successfully');
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setPasswordStrength({ score: 0, feedback: [] });
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      alert('An error occurred while changing password');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const getBreadcrumb = () => {
     const breadcrumbs = {
       'overview': ['Partner School', 'Overview'],
       'upload': ['Partner School', 'Upload Data'],
       'students': ['Partner School', 'Students'],
-      'verification': ['Partner School', 'Verification'],
       'reports': ['Partner School', 'Reports'],
       'settings': ['Partner School', 'Settings']
     };
@@ -252,11 +349,20 @@ const PartnerSchoolDashboard = () => {
     } else {
       // Clear students data when not on students tab
       setStudents([]);
+      setStudentsLoading(false);
     }
   }, [activeTab, token]);
 
+  // Fetch students data when search or filter changes
+  useEffect(() => {
+    if (activeTab === 'students' && token) {
+      fetchStudentsData();
+    }
+  }, [searchTerm, filterStatus]);
+
   const fetchStudentsData = async () => {
     try {
+      setStudentsLoading(true);
       console.log('🔍 Starting fetchStudentsData...');
       console.log('Token:', token ? 'Present' : 'Missing');
       console.log('Filter status:', filterStatus);
@@ -418,49 +524,36 @@ const PartnerSchoolDashboard = () => {
       console.error('Error fetching students data:', err);
       // Set empty array on error instead of mock data
       setStudents([]);
-    }
-  };
-
-
-  // Fetch verification data when verification tab is active
-  useEffect(() => {
-    if (activeTab === 'verification' && token) {
-      fetchVerificationData();
-    }
-  }, [activeTab, token]);
-
-  const fetchVerificationData = async () => {
-    setVerificationLoading(true);
-    setVerificationError(null);
-    
-    try {
-      const [applicationsData, statsData] = await Promise.all([
-        fetchApplicationsForVerification(token, { status: filterStatus, search: searchTerm }),
-        fetchVerificationStats(token)
-      ]);
-      
-      setVerificationApplications(applicationsData.applications || []);
-      setVerificationStats(statsData);
-    } catch (err) {
-      console.error('Error fetching verification data:', err);
-      setVerificationError(err.message);
     } finally {
-      setVerificationLoading(false);
+      setStudentsLoading(false);
     }
   };
+
+
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
       setUploadFile(file);
-      setUploadProgress({ status: 'processing', message: 'Processing CSV file...' });
+      setUploadProgress({ status: 'processing', message: 'Processing file...' });
       
       try {
-        // Parse CSV file
-        const csvData = await parseCSVFile(file);
+        let csvData;
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        
+        if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+          // Parse Excel file - temporarily disabled
+          setUploadProgress({ status: 'error', message: 'Excel file support temporarily disabled' });
+          throw new Error('Excel file support temporarily disabled');
+        } else {
+          // Parse CSV file
+          setUploadProgress({ status: 'processing', message: 'Processing CSV file...' });
+          csvData = await parseCSVFile(file);
+        }
+        
         const headers = Object.keys(csvData[0] || {});
         
-        console.log('Parsed CSV data:', csvData);
+        console.log('Parsed data:', csvData);
         console.log('Headers:', headers);
         console.log('Number of records:', csvData.length);
         
@@ -1472,6 +1565,68 @@ const PartnerSchoolDashboard = () => {
   // - Year level detection (1st Year, Grade 12, etc.)
   // - Educational level mapping (ELEMENTARY, HIGH SCHOOL, etc.)
   // 
+  // Parse Excel files (.xlsx, .xls)
+  const parseExcelFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          
+          // Get the first worksheet
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Convert to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          if (jsonData.length < 2) {
+            throw new Error('Excel file must have at least a header row and one data row');
+          }
+          
+          // Get headers from first row
+          const rawHeaders = jsonData[0].map(h => String(h).trim().replace(/"/g, ''));
+          
+          // Map raw headers to normalized field names (same logic as CSV)
+          const headerMapping = {};
+          rawHeaders.forEach(header => {
+            const normalized = normalizeFieldName(header);
+            if (normalized) {
+              headerMapping[header] = normalized;
+            }
+          });
+          
+          // Convert data rows to objects
+          const processedData = jsonData.slice(1).map((row, index) => {
+            const rowObj = {};
+            rawHeaders.forEach((header, colIndex) => {
+              const value = row[colIndex];
+              const normalizedField = headerMapping[header];
+              if (normalizedField && value !== undefined && value !== null && value !== '') {
+                rowObj[normalizedField] = normalizeFieldValue(normalizedField, String(value));
+              }
+            });
+            return rowObj;
+          }).filter(row => Object.keys(row).length > 0); // Remove empty rows
+          
+          console.log('Excel file processed:', {
+            originalHeaders: rawHeaders,
+            mappedHeaders: Object.keys(headerMapping),
+            processedRows: processedData.length
+          });
+          
+          resolve(processedData);
+        } catch (error) {
+          console.error('Error parsing Excel file:', error);
+          reject(new Error(`Failed to parse Excel file: ${error.message}`));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read Excel file'));
+      reader.readAsBinaryString(file);
+    });
+  };
+
   // 🎯 RESULT: Upload ANY CSV with ANY field names and it will work!
   const parseCSVFile = (file) => {
     return new Promise((resolve, reject) => {
@@ -1865,16 +2020,6 @@ const PartnerSchoolDashboard = () => {
             </div>
           </button>
           <button 
-            onClick={() => setActiveTab('verification')}
-            className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-          >
-            <Shield className="w-8 h-8 text-[#4A90E2]" />
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Verify Students</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Verify scholarship applications</p>
-            </div>
-          </button>
-          <button 
             onClick={() => setActiveTab('reports')}
             className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
           >
@@ -1933,9 +2078,9 @@ const PartnerSchoolDashboard = () => {
         >
           <CloudUpload className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload Any Student Data File</h4>
-          <p className="text-gray-600 dark:text-gray-300 mb-2">Drag and drop your CSV file here or click to browse</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-2">Drag and drop your CSV or Excel file here or click to browse</p>
           <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
-            🎯 <strong>Smart Extraction:</strong> We automatically find and extract:
+            🎯 <strong>Smart Extraction:</strong> Works with CSV and Excel files! We automatically find and extract:
             <br />• Student ID (any format: ID, Student Number, etc.)
             <br />• First Name (any format: First Name, Given Name, etc.)
             <br />• Last Name (any format: Last Name, Surname, etc.)
@@ -1943,7 +2088,7 @@ const PartnerSchoolDashboard = () => {
           </p>
           <input
             type="file"
-            accept=".csv,.xlsx"
+            accept=".csv,.xlsx,.xls"
             onChange={handleFileUpload}
             className="hidden"
             id="file-upload"
@@ -1955,7 +2100,7 @@ const PartnerSchoolDashboard = () => {
             Choose File
           </label>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            Accepted formats: .csv, .xlsx • Max file size: 10MB
+            Accepted formats: .csv, .xlsx, .xls • Max file size: 10MB
           </p>
         </div>
       </div>
@@ -2278,7 +2423,18 @@ const PartnerSchoolDashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-              {students.length === 0 ? (
+              {studentsLoading ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="text-center">
+                        <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400">Loading students...</p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : students.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-4">
@@ -2478,308 +2634,6 @@ const PartnerSchoolDashboard = () => {
     </div>
   );
 
-  const renderVerification = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Verification</h1>
-            <p className="text-gray-600 dark:text-gray-300">Verify scholarship applicants' enrollment status against your school's academic records</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search applications..."
-                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-              />
-            </div>
-            <select 
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-            >
-              <option value="all">All Applications</option>
-              <option value="needs_verification">Needs Verification</option>
-              <option value="pending">Pending Verification</option>
-              <option value="verified">Verified</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Verification Process Info */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
-        <div className="flex items-start space-x-3">
-          <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
-          <div>
-            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">Verification Process</h3>
-            <div className="text-sm text-blue-800 dark:text-blue-400 space-y-2">
-              <p><strong>How it works:</strong> Students submit applications with enrollment status set to "not enrolled" by default. Your job is to verify their actual enrollment status against your school's academic records.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <div>
-                  <p className="font-medium">⚠️ <strong>Needs Verification:</strong> Student marked as not enrolled BUT has current academic record</p>
-                  <p className="font-medium">✅ <strong>Verified Enrolled:</strong> Student confirmed enrolled AND has current academic record</p>
-                </div>
-                <div>
-                  <p className="font-medium">❌ <strong>Claims Enrolled (No Record):</strong> Student marked as enrolled BUT no current academic record</p>
-                  <p className="font-medium">ℹ️ <strong>Not Enrolled:</strong> Student confirmed not enrolled AND no current academic record</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-sm border-l-4 border-l-[#4CAF50] p-6 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Pending Verification</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {verificationStats?.pending_verification || 0}
-              </p>
-              <p className="text-sm text-[#4CAF50]">
-                ↗ +{verificationStats?.pending_this_week || 0} this week
-              </p>
-            </div>
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-800">
-              <Clock className="w-6 h-6 text-[#4CAF50]" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-sm border-l-4 border-l-[#4A90E2] p-6 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Verified Students</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {verificationStats?.verified_students || 0}
-              </p>
-              <p className="text-sm text-[#4CAF50]">
-                ↗ +{verificationStats?.verified_this_week || 0} this week
-              </p>
-            </div>
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-800">
-              <UserCheck className="w-6 h-6 text-[#4A90E2]" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg shadow-sm border-l-4 border-l-[#FDA811] p-6 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Rejected Applications</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {verificationStats?.rejected_applications || 0}
-              </p>
-              <p className="text-sm text-red-600 dark:text-red-400">
-                ↘ -{verificationStats?.rejected_this_week || 0} this week
-              </p>
-            </div>
-            <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-800">
-              <XCircle className="w-6 h-6 text-[#FDA811]" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-sm border-l-4 border-l-[#4CAF50] p-6 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Verification Rate</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {verificationStats?.verification_rate || 0}%
-              </p>
-              <p className="text-sm text-[#4CAF50]">↗ Updated</p>
-            </div>
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-800">
-              <ShieldCheck className="w-6 h-6 text-[#4CAF50]" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Applications Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-            <thead className="bg-gray-50 dark:bg-slate-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Application
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Student
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Enrollment Verification
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Verification Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Notes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Submitted
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-              {verificationLoading ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
-                      <span className="text-gray-600 dark:text-gray-400">Loading applications...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : verificationError ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center">
-                    <div className="text-red-600 dark:text-red-400">
-                      Error loading applications: {verificationError}
-                    </div>
-                  </td>
-                </tr>
-              ) : verificationApplications.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center">
-                    <div className="text-gray-600 dark:text-gray-400">
-                      No applications found for verification.
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                verificationApplications.map((application) => (
-                <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{application.applicationNumber}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{application.scholarshipType}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{application.studentName}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">ID: {application.studentId}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm text-gray-900 dark:text-white">{application.yearLevel} - {application.program}</div>
-                      <div className={`text-sm ${
-                        application.verificationColor === 'green' ? 'text-green-600 dark:text-green-400' :
-                        application.verificationColor === 'orange' ? 'text-orange-600 dark:text-orange-400' :
-                        application.verificationColor === 'red' ? 'text-red-600 dark:text-red-400' :
-                        'text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {application.verificationMessage || 'Status Unknown'}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Claims: {application.isCurrentlyEnrolled ? 'Yes' : 'No'} | 
-                        School Record: {application.academicRecordExists ? 'Found' : 'Missing'}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      application.applicationStatus === 'verified' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
-                      application.applicationStatus === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
-                      application.applicationStatus === 'rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
-                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
-                    }`}>
-                      {application.applicationStatus === 'verified' ? '✓ Verified' :
-                       application.applicationStatus === 'pending' ? '⏳ Pending' :
-                       application.applicationStatus === 'rejected' ? '✗ Rejected' :
-                       application.applicationStatus}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate" title={application.verificationNotes}>
-                      {application.verificationNotes}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {new Date(application.submittedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="View Details">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {application.verificationStatus === 'needs_verification' && (
-                        <>
-                          <button 
-                            className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
-                            title="Verify Enrolled"
-                            onClick={() => handleVerifyEnrollment(application.id, true)}
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="text-orange-600 dark:text-orange-400 hover:text-orange-900 dark:hover:text-orange-300"
-                            title="Confirm Not Enrolled"
-                            onClick={() => handleVerifyEnrollment(application.id, false)}
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                      {application.applicationStatus === 'pending' && application.verificationStatus !== 'needs_verification' && (
-                        <>
-                          <button className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
-                            <CheckCircle className="w-4 h-4" />
-                          </button>
-                          <button className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-            <UserCheck className="w-8 h-8 text-[#4CAF50]" />
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Bulk Verify</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Verify multiple applications</p>
-            </div>
-          </button>
-          <button className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-            <FileText className="w-8 h-8 text-[#4A90E2]" />
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Export Report</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Download verification report</p>
-            </div>
-          </button>
-          <button className="flex items-center space-x-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
-            <Shield className="w-8 h-8 text-[#FDA811]" />
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Sync Data</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Update enrollment records</p>
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderSettings = () => (
     <div className="space-y-6">
@@ -2876,6 +2730,198 @@ const PartnerSchoolDashboard = () => {
              </div>
            </div>
 
+          {/* Password Change Section */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h3>
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                {/* Current Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.current ? "text" : "password"}
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="Enter current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('current')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.current ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.new ? "text" : "password"}
+                      value={passwordForm.newPassword}
+                      onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="Enter new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('new')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.new ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* Password Strength Indicator */}
+                  {passwordForm.newPassword && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Password Strength
+                        </span>
+                        <span className={`text-sm font-medium ${
+                          passwordStrength.score === 100 ? 'text-green-600' :
+                          passwordStrength.score >= 60 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {passwordStrength.score === 100 ? 'Strong' :
+                           passwordStrength.score >= 60 ? 'Medium' :
+                           'Weak'}
+                        </span>
+                      </div>
+                      
+                      {/* Strength Bar */}
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            passwordStrength.score === 100 ? 'bg-green-500' :
+                            passwordStrength.score >= 60 ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${passwordStrength.score}%` }}
+                        ></div>
+                      </div>
+                      
+                      {/* Password Requirements */}
+                      <div className="space-y-1">
+                        {passwordStrength.feedback.map((requirement, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <CheckCircle 
+                              className={`h-4 w-4 ${
+                                requirement.valid ? 'text-green-500' : 'text-gray-400'
+                              }`} 
+                            />
+                            <span className={`text-sm ${
+                              requirement.valid ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
+                            }`}>
+                              {requirement.text}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.confirm ? "text" : "password"}
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="Confirm new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('confirm')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.confirm ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* Password Match Indicator */}
+                  {passwordForm.confirmPassword && (
+                    <div className="mt-2 flex items-center space-x-2">
+                      <CheckCircle 
+                        className={`h-4 w-4 ${
+                          passwordForm.newPassword === passwordForm.confirmPassword ? 'text-green-500' : 'text-red-500'
+                        }`} 
+                      />
+                      <span className={`text-sm ${
+                        passwordForm.newPassword === passwordForm.confirmPassword ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {passwordForm.newPassword === passwordForm.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPasswordForm({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: ''
+                    });
+                    setPasswordStrength({ score: 0, feedback: [] });
+                  }}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPassword || passwordStrength.score < 100 || passwordForm.newPassword !== passwordForm.confirmPassword}
+                  className="px-6 py-2 bg-[#4CAF50] text-white rounded-lg hover:bg-[#45A049] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Changing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      <span>Change Password</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
           <div className="flex justify-end">
             <button className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049]">
               Save Settings
@@ -2924,7 +2970,6 @@ const PartnerSchoolDashboard = () => {
         <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto">
           {[
             { id: 'overview', label: 'Overview', icon: Home },
-            { id: 'verification', label: 'Verification', icon: Shield },
             { id: 'upload', label: 'Upload Data', icon: Upload },
             { id: 'students', label: 'Students', icon: Users },
             { id: 'reports', label: 'Reports', icon: BarChart3 },
@@ -3023,7 +3068,6 @@ const PartnerSchoolDashboard = () => {
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'upload' && renderUpload()}
         {activeTab === 'students' && renderStudents()}
-        {activeTab === 'verification' && renderVerification()}
         {activeTab === 'reports' && renderReports()}
         {activeTab === 'settings' && renderSettings()}
       </div>

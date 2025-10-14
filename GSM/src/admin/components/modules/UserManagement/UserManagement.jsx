@@ -257,7 +257,7 @@ const UserManagement = () => {
             const response = await axios.post(`${SCHOLARSHIP_API}/users`, sanitizedData);
             
             if (response.data.success) {
-                alert('User created successfully!');
+                addToast('User created successfully!', 'success');
                 setShowCreateModal(false);
                 resetForm();
                 fetchUsers();
@@ -270,14 +270,14 @@ const UserManagement = () => {
             if (error.response?.data?.errors) {
                 const serverErrors = error.response.data.errors;
                 setFormErrors(serverErrors);
-                alert('Please fix the validation errors and try again.');
+                addToast('Please fix the validation errors and try again.', 'error');
             } else if (error.response?.data?.message) {
-                alert(`Error: ${error.response.data.message}`);
+                addToast(`Error: ${error.response.data.message}`, 'error');
             } else if (error.code === 'NETWORK_ERROR') {
-                alert('Network error. Please check your connection and try again.');
+                addToast('Network error. Please check your connection and try again.', 'error');
             } else {
                 const errorMessage = error.response?.data?.message || error.message;
-                alert('Error creating user: ' + errorMessage);
+                addToast('Error creating user: ' + errorMessage, 'error');
             }
         } finally {
             setIsSubmitting(false);
@@ -898,8 +898,8 @@ const UserManagement = () => {
 
             {/* Create User Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
                         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-xl">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -923,7 +923,7 @@ const UserManagement = () => {
                             </div>
                         </div>
                         
-                        <div className="p-6">
+                        <div className="flex-1 overflow-y-auto p-6">
                             <form onSubmit={handleCreateUser} className="space-y-6">
                                 {/* Basic Information Section */}
                                 <div className="space-y-4">
@@ -1281,10 +1281,6 @@ const UserManagement = () => {
 
                                 {/* Role & Permissions Section */}
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Role & Permissions</h4>
-                                    </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     
@@ -1475,39 +1471,40 @@ const UserManagement = () => {
                                         )}
                                     </div>
                                 </div>
-                                
-                                {/* Form Actions */}
-                                <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 -mx-6 -mb-6 rounded-b-xl">
-                                    <div className="flex justify-end gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowCreateModal(false);
-                                                resetForm();
-                                            }}
-                                            className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 rounded-lg transition-colors font-medium flex items-center gap-2"
-                                        >
-                                            <XCircle className="w-4 h-4" />
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting || !isRoleSelected}
-                                            className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl ${
-                                                isSubmitting || !isRoleSelected
-                                                    ? 'bg-gray-400 cursor-not-allowed' 
-                                                    : 'bg-blue-600 hover:bg-blue-700'
-                                            } text-white`}
-                                        >
-                                            {isSubmitting && (
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                            )}
-                                            {!isSubmitting && <UserPlus className="w-4 h-4" />}
-                                            {isSubmitting ? 'Creating User...' : 'Create User'}
-                                        </button>
-                                    </div>
-                                </div>
                             </form>
+                        </div>
+                        
+                        {/* Fixed Footer with Action Buttons - Outside scrollable area */}
+                        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl">
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowCreateModal(false);
+                                        resetForm();
+                                    }}
+                                    className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 rounded-lg transition-colors font-medium flex items-center gap-2"
+                                >
+                                    <XCircle className="w-4 h-4" />
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    onClick={handleCreateUser}
+                                    disabled={isSubmitting || !isRoleSelected}
+                                    className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl ${
+                                        isSubmitting || !isRoleSelected
+                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                            : 'bg-blue-600 hover:bg-blue-700'
+                                    } text-white`}
+                                >
+                                    {isSubmitting && (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    )}
+                                    {!isSubmitting && <UserPlus className="w-4 h-4" />}
+                                    {isSubmitting ? 'Creating User...' : 'Create User'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1515,9 +1512,9 @@ const UserManagement = () => {
 
             {/* Edit User Modal */}
             {showEditModal && selectedUser && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="p-6">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="flex-1 overflow-y-auto p-6">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Edit User</h3>
                             <form onSubmit={handleUpdateUser} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -335,14 +335,12 @@ Route::fallback(function () {
 Route::prefix('partner-school')->group(function () {
     Route::get('/stats', [PartnerSchoolController::class, 'getStats']);
     Route::get('/students', [PartnerSchoolController::class, 'getStudents']);
-    Route::get('/verification/applications', [PartnerSchoolController::class, 'getApplicationsForVerification']);
-    Route::post('/verification/applications/{id}', [PartnerSchoolController::class, 'verifyApplication']);
-    Route::get('/verification/stats', [PartnerSchoolController::class, 'getVerificationStats']);
     Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
     Route::post('/enrollment/upload', [PartnerSchoolController::class, 'uploadEnrollmentData']);
     Route::get('/school/stats', [PartnerSchoolController::class, 'getSchoolStats']);
     Route::delete('/upload-batch/{batchId}', [PartnerSchoolController::class, 'deleteUploadBatch']);
     Route::post('/flexible/upload', [PartnerSchoolController::class, 'uploadFlexibleData']);
     Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
-    Route::put('/verification/students/{studentId}/enrollment', [PartnerSchoolController::class, 'updateEnrollmentStatus']);
+    Route::get('/student-population', [PartnerSchoolController::class, 'getStudentPopulation']);
+    Route::get('/schools', [PartnerSchoolController::class, 'getSchools']);
 });
