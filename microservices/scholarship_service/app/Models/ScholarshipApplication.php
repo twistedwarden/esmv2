@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ScholarshipApplication extends Model
 {
@@ -41,6 +43,9 @@ class ScholarshipApplication extends Model
         'interview_schedule_id',
         'enrollment_verified_at',
         'interview_completed_at',
+        'ssc_stage_status',
+        'all_required_stages_completed',
+        'ready_for_final_approval_at',
     ];
 
     protected $casts = [
@@ -55,6 +60,9 @@ class ScholarshipApplication extends Model
         'approved_at' => 'datetime',
         'enrollment_verified_at' => 'datetime',
         'interview_completed_at' => 'datetime',
+        'ssc_stage_status' => 'array',
+        'all_required_stages_completed' => 'boolean',
+        'ready_for_final_approval_at' => 'datetime',
     ];
 
     // Relationships
@@ -110,7 +118,34 @@ class ScholarshipApplication extends Model
 
     public function interviewSchedule(): HasOne
     {
-        return $this->hasOne(InterviewSchedule::class);
+        return $this->hasOne(InterviewSchedule::class, 'application_id');
+    }
+
+    public function sscDecisions(): HasMany
+    {
+        return $this->hasMany(SscDecision::class, 'application_id');
+    }
+
+    public function latestSscDecision(): HasOne
+    {
+        return $this->hasOne(SscDecision::class, 'application_id')->latestOfMany('decided_at');
+    }
+
+    public function sscReviews(): HasMany
+    {
+        return $this->hasMany(SscReview::class, 'application_id');
+    }
+
+    public function currentSscReview(): HasOne
+    {
+        return $this->hasOne(SscReview::class, 'application_id')
+            ->where('status', 'pending')
+            ->latest();
+    }
+
+    public function latestSscReview(): HasOne
+    {
+        return $this->hasOne(SscReview::class, 'application_id')->latestOfMany('created_at');
     }
 
     // Scopes
@@ -162,7 +197,115 @@ class ScholarshipApplication extends Model
 
     public function canBeApproved(): bool
     {
-        return $this->status === 'endorsed_to_ssc';
+        return $this->status === 'ssc_final_approval';
+    }
+
+    public function canProgressToNextSscStage(): bool
+    {
+        return in_array($this->status, [
+            'ssc_document_verification',
+            'ssc_financial_review',
+            'ssc_academic_review'
+        ]);
+    }
+
+    public function getCurrentSscStage(): string
+    {
+        $stageMapping = [
+            'ssc_document_verification' => 'document_verification',
+            'ssc_financial_review' => 'financial_review',
+            'ssc_academic_review' => 'academic_review',
+            'ssc_final_approval' => 'final_approval',
+        ];
+
+        return $stageMapping[$this->status] ?? '';
+    }
+
+    public function getRequiredReviewerRoles(): array
+    {
+        $stageRoleMapping = [
+            'document_verification' => ['city_council', 'hrd', 'social_services'],
+            'financial_review' => ['budget_dept', 'accounting', 'treasurer'],
+            'academic_review' => ['education_affairs', 'qcydo', 'planning_dept', 'schools_division', 'qcu'],
+            'final_approval' => ['chairperson'],
+        ];
+
+        $currentStage = $this->getCurrentSscStage();
+        return $stageRoleMapping[$currentStage] ?? [];
+    }
+
+    public function advanceToNextSscStage($reviewedBy, $notes = null): bool
+    {
+        $stageProgression = [
+            'ssc_document_verification' => 'ssc_financial_review',
+            'ssc_financial_review' => 'ssc_academic_review',
+            'ssc_academic_review' => 'ssc_final_approval',
+        ];
+
+        if (!isset($stageProgression[$this->status])) {
+            return false;
+        }
+
+        $newStatus = $stageProgression[$this->status];
+        
+        $this->update([
+            'status' => $newStatus,
+            'notes' => $notes,
+        ]);
+
+        $this->statusHistory()->create([
+            'status' => $newStatus,
+            'notes' => $notes ?? "Advanced to {$newStatus} stage",
+            'changed_by' => $reviewedBy,
+            'changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    public function getSscStageProgress(): array
+    {
+        $stages = [
+            'ssc_document_verification' => 'Document Verification',
+            'ssc_financial_review' => 'Financial Review',
+            'ssc_academic_review' => 'Academic Review',
+            'ssc_final_approval' => 'Final Approval',
+        ];
+
+        $currentStatus = $this->status;
+        $progress = [];
+
+        foreach ($stages as $status => $label) {
+            $progress[] = [
+                'stage' => $status,
+                'label' => $label,
+                'completed' => $this->hasCompletedStage($status),
+                'current' => $status === $currentStatus,
+            ];
+        }
+
+        return $progress;
+    }
+
+    private function hasCompletedStage(string $stage): bool
+    {
+        $stageOrder = [
+            'ssc_document_verification',
+            'ssc_financial_review',
+            'ssc_academic_review',
+            'ssc_final_approval',
+        ];
+
+        $currentIndex = array_search($this->status, $stageOrder);
+        $stageIndex = array_search($stage, $stageOrder);
+
+        if ($currentIndex === false || $stageIndex === false) {
+            return false;
+        }
+
+        // Stage is completed if current status is beyond this stage
+        return $currentIndex > $stageIndex || 
+               ($currentIndex === $stageIndex && in_array($this->status, ['approved', 'rejected']));
     }
 
     public function canBeRejected(): bool
@@ -585,5 +728,125 @@ class ScholarshipApplication extends Model
     public function canCompleteInterview(): bool
     {
         return $this->status === 'interview_scheduled';
+    }
+
+    /**
+     * Mark a specific stage as approved with notes (parallel workflow)
+     */
+    public function approveStage(string $stage, int $reviewerId, ?string $notes = null, array $reviewData = []): bool
+    {
+        try {
+            DB::beginTransaction();
+
+            // Create or update the stage review
+            $review = $this->sscReviews()->updateOrCreate(
+                [
+                    'review_stage' => $stage,
+                    'reviewer_id' => $reviewerId,
+                ],
+                [
+                    'reviewer_role' => $this->getReviewerRole($reviewerId),
+                    'status' => 'approved',
+                    'review_notes' => $notes,
+                    'review_data' => $reviewData,
+                    'reviewed_at' => now(),
+                    'approved_at' => now(),
+                    'approval_notes' => $notes,
+                    'is_required' => true,
+                ]
+            );
+
+            // Update stage status
+            $stageStatus = $this->ssc_stage_status ?? [];
+            $stageStatus[$stage] = [
+                'status' => 'approved',
+                'reviewed_by' => $reviewerId,
+                'reviewed_at' => now(),
+                'notes' => $notes,
+            ];
+            
+            $this->update([
+                'ssc_stage_status' => $stageStatus,
+            ]);
+
+            // Check if all required stages are completed
+            $this->checkAllStagesCompleted();
+
+            DB::commit();
+            return true;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to approve stage', [
+                'application_id' => $this->id,
+                'stage' => $stage,
+                'reviewer_id' => $reviewerId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Check if all required stages are completed
+     */
+    public function checkAllStagesCompleted(): void
+    {
+        $requiredStages = ['document_verification', 'financial_review', 'academic_review'];
+        $stageStatus = $this->ssc_stage_status ?? [];
+        
+        $allCompleted = true;
+        foreach ($requiredStages as $stage) {
+            if (!isset($stageStatus[$stage]) || $stageStatus[$stage]['status'] !== 'approved') {
+                $allCompleted = false;
+                break;
+            }
+        }
+
+        if ($allCompleted && !$this->all_required_stages_completed) {
+            $this->update([
+                'all_required_stages_completed' => true,
+                'ready_for_final_approval_at' => now(),
+                'status' => 'ssc_final_approval', // Ready for chairperson
+            ]);
+        }
+    }
+
+    /**
+     * Get reviewer role from user ID (helper method)
+     */
+    private function getReviewerRole(int $userId): string
+    {
+        $assignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
+            ->where('is_active', true)
+            ->first();
+        
+        return $assignment ? $assignment->ssc_role : 'unknown';
+    }
+
+    /**
+     * Get applications ready for a specific stage (parallel workflow)
+     */
+    public static function getApplicationsForStage(string $stage): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = self::where(function ($q) {
+            $q->where('status', 'endorsed_to_ssc')
+              ->orWhere('status', 'ssc_final_approval');
+        });
+
+        // For non-final stages, show applications that haven't been completed for this stage
+        if ($stage !== 'final_approval') {
+            $query->where(function ($q) use ($stage) {
+                // Show applications where this stage is not completed
+                $q->whereNull('ssc_stage_status')
+                  ->orWhereRaw("JSON_EXTRACT(ssc_stage_status, '$.{$stage}') IS NULL")
+                  ->orWhereRaw("JSON_EXTRACT(ssc_stage_status, '$.{$stage}.status') != 'approved'");
+            });
+        } else {
+            // For final approval, only show applications where all required stages are completed
+            $query->where('all_required_stages_completed', true);
+        }
+
+        return $query;
     }
 }

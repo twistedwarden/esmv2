@@ -36,8 +36,8 @@ function RequireAdmin() {
 		)
 	}
 
-	// Redirect to login if not authenticated or not admin/staff
-	if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'staff')) {
+	// Redirect to login if not authenticated or not admin/staff/ssc
+	if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'staff' && currentUser.role !== 'ssc')) {
 		return <Navigate to="/" replace state={{ from: location }} />
 	}
 

@@ -25,15 +25,21 @@ import UserManagement from './modules/UserManagement/UserManagement'
 import AuditLog from './modules/AuditLog/AuditLog'
 import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgressReport, AnalyticsCharts } from './modules/educationMonitoring'
 import SettingsOverview from './modules/settings/SettingsOverview'
+import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
+import MyInterviews from './modules/interviewer/MyInterviews'
 
-type Props = { activeItem: string; onPageChange?: (id: string) => void }
+type Props = { activeItem: string; onPageChange?: (id: string) => void; userRole?: string; userSystemRole?: string }
 
-function ContentRenderer({ activeItem, onPageChange }: Props) {
+function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }: Props) {
 	switch (activeItem) {
 		case 'dashboard':
+			// Show interviewer dashboard for staff with interviewer system role
+			if (userRole === 'staff' && userSystemRole === 'interviewer') {
+				return <div><InterviewerDashboard /></div>
+			}
 			return <div><Dashboard /></div>
 		case 'Settings':
-			return <div>Settings Content</div>
+			return <div><SettingsOverview /></div>
 		case 'scholarship-overview':
 			return <div><ScholarshipOverview /></div>
 		case 'scholarship-applications':
@@ -94,6 +100,13 @@ function ContentRenderer({ activeItem, onPageChange }: Props) {
                 return <div><AuditLog /></div>
             case 'settings':
                 return <div><SettingsOverview /></div>
+		// Interviewer routes
+		case 'interviews-pending':
+			return <div><MyInterviews filter="pending" /></div>
+		case 'interviews-completed':
+			return <div><MyInterviews filter="completed" /></div>
+		case 'interviews-all':
+			return <div><MyInterviews filter="all" /></div>
 		default:
 			return <div>Dashboard</div>
 	}

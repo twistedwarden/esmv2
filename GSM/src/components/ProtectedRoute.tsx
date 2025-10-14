@@ -31,9 +31,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
-  // Prevent admins/staff from accessing student portal routes
+  // Prevent admins/staff/ssc from accessing student portal routes
   const role = (currentUser as AuthUser).role;
-  if (role === 'admin' || role === 'staff') {
+  if (role === 'admin' || role === 'staff' || role === 'ssc') {
     return <Navigate to="/admin" replace />;
   }
 

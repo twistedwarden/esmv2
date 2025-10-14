@@ -22,7 +22,7 @@ export const Login: React.FC = () => {
 	// Redirect if already authenticated
 	useEffect(() => {
 		if (!isLoading && currentUser) {
-			if (currentUser.role === 'admin' || currentUser.role === 'staff') {
+			if (currentUser.role === 'admin' || currentUser.role === 'staff' || currentUser.role === 'ssc') {
 				navigate('/admin', { replace: true })
 			} else {
 				navigate(fromPath || '/', { replace: true })

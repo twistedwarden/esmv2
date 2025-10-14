@@ -76,6 +76,49 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     
     // Bulk operations
     Route::post('/bulk-endorse-to-ssc', [ScholarshipApplicationController::class, 'bulkEndorseToSSC']);
+    
+    // SSC operations (legacy)
+    Route::get('/ssc/pending', [ScholarshipApplicationController::class, 'getSscPendingApplications']);
+    Route::get('/ssc/statistics', [ScholarshipApplicationController::class, 'getSscStatistics']);
+    Route::get('/ssc/decision-history', [ScholarshipApplicationController::class, 'getSscDecisionHistory']);
+    Route::get('/ssc/all-decisions', [ScholarshipApplicationController::class, 'getAllSscDecisions']);
+    Route::post('/{application}/ssc-approve', [ScholarshipApplicationController::class, 'sscApprove']);
+    Route::post('/{application}/ssc-reject', [ScholarshipApplicationController::class, 'sscReject']);
+    Route::post('/ssc/bulk-approve', [ScholarshipApplicationController::class, 'sscBulkApprove']);
+    Route::post('/ssc/bulk-reject', [ScholarshipApplicationController::class, 'sscBulkReject']);
+    
+    // SSC Multi-Stage Workflow (new)
+    Route::get('/ssc/stage/{stage}', [ScholarshipApplicationController::class, 'getSscApplicationsByStage']);
+    Route::get('/ssc/my-applications', [ScholarshipApplicationController::class, 'getMySscApplications']);
+    
+    // Stage-specific reviews
+    Route::post('/{application}/ssc/document-verification', [ScholarshipApplicationController::class, 'sscSubmitDocumentVerification']);
+    Route::post('/{application}/ssc/financial-review', [ScholarshipApplicationController::class, 'sscSubmitFinancialReview']);
+    Route::post('/{application}/ssc/academic-review', [ScholarshipApplicationController::class, 'sscSubmitAcademicReview']);
+    Route::post('/{application}/ssc/final-approval', [ScholarshipApplicationController::class, 'sscFinalApproval']);
+    Route::post('/{application}/ssc/final-rejection', [ScholarshipApplicationController::class, 'sscFinalRejection']);
+    
+    // Request revision
+    Route::post('/{application}/ssc/request-revision', [ScholarshipApplicationController::class, 'sscRequestRevision']);
+    
+    // Get review history
+    Route::get('/{application}/ssc/review-history', [ScholarshipApplicationController::class, 'getSscReviewHistory']);
+    
+    // Get current user's SSC roles
+    Route::get('/ssc/my-roles', [ScholarshipApplicationController::class, 'getUserSscRoles']);
+    
+    // Parallel stage approval
+    Route::post('/{application}/approve-stage', [ScholarshipApplicationController::class, 'approveStage']);
+    
+    // Get SSC member assignments
+    Route::get('/ssc/member-assignments', [ScholarshipApplicationController::class, 'getSscMemberAssignments']);
+});
+
+// Interviewer routes (for staff with interviewer system role)
+Route::prefix('interviewer')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/my-interviews', [App\Http\Controllers\InterviewController::class, 'getMyInterviews']);
+    Route::get('/statistics', [App\Http\Controllers\InterviewController::class, 'getInterviewerStatistics']);
+    Route::post('/interviews/{schedule}/evaluate', [App\Http\Controllers\InterviewController::class, 'submitEvaluation']);
 });
 
 // Document routes
@@ -167,6 +210,7 @@ Route::prefix('interview-evaluations')->middleware(['auth.auth_service'])->group
 Route::prefix('staff')->middleware(['auth.auth_service'])->group(function () {
     Route::get('/interviewers', [StaffController::class, 'getInterviewers']);
     Route::get('/', [StaffController::class, 'getAllStaff']);
+    Route::get('/user/{userId}', [StaffController::class, 'getStaffByUserId']);
     Route::get('/{id}', [StaffController::class, 'getStaffById']);
     Route::post('/', [StaffController::class, 'store']);
     Route::put('/{id}', [StaffController::class, 'update']);

@@ -2,10 +2,12 @@ import React from 'react'
 import Sidebar from './components/Layout/Sidebar'
 import Header from './components/Layout/Header'
 import ContentRenderer from './components/ContentRenderer'
-import sidebarItems from './components/Layout/sidebarItems'
+import { getSidebarItems } from './components/Layout/sidebarItems'
 import { ToastProvider } from '../components/providers/ToastProvider'
+import { useAuthStore } from '../store/v1authStore'
 
-function getBreadcrumb(itemId: string): string[] {
+function getBreadcrumb(itemId: string, userRole?: string, userSystemRole?: string): string[] {
+	const sidebarItems = getSidebarItems(userRole, userSystemRole)
 	for (const item of sidebarItems) {
 		if (item.id === itemId) return [item.label]
 		if ((item as any).subItems) {
@@ -20,6 +22,14 @@ function App() {
 	const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
 	const [activeItem, setActiveItem] = React.useState<string>('dashboard')
 	const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+	const { currentUser } = useAuthStore()
+
+	// Auto-redirect SSC members to SSC Management
+	React.useEffect(() => {
+		if (currentUser?.role === 'ssc') {
+			setActiveItem('scholarship-ssc')
+		}
+	}, [currentUser])
 
 	const handleSidebarToggle = () => {
 		if (window.innerWidth < 768) {
@@ -60,10 +70,15 @@ function App() {
 						<Header
 							sidebarCollapsed={sidebarCollapsed}
 							onToggleSidebar={handleSidebarToggle}
-							breadcrumb={getBreadcrumb(activeItem)}
+							breadcrumb={getBreadcrumb(activeItem, currentUser?.role, currentUser?.system_role)}
 						/>
 						<div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
-							<ContentRenderer activeItem={activeItem} onPageChange={handlePageChange} />
+							<ContentRenderer 
+								activeItem={activeItem} 
+								onPageChange={handlePageChange}
+								userRole={currentUser?.role}
+								userSystemRole={currentUser?.system_role}
+							/>
 						</div>
 					</div>
 				</div>

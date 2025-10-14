@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             SampleApplicationSeeder::class,
             //EnrollmentVerificationSeeder::class, // Must run after SampleApplicationSeeder
             InterviewScheduleSeeder::class, // Must run after SampleApplicationSeeder
+            SscMembersSeeder::class, // SSC member profiles (for reference)
+            SscMemberAssignmentSeeder::class, // SSC role assignments
         ]);
     }
 }

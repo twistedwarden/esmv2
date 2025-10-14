@@ -83,7 +83,7 @@ export const GatewayLogin: React.FC = () => {
 
 	useEffect(() => {
 		if (!isLoading && currentUser) {
-      if (currentUser.role === 'admin' || currentUser.role === 'staff') navigate('/admin', { replace: true })
+      if (currentUser.role === 'admin' || currentUser.role === 'staff' || currentUser.role === 'ssc') navigate('/admin', { replace: true })
       else if (currentUser.role === 'ps_rep') navigate('/partner-school', { replace: true })
       else navigate('/portal', { replace: true })
 		}
