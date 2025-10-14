@@ -41,4 +41,7 @@ Route::prefix('users')->group(function () {
     Route::get('/staff', [UserController::class, 'getStaffUsers']);
     Route::put('/{id}/assign-school', [UserController::class, 'assignSchool']);
     Route::put('/{id}/unassign-school', [UserController::class, 'unassignSchool']);
+    Route::put('/{id}/activate', [UserController::class, 'activateUser']);
+    Route::delete('/{id}', [UserController::class, 'deleteUser']);
+    Route::delete('/{id}/permanent', [UserController::class, 'permanentDeleteUser']);
 });

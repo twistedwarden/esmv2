@@ -511,4 +511,143 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Delete user (soft delete by setting is_active to false)
+     */
+    public function deleteUser(int $id): JsonResponse
+    {
+        try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            // Check if user is already inactive
+            if (!$user->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is already inactive. Use permanent delete to remove completely.',
+                    'requires_permanent_delete' => true
+                ], 400);
+            }
+
+            // Soft delete by deactivating the user
+            $user->update([
+                'is_active' => false,
+                'status' => 'deactivated'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User deactivated successfully. Delete again to permanently remove.',
+                'data' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ' ' . ($user->extension_name ?? '')),
+                    'is_active' => $user->is_active,
+                    'status' => $user->status,
+                    'deactivated_at' => now()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to deactivate user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Activate user (set is_active to true)
+     */
+    public function activateUser(int $id): JsonResponse
+    {
+        try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            // Check if user is already active
+            if ($user->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is already active'
+                ], 400);
+            }
+
+            // Activate the user
+            $user->update([
+                'is_active' => true,
+                'status' => 'active'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User activated successfully',
+                'data' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ' ' . ($user->extension_name ?? '')),
+                    'is_active' => $user->is_active,
+                    'status' => $user->status,
+                    'activated_at' => now()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to activate user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Permanently delete user from database
+     */
+    public function permanentDeleteUser(int $id): JsonResponse
+    {
+        try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            // Store user info before deletion for response
+            $userInfo = [
+                'id' => $user->id,
+                'email' => $user->email,
+                'name' => trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ' ' . ($user->extension_name ?? '')),
+                'role' => $user->role,
+                'deleted_at' => now()
+            ];
+
+            // Permanently delete the user
+            $user->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User permanently deleted successfully',
+                'data' => $userInfo
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -8,11 +8,22 @@ use Illuminate\Http\JsonResponse;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\ScholarshipApplication;
+use App\Services\SchoolSpecificTableService;
+use App\Services\UnifiedSchoolDataService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class PartnerSchoolController extends Controller
 {
+    protected $schoolTableService;
+    protected $unifiedService;
+
+    public function __construct(SchoolSpecificTableService $schoolTableService, UnifiedSchoolDataService $unifiedService)
+    {
+        $this->schoolTableService = $schoolTableService;
+        $this->unifiedService = $unifiedService;
+    }
+
     /**
      * Get user data from auth service
      */
@@ -167,7 +178,7 @@ class PartnerSchoolController extends Controller
                 ], 400);
             }
 
-            $perPage = $request->get('per_page', 15);
+            $perPage = $request->get('per_page', 100);
             $search = $request->get('search');
             $schoolId = $user['assigned_school_id'];
             
@@ -215,7 +226,7 @@ class PartnerSchoolController extends Controller
                 ], 400);
             }
 
-            $perPage = $request->get('per_page', 15);
+            $perPage = $request->get('per_page', 100);
             $status = $request->get('status', 'pending');
             
             $query = ScholarshipApplication::whereHas('student', function($q) use ($user) {
@@ -349,33 +360,111 @@ class PartnerSchoolController extends Controller
             }
 
             $schoolId = $user['assigned_school_id'];
-            $perPage = $request->get('per_page', 15);
+            $perPage = $request->get('per_page', 100);
             $search = $request->get('search');
+            $status = $request->get('status', 'all');
             
-            // Get students with their academic records for this school
-            $query = Student::with(['academicRecords' => function($q) use ($schoolId) {
-                $q->where('school_id', $schoolId);
-            }])->whereHas('academicRecords', function($q) use ($schoolId) {
-                $q->where('school_id', $schoolId);
+            \Log::info('Fetching enrollment data from school-specific table', [
+                'school_id' => $schoolId,
+                'per_page' => $perPage,
+                'search' => $search,
+                'status' => $status
+            ]);
+
+            // Get data from unified table (with fallback to school-specific tables)
+            $students = $this->unifiedService->getSchoolStudentData($schoolId, [
+                'per_page' => $perPage,
+                'search' => $search,
+                'status' => $status
+            ]);
+
+            // Transform the data to match the expected format
+            $transformedStudents = $students->getCollection()->map(function($student) {
+                try {
+                    \Log::info("Processing student from school table: {$student->student_id_number} - {$student->first_name} {$student->last_name}");
+                    
+                    // Create enrollment data array (single record since it's all in one table now)
+                    $enrollmentData = [[
+                        'id' => $student->id,
+                        'school_id' => $schoolId ?? null,
+                        'educational_level' => $student->educational_level,
+                        'program' => $student->program,
+                        'major' => $student->major,
+                        'year_level' => $student->year_level,
+                        'school_year' => $student->school_year,
+                        'school_term' => $student->school_term,
+                        'units_enrolled' => $student->units_enrolled,
+                        'gpa' => $student->gpa,
+                        'is_current' => true,
+                        'is_graduating' => $student->is_graduating,
+                        'enrollment_date' => $student->enrollment_date,
+                        'graduation_date' => $student->graduation_date,
+                        'is_currently_enrolled' => $student->is_currently_enrolled,
+                        'created_at' => $student->created_at,
+                        'updated_at' => $student->updated_at,
+                    ]];
+
+                    return [
+                        'id' => $student->id,
+                        'citizen_id' => $student->citizen_id,
+                        'student_id_number' => $student->student_id_number,
+                        'first_name' => $student->first_name,
+                        'last_name' => $student->last_name,
+                        'middle_name' => $student->middle_name,
+                        'extension_name' => $student->extension_name,
+                        'full_name' => $student->first_name . ' ' . $student->last_name,
+                        'sex' => $student->sex,
+                        'civil_status' => $student->civil_status,
+                        'nationality' => $student->nationality,
+                        'birth_place' => $student->birth_place,
+                        'birth_date' => $student->birth_date,
+                        'contact_number' => $student->contact_number,
+                        'email_address' => $student->email_address,
+                        'is_currently_enrolled' => $student->is_currently_enrolled,
+                        'is_graduating' => $student->is_graduating,
+                        'enrollmentData' => $enrollmentData,
+                        'academicRecords' => $enrollmentData, // Same data for compatibility
+                        'upload_batch_id' => $student->upload_batch_id,
+                        'original_filename' => $student->original_filename,
+                        'uploaded_at' => $student->uploaded_at,
+                        'created_at' => $student->created_at,
+                        'updated_at' => $student->updated_at,
+                    ];
+                } catch (\Exception $e) {
+                    \Log::error("Error processing student {$student->id}: " . $e->getMessage());
+                    return [
+                        'id' => $student->id,
+                        'citizen_id' => $student->citizen_id,
+                        'student_id_number' => $student->student_id_number,
+                        'first_name' => $student->first_name,
+                        'last_name' => $student->last_name,
+                        'middle_name' => $student->middle_name,
+                        'extension_name' => $student->extension_name,
+                        'full_name' => $student->first_name . ' ' . $student->last_name,
+                        'sex' => $student->sex,
+                        'civil_status' => $student->civil_status,
+                        'nationality' => $student->nationality,
+                        'birth_place' => $student->birth_place,
+                        'birth_date' => $student->birth_date,
+                        'contact_number' => $student->contact_number,
+                        'email_address' => $student->email_address,
+                        'is_currently_enrolled' => $student->is_currently_enrolled,
+                        'is_graduating' => $student->is_graduating,
+                        'enrollmentData' => [],
+                        'academicRecords' => [],
+                        'created_at' => $student->created_at,
+                        'updated_at' => $student->updated_at,
+                    ];
+                }
             });
-            
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%")
-                      ->orWhere('email_address', 'like', "%{$search}%");
-                });
-            }
-            
-            $students = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
-                'data' => $students
+                'data' => $transformedStudents
             ]);
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getEnrollmentData error: ' . $e->getMessage());
+            \Log::error('PartnerSchool getEnrollmentData error trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
@@ -408,65 +497,94 @@ class PartnerSchoolController extends Controller
             $csvData = $validated['csv_data'];
             $updateMode = $validated['update_mode'];
             
+            // Generate a unique batch ID for this upload
+            $batchId = \Str::uuid();
+            $filename = $request->input('filename', 'uploaded_file.csv');
+            
             $processedCount = 0;
             $errors = [];
 
-            foreach ($csvData as $row) {
-                try {
-                    // Create or update student
-                    $student = Student::updateOrCreate(
-                        ['citizen_id' => $row['citizen_id'] ?? $row['student_id']],
-                        [
-                            'first_name' => $row['first_name'],
-                            'last_name' => $row['last_name'],
-                            'middle_name' => $row['middle_name'] ?? null,
-                            'extension_name' => $row['extension_name'] ?? null,
-                            'sex' => $row['sex'] ?? 'Male',
-                            'civil_status' => $row['civil_status'] ?? 'Single',
-                            'nationality' => $row['nationality'] ?? 'Filipino',
-                            'birth_place' => $row['birth_place'] ?? null,
-                            'birth_date' => $row['birth_date'] ?? null,
-                            'contact_number' => $row['contact_number'] ?? null,
-                            'email_address' => $row['email_address'] ?? null,
-                            'is_currently_enrolled' => $row['is_currently_enrolled'] ?? true,
-                            'is_graduating' => $row['is_graduating'] ?? false,
-                        ]
-                    );
+            \Log::info('Starting CSV upload processing to school-specific table', [
+                'school_id' => $schoolId,
+                'total_rows' => count($csvData),
+                'batch_id' => $batchId,
+                'filename' => $filename
+            ]);
 
-                    // Create academic record
-                    \DB::table('academic_records')->updateOrInsert(
-                        [
-                            'student_id' => $student->id,
-                            'school_id' => $schoolId,
-                            'is_current' => true
-                        ],
-                        [
-                            'educational_level' => $row['educational_level'] ?? 'TERTIARY/COLLEGE',
-                            'program' => $row['program'] ?? null,
-                            'major' => $row['major'] ?? null,
-                            'year_level' => $row['year_level'] ?? '1st Year',
-                            'school_year' => $row['school_year'] ?? date('Y') . '-' . (date('Y') + 1),
-                            'school_term' => $row['school_term'] ?? '1st Semester',
-                            'units_enrolled' => $row['units_enrolled'] ?? null,
-                            'gpa' => $row['gpa'] ?? null,
-                            'is_current' => true,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]
-                    );
+            // Ensure school-specific table exists (for backward compatibility)
+            $this->schoolTableService->ensureSchoolTableExists($schoolId, 'School ' . $schoolId);
+
+            foreach ($csvData as $index => $row) {
+                try {
+                    \Log::info("Processing row {$index} for school {$schoolId}", ['row' => $row]);
+                    
+                    // Prepare data for unified table - CAPTURE ALL FIELDS AS-IS
+                    $studentData = [
+                        'student_id_number' => $row['student_id_number'] ?? $row['citizen_id'] ?? $row['student_id'] ?? 'STU-' . time() . '-' . $index,
+                        'first_name' => $row['first_name'] ?? 'Unknown',
+                        'last_name' => $row['last_name'] ?? 'Unknown',
+                        'middle_name' => $row['middle_name'] ?? null,
+                        'extension_name' => $row['extension_name'] ?? null,
+                        'citizen_id' => $row['citizen_id'] ?? $row['student_id'] ?? $row['student_id_number'] ?? null,
+                        'sex' => $row['sex'] ?? 'Male',
+                        'civil_status' => $row['civil_status'] ?? 'Single',
+                        'nationality' => $row['nationality'] ?? 'Filipino',
+                        'birth_place' => $row['birth_place'] ?? null,
+                        'birth_date' => $row['birth_date'] ?? null,
+                        'contact_number' => $row['contact_number'] ?? null,
+                        'email_address' => $row['email_address'] ?? null,
+                        'is_currently_enrolled' => 'enrolled', // ALWAYS set to "enrolled" regardless of input
+                        'is_graduating' => $row['is_graduating'] ?? false,
+                        'educational_level' => $row['educational_level'] ?? 'TERTIARY/COLLEGE',
+                        'program' => $row['program'] ?? null,
+                        'major' => $row['major'] ?? null,
+                        'year_level' => $row['year_level'] ?? '1st Year',
+                        'school_year' => $row['school_year'] ?? date('Y') . '-' . (date('Y') + 1),
+                        'school_term' => $row['school_term'] ?? '1st Semester',
+                        'units_enrolled' => $row['units_enrolled'] ?? null,
+                        'gpa' => $row['gpa'] ?? null,
+                        'enrollment_date' => $row['enrollment_date'] ?? now()->toDateString(),
+                        'graduation_date' => $row['graduation_date'] ?? null,
+                    ];
+                    
+                    // Add ALL other fields from the CSV as-is (capture everything)
+                    foreach ($row as $key => $value) {
+                        // Skip fields we've already processed above
+                        $processedFields = [
+                            'student_id_number', 'first_name', 'last_name', 'middle_name', 'extension_name',
+                            'citizen_id', 'sex', 'civil_status', 'nationality', 'birth_place', 'birth_date',
+                            'contact_number', 'email_address', 'is_currently_enrolled', 'is_graduating',
+                            'educational_level', 'program', 'major', 'year_level', 'school_year', 'school_term',
+                            'units_enrolled', 'gpa', 'enrollment_date', 'graduation_date'
+                        ];
+                        
+                        if (!in_array($key, $processedFields) && !empty($value)) {
+                            // Store additional fields as-is
+                            $studentData['additional_data'] = $studentData['additional_data'] ?? [];
+                            $studentData['additional_data'][$key] = $value;
+                        }
+                    }
+                    
+                    // Insert into unified table (with fallback to school-specific tables)
+                    $this->unifiedService->insertStudentData($schoolId, $studentData, $batchId, $filename);
 
                     $processedCount++;
+                    \Log::info("Successfully processed student {$studentData['student_id_number']} for school {$schoolId}");
                 } catch (\Exception $e) {
-                    $errors[] = "Row error: " . $e->getMessage();
+                    $errors[] = "Row {$index} error: " . $e->getMessage();
+                    \Log::error("Error processing row {$index} for school {$schoolId}: " . $e->getMessage());
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => "Successfully processed {$processedCount} students",
+                'message' => "Successfully processed {$processedCount} students for school {$schoolId}",
                 'data' => [
                     'processed_count' => $processedCount,
                     'total_rows' => count($csvData),
+                    'school_id' => $schoolId,
+                    'batch_id' => $batchId,
+                    'filename' => $filename,
                     'errors' => $errors
                 ]
             ]);
@@ -476,6 +594,78 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload enrollment data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get school data statistics
+     */
+    public function getSchoolStats(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->getUserFromAuthService($request);
+            
+            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No school assigned to this user'
+                ], 400);
+            }
+
+            $schoolId = $user['assigned_school_id'];
+            $stats = $this->unifiedService->getSchoolStatistics($schoolId);
+            $uploadBatches = $this->unifiedService->getUploadBatches($schoolId);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'statistics' => $stats,
+                    'upload_batches' => $uploadBatches
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PartnerSchool getSchoolStats error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch school statistics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete an upload batch
+     */
+    public function deleteUploadBatch(Request $request, string $batchId): JsonResponse
+    {
+        try {
+            $user = $this->getUserFromAuthService($request);
+            
+            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No school assigned to this user'
+                ], 400);
+            }
+
+            $schoolId = $user['assigned_school_id'];
+            $deletedCount = $this->unifiedService->deleteUploadBatch($schoolId, $batchId);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} records from batch {$batchId}",
+                'data' => [
+                    'deleted_count' => $deletedCount,
+                    'batch_id' => $batchId
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PartnerSchool deleteUploadBatch error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete upload batch: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -561,7 +751,7 @@ class PartnerSchoolController extends Controller
             }
 
             $schoolId = $user['assigned_school_id'];
-            $perPage = $request->get('per_page', 15);
+            $perPage = $request->get('per_page', 100);
             $search = $request->get('search');
             
             $query = \DB::table('flexible_student_data')
@@ -597,6 +787,77 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch flexible students: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update student enrollment status
+     */
+    public function updateEnrollmentStatus(Request $request, $studentId): JsonResponse
+    {
+        try {
+            $user = $this->getUserFromAuthService($request);
+            
+            if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No school assigned to this user'
+                ], 400);
+            }
+
+            $validated = $request->validate([
+                'is_currently_enrolled' => 'required|boolean',
+                'verification_notes' => 'nullable|string|max:500'
+            ]);
+
+            $schoolId = $user['assigned_school_id'];
+            
+            // Find the student and verify they belong to this school
+            $student = Student::whereHas('academicRecords', function($q) use ($schoolId) {
+                $q->where('school_id', $schoolId);
+            })->find($studentId);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student not found or not assigned to this school'
+                ], 404);
+            }
+
+            // Update student enrollment status
+            $student->update([
+                'is_currently_enrolled' => $validated['is_currently_enrolled']
+            ]);
+
+            // Update academic record if needed
+            $academicRecord = $student->academicRecords()
+                ->where('school_id', $schoolId)
+                ->where('is_current', true)
+                ->first();
+
+            if ($academicRecord) {
+                $academicRecord->update([
+                    'is_current' => $validated['is_currently_enrolled']
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Student enrollment status updated successfully',
+                'data' => [
+                    'student_id' => $student->id,
+                    'is_currently_enrolled' => $student->is_currently_enrolled,
+                    'verification_notes' => $validated['verification_notes'] ?? null
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('PartnerSchool updateEnrollmentStatus error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update enrollment status: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Eye, EyeOff, Lock, Mail, Phone, MapPin, Calendar, User, Building, Briefcase, AlertCircle, CheckCircle, XCircle, School } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Eye, EyeOff, Lock, Mail, Phone, MapPin, Calendar, User, Building, Briefcase, AlertCircle, CheckCircle, XCircle, School, MoreVertical } from 'lucide-react';
 import axios from 'axios';
+import UserActionModal from './UserActionModal';
+import ToastContainer from '../../../../components/ui/ToastContainer';
 
 const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
 
@@ -50,8 +52,24 @@ const UserManagement = () => {
     const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
     const [filteredSchools, setFilteredSchools] = useState([]);
     
+    // Modal and Toast states
+    const [showActionModal, setShowActionModal] = useState(false);
+    const [selectedActionUser, setSelectedActionUser] = useState(null);
+    const [isActionLoading, setIsActionLoading] = useState(false);
+    const [toasts, setToasts] = useState([]);
+    
     // Check if a role is selected to enable/disable form fields
     const isRoleSelected = formData.role && formData.role !== '';
+    
+    // Toast helper functions
+    const addToast = (message, type = 'info', duration = 3000) => {
+        const id = Date.now() + Math.random();
+        setToasts(prev => [...prev, { id, message, type, duration }]);
+    };
+
+    const removeToast = (id) => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+    };
     
     // Helper function to get disabled state and styling for form fields
     const getFieldProps = () => ({
@@ -282,18 +300,66 @@ const UserManagement = () => {
         }
     };
 
-    const handleDeleteUser = async (userId) => {
-        if (!confirm('Are you sure you want to deactivate this user?')) return;
-        
+    // Modal action handlers
+    const openActionModal = (user) => {
+        setSelectedActionUser(user);
+        setShowActionModal(true);
+    };
+
+    const closeActionModal = () => {
+        setShowActionModal(false);
+        setSelectedActionUser(null);
+        setIsActionLoading(false);
+    };
+
+    const handleActivateUser = async (userId) => {
+        setIsActionLoading(true);
+        try {
+            const response = await axios.put(`${SCHOLARSHIP_API}/users/${userId}/activate`);
+            if (response.data.success) {
+                addToast(`User activated successfully!`, 'success');
+                fetchUsers();
+                fetchStats();
+                closeActionModal();
+            }
+        } catch (error) {
+            addToast(`Error activating user: ${error.response?.data?.message || error.message}`, 'error');
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    const handleDeactivateUser = async (userId) => {
+        setIsActionLoading(true);
         try {
             const response = await axios.delete(`${SCHOLARSHIP_API}/users/${userId}`);
             if (response.data.success) {
-                alert('User deactivated successfully!');
+                addToast(`User deactivated successfully!`, 'warning');
                 fetchUsers();
                 fetchStats();
+                closeActionModal();
             }
         } catch (error) {
-            alert('Error deactivating user: ' + (error.response?.data?.message || error.message));
+            addToast(`Error deactivating user: ${error.response?.data?.message || error.message}`, 'error');
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    const handlePermanentDeleteUser = async (userId) => {
+        setIsActionLoading(true);
+        try {
+            const response = await axios.delete(`${SCHOLARSHIP_API}/users/${userId}/permanent`);
+            if (response.data.success) {
+                addToast(`User permanently deleted successfully!`, 'success');
+                fetchUsers();
+                fetchStats();
+                closeActionModal();
+            }
+        } catch (error) {
+            addToast(`Error permanently deleting user: ${error.response?.data?.message || error.message}`, 'error');
+        } finally {
+            setIsActionLoading(false);
         }
     };
 
@@ -810,11 +876,15 @@ const UserManagement = () => {
                                                     <Edit size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteUser(user.id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                    title="Deactivate User"
+                                                    onClick={() => openActionModal(user)}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                        user.is_active 
+                                                            ? "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20" 
+                                                            : "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    }`}
+                                                    title={user.is_active ? "User Actions" : "User Actions"}
                                                 >
-                                                    <Trash2 size={18} />
+                                                    <MoreVertical size={18} />
                                                 </button>
                                             </div>
                                         </td>
@@ -1600,6 +1670,20 @@ const UserManagement = () => {
                     </div>
                 </div>
             )}
+
+            {/* User Action Modal */}
+            <UserActionModal
+                isOpen={showActionModal}
+                onClose={closeActionModal}
+                user={selectedActionUser}
+                onActivate={handleActivateUser}
+                onDeactivate={handleDeactivateUser}
+                onPermanentDelete={handlePermanentDeleteUser}
+                isLoading={isActionLoading}
+            />
+
+            {/* Toast Container */}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
     );
 };

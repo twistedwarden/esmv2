@@ -113,28 +113,6 @@ Route::prefix('scholarship-categories')->group(function () {
     Route::delete('/{category}', [ScholarshipCategoryController::class, 'destroy'])->middleware(['auth.auth_service']);
 });
 
-// Partner School routes (protected by authentication)
-Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(function () {
-    Route::get('/info', [PartnerSchoolController::class, 'getSchoolInfo']);
-    Route::get('/stats', [PartnerSchoolController::class, 'getStats']);
-    Route::get('/students', [PartnerSchoolController::class, 'getStudents']);
-    
-    // Enrollment data routes
-    Route::post('/enrollment/upload', [PartnerSchoolController::class, 'uploadEnrollmentData']);
-    Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
-    
-    // Flexible data routes (accepts any CSV structure)
-    Route::post('/flexible/upload', [PartnerSchoolController::class, 'uploadFlexibleData']);
-    Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
-    
-    // Verification routes
-    Route::prefix('verification')->group(function () {
-        Route::get('/applications', [PartnerSchoolController::class, 'getApplicationsForVerification']);
-        Route::get('/stats', [PartnerSchoolController::class, 'getVerificationStats']);
-        Route::post('/applications/{applicationId}', [PartnerSchoolController::class, 'verifyApplication']);
-        Route::put('/students/{studentId}/enrollment', [PartnerSchoolController::class, 'updateEnrollmentStatus']);
-    });
-});
 
 // Enrollment Verification routes have been removed - automatic verification is disabled
 
@@ -362,6 +340,9 @@ Route::prefix('partner-school')->group(function () {
     Route::get('/verification/stats', [PartnerSchoolController::class, 'getVerificationStats']);
     Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
     Route::post('/enrollment/upload', [PartnerSchoolController::class, 'uploadEnrollmentData']);
+    Route::get('/school/stats', [PartnerSchoolController::class, 'getSchoolStats']);
+    Route::delete('/upload-batch/{batchId}', [PartnerSchoolController::class, 'deleteUploadBatch']);
     Route::post('/flexible/upload', [PartnerSchoolController::class, 'uploadFlexibleData']);
     Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
+    Route::put('/verification/students/{studentId}/enrollment', [PartnerSchoolController::class, 'updateEnrollmentStatus']);
 });
