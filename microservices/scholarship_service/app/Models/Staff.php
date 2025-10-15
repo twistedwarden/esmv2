@@ -98,38 +98,36 @@ class Staff extends Model
     }
 
     /**
-     * Get all active interviewers with user data.
+     * Get all active interviewers with user data from auth service.
      */
     public static function getActiveInterviewersWithUserData(): array
     {
         $staff = self::active()->interviewers()->get();
         
-        // Map user IDs to names (temporary solution until auth service integration is fixed)
-        $userNames = [
-            311 => 'Peter Santos',
-            312 => 'Maria Reyes', 
-            313 => 'John Cruz',
-            314 => 'Ana Lopez',
-            315 => 'Carlos Mendoza'
-        ];
+        if ($staff->isEmpty()) {
+            return [];
+        }
         
-        $userEmails = [
-            311 => 'grindshine478@gmail.com',
-            312 => 'maria.reyes@scholarship.gov.ph',
-            313 => 'john.cruz@scholarship.gov.ph', 
-            314 => 'ana.lopez@scholarship.gov.ph',
-            315 => 'carlos.mendoza@scholarship.gov.ph'
-        ];
+        // Get user IDs from staff records
+        $userIds = $staff->pluck('user_id')->toArray();
         
-        return $staff->map(function ($staffMember) use ($userNames, $userEmails) {
+        // Fetch user data from auth service
+        $authService = app(\App\Services\AuthServiceClient::class);
+        $users = $authService->getUsersByIds($userIds);
+        
+        return $staff->map(function ($staffMember) use ($users) {
+            $userData = $users[$staffMember->user_id] ?? null;
+            
             return [
                 'id' => $staffMember->id,
                 'user_id' => $staffMember->user_id,
-                'name' => $userNames[$staffMember->user_id] ?? 'Unknown User',
-                'email' => $userEmails[$staffMember->user_id] ?? 'unknown@example.com',
+                'name' => $userData ? ($userData['first_name'] . ' ' . $userData['last_name']) : 'Unknown User',
+                'email' => $userData['email'] ?? 'unknown@example.com',
                 'system_role' => $staffMember->system_role,
                 'department' => $staffMember->department,
                 'position' => $staffMember->position,
+                'citizen_id' => $staffMember->citizen_id,
+                'is_active' => $staffMember->is_active,
             ];
         })->toArray();
     }

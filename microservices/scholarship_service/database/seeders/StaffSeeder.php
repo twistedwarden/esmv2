@@ -12,42 +12,50 @@ class StaffSeeder extends Seeder
      */
     public function run(): void
     {
-        // Expected staff users from auth service (after seeding)
-        // These user IDs should match the staff users created in auth service
+        // Staff users that should exist in auth service
+        // Based on the current database state, we'll work with existing user IDs
         $expectedStaffUsers = [
             [
-                'user_id' => 311,
+                'user_id' => 2,
+                'email' => 'staff@caloocan.gov.ph',
+                'name' => 'John Doe',
+                'citizen_id' => 'STAFF-001',
+            ],
+            [
+                'user_id' => 6,
+                'email' => 'mike.johnson@caloocan.gov.ph',
+                'name' => 'Mike Johnson',
+                'citizen_id' => 'STAFF-003',
+            ],
+            [
+                'user_id' => 8,
                 'email' => 'grindshine478@gmail.com',
                 'name' => 'Peter Santos',
                 'citizen_id' => 'STAFF-002',
             ],
-            [
-                'user_id' => 312,
-                'email' => 'maria.reyes@scholarship.gov.ph',
-                'name' => 'Maria Reyes',
-                'citizen_id' => 'STAFF-003',
-            ],
-            [
-                'user_id' => 313,
-                'email' => 'john.cruz@scholarship.gov.ph',
-                'name' => 'John Cruz',
-                'citizen_id' => 'STAFF-004',
-            ],
-            [
-                'user_id' => 314,
-                'email' => 'ana.lopez@scholarship.gov.ph',
-                'name' => 'Ana Lopez',
-                'citizen_id' => 'STAFF-005',
-            ],
-            [
-                'user_id' => 315,
-                'email' => 'carlos.mendoza@scholarship.gov.ph',
-                'name' => 'Carlos Mendoza',
-                'citizen_id' => 'STAFF-006',
-            ],
+            // Add more staff users as they are created in auth service
+            // You can uncomment these once the users exist in auth service
+            // [
+            //     'user_id' => 10,
+            //     'email' => 'john.cruz@scholarship.gov.ph',
+            //     'name' => 'John Cruz',
+            //     'citizen_id' => 'STAFF-004',
+            // ],
+            // [
+            //     'user_id' => 11,
+            //     'email' => 'ana.lopez@scholarship.gov.ph',
+            //     'name' => 'Ana Lopez',
+            //     'citizen_id' => 'STAFF-005',
+            // ],
+            // [
+            //     'user_id' => 12,
+            //     'email' => 'carlos.mendoza@scholarship.gov.ph',
+            //     'name' => 'Carlos Mendoza',
+            //     'citizen_id' => 'STAFF-006',
+            // ],
         ];
 
-        // Create staff records directly using the known user IDs from auth service
+        // Create or update staff records
         foreach ($expectedStaffUsers as $expectedUser) {
             $existingStaff = DB::table('staff')->where('user_id', $expectedUser['user_id'])->first();
             
@@ -80,5 +88,11 @@ class StaffSeeder extends Seeder
                 $this->command->info("Updated staff record for {$expectedUser['name']} (User ID: {$expectedUser['user_id']})");
             }
         }
+
+        $this->command->info('Staff seeding completed. To add more staff members:');
+        $this->command->info('1. First create the user in auth service using StaffUserSeeder');
+        $this->command->info('2. Note the user ID from the auth service');
+        $this->command->info('3. Add the user to this seeder with the correct user_id');
+        $this->command->info('4. Run this seeder again');
     }
 }
