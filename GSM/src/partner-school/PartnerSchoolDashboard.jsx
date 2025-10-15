@@ -671,11 +671,6 @@ const PartnerSchoolDashboard = () => {
       'academic_term', 'academic term', 'academicterm', 'period', 'quarter',
       'trimester', 'qtr', 'tri', 'session', 'academic_session', 'academic session'
     ],
-    'enrollment_date': [
-      'enrollment_date', 'enrollment date', 'date enrolled', 'enrollmentdate',
-      'dateenrolled', 'enroll date', 'enroll_date', 'date of enrollment',
-      'enrollment date', 'date enrolled', 'enroll date', 'date of enrollment'
-    ],
     'program': [
       'program', 'course', 'degree', 'program of study', 'course of study',
       'degree program', 'major', 'field of study', 'programofstudy',
