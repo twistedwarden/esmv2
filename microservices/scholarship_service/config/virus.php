@@ -21,7 +21,7 @@ return [
     'clamd_enabled' => env('CLAMD_ENABLED', false),
 
     // ClamAV Command Line Configuration
-    'clamscan_path' => env('CLAMSCAN_PATH', '/usr/bin/clamscan'),
+    'clamscan_path' => env('CLAMSCAN_PATH', 'D:\\OneDrive\\Desktop\\GSHPHv2-main\\Clamav\\bin\\clamscan.exe'),
 
     // VirusTotal API Configuration
     'virustotal_api_key' => env('VIRUSTOTAL_API_KEY'),

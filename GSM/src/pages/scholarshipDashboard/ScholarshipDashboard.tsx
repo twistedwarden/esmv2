@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Trash2, FileText } from 'lucide-react';
+import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare } from 'lucide-react';
+import { SecureDocumentUpload } from '../../components/ui/SecureDocumentUpload';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 // EnrollmentVerificationCard removed - automatic verification disabled
 import InterviewScheduleCard from '../../components/InterviewScheduleCard';
@@ -468,47 +469,6 @@ export const ScholarshipDashboard: React.FC = () => {
     }
   };
 
-  // Simple file upload function for individual documents
-  const uploadDocument = async (file: File, documentTypeId: string | number) => {
-    if (!currentApplication) {
-      setUploadError('No application found');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('student_id', currentApplication.student_id.toString());
-      formData.append('application_id', currentApplication.id.toString());
-      formData.append('document_type_id', documentTypeId.toString());
-
-      // Debug logging
-      console.log('Uploading document with data:', {
-        student_id: currentApplication.student_id,
-        application_id: currentApplication.id,
-        document_type_id: documentTypeId,
-        file_name: file.name,
-        file_size: file.size
-      });
-
-      await scholarshipApiService.uploadDocument(formData);
-      
-      // Refresh documents after successful upload
-      const documentsData = await scholarshipApiService.getDocuments({
-        application_id: currentApplication.id
-      });
-      setDocuments(documentsData.data || []);
-      
-    } catch (err) {
-      console.error('Error uploading document:', err);
-      setUploadError(err instanceof Error ? err.message : 'Failed to upload document');
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   // Handle document removal
   const handleRemoveDocument = (document: any) => {
@@ -1556,67 +1516,52 @@ export const ScholarshipDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-1 flex-shrink-0">
-                          <span className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
-                            item.isSubmitted 
-                              ? item.status === 'verified' 
-                                ? 'bg-green-100 text-green-800'
-                                : item.status === 'rejected'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {item.isSubmitted 
-                              ? item.status === 'verified' 
-                                ? '✓ Verified' 
-                                : item.status === 'rejected'
-                                ? '✗ Rejected'
-                                : '⏱ Pending'
-                              : '⚠ Missing'
-                            }
-                          </span>
-                          {currentApplication && (
-                            <div className="flex items-center space-x-1">
-                              <div className="relative">
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      uploadDocument(file, item.id);
-                                    }
-                                  }}
-                                  className="hidden"
-                                  id={`upload-${item.id}`}
-                                  disabled={isUploading}
-                                />
-                                <label
-                                  htmlFor={`upload-${item.id}`}
-                                  className={`inline-flex items-center px-2 py-1 text-[10px] font-medium rounded-md cursor-pointer transition-colors ${
-                                    item.isSubmitted
-                                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                      : 'bg-orange-500 text-white hover:bg-orange-600'
-                                  } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                  <Upload className="h-3 w-3" />
-                                </label>
-                              </div>
-                              {/* Remove button - only show when document is submitted and application is draft */}
-                              {item.isSubmitted && currentApplication.status === 'draft' && item.document && (
-                                <button
-                                  onClick={() => handleRemoveDocument(item.document)}
-                                  disabled={isDeleting}
-                                  className={`inline-flex items-center px-2 py-1 text-[10px] font-medium rounded-md cursor-pointer transition-colors ${
-                                    isDeleting 
-                                      ? 'opacity-50 cursor-not-allowed bg-gray-200 text-gray-700'
-                                      : 'bg-red-500 text-white hover:bg-red-600'
-                                  }`}
-                                  title="Remove document"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
+                          {currentApplication ? (
+                            <SecureDocumentUpload
+                              documentTypeId={item.id}
+                              documentTypeName={item.name}
+                              studentId={currentApplication.student_id}
+                              applicationId={currentApplication.id}
+                              isUploading={isUploading}
+                              existingDocument={item.document}
+                              onUploadStart={() => setIsUploading(true)}
+                              onUploadSuccess={async () => {
+                                setIsUploading(false);
+                                // Refresh documents
+                                const documentsData = await scholarshipApiService.getDocuments({
+                                  application_id: currentApplication.id
+                                });
+                                setDocuments(documentsData.data || []);
+                              }}
+                              onUploadError={(error) => {
+                                setIsUploading(false);
+                                setUploadError(error);
+                              }}
+                              showRemoveButton={item.isSubmitted && currentApplication.status === 'draft'}
+                              onRemove={() => handleRemoveDocument(item.document)}
+                              maxSizeMB={10}
+                              acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                              className="min-w-0 flex-1"
+                            />
+                          ) : (
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
+                              item.isSubmitted 
+                                ? item.status === 'verified' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : item.status === 'rejected'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-blue-100 text-blue-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {item.isSubmitted 
+                                ? item.status === 'verified' 
+                                  ? '✓ Verified' 
+                                  : item.status === 'rejected'
+                                  ? '✗ Rejected'
+                                  : '⏱ Pending'
+                                : '⚠ Missing'
+                              }
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1715,11 +1660,6 @@ export const ScholarshipDashboard: React.FC = () => {
             {currentApplication && (scholarshipData.rawStatus === 'interview_scheduled' || scholarshipData.rawStatus === 'interview_completed') && (
               <InterviewScheduleCard 
                 applicationId={currentApplication.id}
-                studentId={currentApplication.student_id}
-                onStatusChange={() => {
-                  // Refresh applications when status changes
-                  refreshApplications();
-                }}
               />
             )}
 

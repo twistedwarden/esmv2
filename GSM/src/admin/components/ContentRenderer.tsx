@@ -27,6 +27,7 @@ import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgre
 import SettingsOverview from './modules/settings/SettingsOverview'
 import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
 import MyInterviews from './modules/interviewer/MyInterviews'
+import DocumentSecurityDashboard from './modules/security/DocumentSecurityDashboard'
 
 type Props = { activeItem: string; onPageChange?: (id: string) => void; userRole?: string; userSystemRole?: string }
 
@@ -98,6 +99,15 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
                 return <div><UserManagement /></div>
             case 'audit-logs':
                 return <div><AuditLog /></div>
+            // Security module routes
+            case 'security-dashboard':
+                return <div><DocumentSecurityDashboard activeItem="security-dashboard" /></div>
+            case 'security-threats':
+                return <div><DocumentSecurityDashboard activeItem="security-threats" /></div>
+            case 'security-quarantine':
+                return <div><DocumentSecurityDashboard activeItem="security-quarantine" /></div>
+            case 'security-settings':
+                return <div><DocumentSecurityDashboard activeItem="security-settings" /></div>
             case 'settings':
                 return <div><SettingsOverview /></div>
 		// Interviewer routes
