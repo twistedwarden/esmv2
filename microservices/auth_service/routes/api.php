@@ -21,9 +21,16 @@ use App\Http\Controllers\UserController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/auth/google', [AuthController::class, 'googleCallback']);
+Route::post('/register/google', [AuthController::class, 'registerWithGoogle']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
 Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
+
+// OTP routes
+Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('/request-login-otp', [AuthController::class, 'requestLoginOtp']);
+Route::post('/login-with-otp', [AuthController::class, 'loginWithOtp']);
 
 // GSM-compatible endpoints (migrated from sqlite PHP script)
 Route::post('/gsm/login', [GsmAuthController::class, 'login']);

@@ -24,11 +24,14 @@ type AuthState = {
 	currentUser: AuthUser | null
 	token: string | null
 	error: string | null
+	additionalInfo: any
 	isLoading: boolean
 	isLoggingOut: boolean
 	login: (username: string, password: string) => Promise<boolean>
+	loginWithOtp: (email: string, otpCode: string) => Promise<boolean>
 	register: (userData: any) => Promise<boolean>
 	googleLogin: (code: string) => Promise<boolean>
+	googleRegister: (code: string, additionalData: any) => Promise<boolean>
 	logout: () => Promise<void>
 	clearError: () => void
 	initializeAuth: () => Promise<void>
@@ -58,6 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 	currentUser: null,
 	token: localStorage.getItem('auth_token'),
 	error: null,
+	additionalInfo: null,
 	isLoading: true,
 	isLoggingOut: false,
 	
@@ -176,6 +180,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 			}
 
 			if (data.success) {
+                // Check if OTP is required
+                if (data.data.requires_otp) {
+                    // Store email for OTP verification
+                    set({ 
+                        error: `OTP_REQUIRED|${data.data.email}`,
+                        isLoading: false
+                    })
+                    return false
+                }
+
                 const { user, token } = data.data
                 const userData = {
                     id: String(user.id),
@@ -296,8 +310,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 				const email = data?.email || ''
 				const firstName = data?.first_name || ''
 				const lastName = data?.last_name || ''
+				const additionalInfo = data?.additional_info || {}
 				// encode a simple directive the UI can react to
-				set({ error: `NOT_REGISTERED|${email}|${firstName}|${lastName}` })
+				set({ 
+					error: `NOT_REGISTERED|${email}|${firstName}|${lastName}`,
+					additionalInfo: additionalInfo
+				})
 				return false
 			}
 
@@ -344,6 +362,137 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 	},
 
+	googleRegister: async (code: string, additionalData: any) => {
+		set({ isLoading: true, error: null })
+		
+		try {
+			console.log('Sending Google registration data to API:', { code, additionalData })
+			
+			const response = await fetch(`${API_BASE_URL}/register/google`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'application/json',
+				},
+				body: JSON.stringify({
+					code,
+					...additionalData
+				}),
+			})
+
+			const data = await response.json()
+			console.log('Google registration API response:', { status: response.status, data })
+
+			if (!response.ok) {
+				set({ error: data.message || 'Google registration failed' })
+				return false
+			}
+
+			if (data.success) {
+				const { user, token } = data.data
+				set({ 
+					currentUser: {
+						id: String(user.id),
+						citizen_id: user.citizen_id ?? '',
+						email: user.email,
+						first_name: user.first_name,
+						last_name: user.last_name,
+						middle_name: user.middle_name,
+						extension_name: user.extension_name,
+						mobile: user.mobile,
+						birthdate: user.birthdate,
+						address: user.address,
+						house_number: user.house_number,
+						street: user.street,
+						barangay: user.barangay,
+						role: user.role,
+						is_active: true,
+					}, 
+					token, 
+					error: null 
+				})
+				localStorage.setItem('auth_token', token)
+				return true
+			} else {
+				set({ error: data.message || 'Google registration failed' })
+				return false
+			}
+		} catch (error) {
+			console.error('Google registration error:', error)
+			set({ error: 'Network error. Please try again.' })
+			return false
+		} finally {
+			set({ isLoading: false })
+		}
+	},
+
+	loginWithOtp: async (email: string, otpCode: string) => {
+		set({ isLoading: true, error: null })
+		
+		try {
+			const response = await fetch(`${API_BASE_URL}/login-with-otp`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'application/json',
+				},
+				body: JSON.stringify({
+					email,
+					otp_code: otpCode
+				}),
+			})
+
+			const data = await response.json()
+
+			if (!response.ok) {
+				set({ error: data.message || 'OTP verification failed' })
+				return false
+			}
+
+			if (data.success) {
+				const { user, token } = data.data
+				const userData = {
+					id: String(user.id),
+					citizen_id: user.citizen_id ?? '',
+					email: user.email,
+					first_name: user.first_name,
+					last_name: user.last_name,
+					middle_name: user.middle_name,
+					extension_name: user.extension_name,
+					mobile: user.mobile,
+					birthdate: user.birthdate,
+					address: user.address,
+					house_number: user.house_number,
+					street: user.street,
+					barangay: user.barangay,
+					role: user.role,
+					system_role: user.system_role,
+					is_active: user.is_active,
+				}
+				
+				// Save user data to localStorage for API service
+				localStorage.setItem('user_data', JSON.stringify(userData));
+				
+				set({ 
+					currentUser: userData, 
+					token, 
+					error: null 
+				})
+				localStorage.setItem('auth_token', token)
+				return true
+			} else {
+				set({ error: data.message || 'OTP verification failed' })
+				return false
+			}
+		} catch (error) {
+			console.error('OTP verification error:', error)
+			set({ error: 'Network error. Please try again.' })
+			return false
+		} finally {
+			set({ isLoading: false })
+		}
+	},
+
 	logout: async () => {
 		set({ isLoggingOut: true })
 		const { token } = get()
@@ -368,7 +517,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		set({ currentUser: null, token: null, error: null, isLoggingOut: false })
 	},
 
-	clearError: () => set({ error: null })
+	clearError: () => set({ error: null, additionalInfo: null })
 }))
 
 // Initialize auth on app start

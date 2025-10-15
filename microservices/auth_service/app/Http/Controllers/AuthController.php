@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\OtpVerification;
+use App\Services\BrevoEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +15,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected $brevoService;
+
+    public function __construct(BrevoEmailService $brevoService)
+    {
+        $this->brevoService = $brevoService;
+    }
+
     /**
      * Login user and return token
      */
@@ -39,23 +47,40 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Check if user is active
+        if ($user->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account is not active. Please verify your email first.'
+            ], 401);
+        }
+
+        // Generate and send OTP for login verification
+        try {
+            $otp = OtpVerification::generateOtp($user->id, 'login');
+            $userName = trim($user->first_name . ' ' . $user->last_name);
+            
+            $this->brevoService->sendLoginOtpEmail(
+                $user->email,
+                $userName,
+                $otp->otp_code,
+                $otp->expires_at
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again.'
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
+            'message' => 'OTP sent to your email. Please verify to complete login.',
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'citizen_id' => $user->citizen_id,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'middle_name' => $user->middle_name,
-                    'extension_name' => $user->extension_name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'is_active' => $user->is_active,
-                ],
-                'token' => $token
+                'email' => $user->email,
+                'requires_otp' => true,
+                'expires_in' => 600 // 10 minutes
             ]
         ]);
     }
@@ -158,22 +183,25 @@ class AuthController extends Controller
             'email_verification_token' => Str::random(60),
         ]);
 
-        // Send verification email
+        // Generate and send OTP via Brevo
         try {
-            Mail::send('emails.verification', [
-                'user' => $user,
-                'verificationUrl' => url("/verify-email/{$user->email_verification_token}")
-            ], function ($message) use ($user) {
-                $message->to($user->email)
-                        ->subject('Verify Your Email Address - GoServePH');
-            });
+            $otp = OtpVerification::generateOtp($user->id, 'email_verification');
+            $userName = trim($user->first_name . ' ' . $user->last_name);
+            
+            $this->brevoService->sendOtpEmail(
+                $user->email,
+                $userName,
+                $otp->otp_code,
+                $otp->expires_at
+            );
         } catch (\Exception $e) {
-            \Log::error('Failed to send verification email: ' . $e->getMessage());
+            \Log::error('Failed to send OTP email: ' . $e->getMessage());
+            // Continue registration even if email fails
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful. Please check your email for verification.',
+            'message' => 'Registration successful. Please check your email for OTP verification code.',
             'data' => [
                 'user' => [
                     'id' => $user->id,
@@ -182,7 +210,8 @@ class AuthController extends Controller
                     'last_name' => $user->last_name,
                     'email' => $user->email,
                     'status' => $user->status,
-                ]
+                ],
+                'requires_otp' => true
             ]
         ], 201);
     }
@@ -251,6 +280,10 @@ class AuthController extends Controller
 
             $googleUser = json_decode($userResponse->getBody(), true);
 
+            // For development mode, we'll skip People API and let users fill forms manually
+            // In production, you can enable People API after Google verification
+            $additionalInfo = [];
+
             // Find user by email
             $user = User::where('email', $googleUser['email'])->first();
 
@@ -263,6 +296,7 @@ class AuthController extends Controller
                     'email' => $googleUser['email'] ?? null,
                     'first_name' => $googleUser['given_name'] ?? null,
                     'last_name' => $googleUser['family_name'] ?? null,
+                    'additional_info' => $additionalInfo, // Include Google data for pre-filling
                 ], 404);
             }
 
@@ -313,24 +347,28 @@ class AuthController extends Controller
         // Generate OTP
         $otp = OtpVerification::generateOtp($user->id, 'email_verification');
 
-        // Send OTP via email (in a real app, you might use SMS)
+        // Send OTP via Brevo
         try {
-            Mail::send('emails.otp', [
-                'user' => $user,
-                'otp_code' => $otp->otp_code,
-                'expires_at' => $otp->expires_at
-            ], function ($message) use ($user) {
-                $message->to($user->email)
-                        ->subject('Your OTP Code - GoServePH');
-            });
+            $userName = trim($user->first_name . ' ' . $user->last_name);
+            
+            $this->brevoService->sendOtpEmail(
+                $user->email,
+                $userName,
+                $otp->otp_code,
+                $otp->expires_at
+            );
         } catch (\Exception $e) {
             \Log::error('Failed to send OTP email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP email. Please try again later.'
+            ], 500);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'OTP sent successfully',
-            'expires_in' => 300 // 5 minutes
+            'expires_in' => 600 // 10 minutes
         ]);
     }
 
@@ -368,18 +406,31 @@ class AuthController extends Controller
             'email_verified_at' => now(),
         ]);
 
+        // Create authentication token for automatic login
+        $token = $user->createToken('auth-token')->plainTextToken;
+
         return response()->json([
             'success' => true,
-            'message' => 'Account verified successfully',
+            'message' => 'Account verified successfully! You are now logged in.',
             'data' => [
                 'user' => [
                     'id' => $user->id,
                     'citizen_id' => $user->citizen_id,
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'extension_name' => $user->extension_name,
                     'email' => $user->email,
-                    'status' => $user->status,
-                ]
+                    'mobile' => $user->mobile,
+                    'birthdate' => $user->birthdate,
+                    'address' => $user->address,
+                    'house_number' => $user->house_number,
+                    'street' => $user->street,
+                    'barangay' => $user->barangay,
+                    'role' => $user->role,
+                    'is_active' => $user->is_active,
+                ],
+                'token' => $token
             ]
         ]);
     }
@@ -420,5 +471,249 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Password changed successfully'
         ]);
+    }
+
+    /**
+     * Request OTP for login
+     */
+    public function requestLoginOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account is not active. Please verify your email first.'
+            ], 400);
+        }
+
+        // Generate OTP for login
+        $otp = OtpVerification::generateOtp($user->id, 'login');
+
+        // Send OTP via Brevo
+        try {
+            $userName = trim($user->first_name . ' ' . $user->last_name);
+            
+            $this->brevoService->sendLoginOtpEmail(
+                $user->email,
+                $userName,
+                $otp->otp_code,
+                $otp->expires_at
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP email. Please try again later.'
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent to your email successfully',
+            'expires_in' => 600 // 10 minutes
+        ]);
+    }
+
+    /**
+     * Login with OTP
+     */
+    public function loginWithOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp_code' => 'required|string|size:6',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        
+        $otp = OtpVerification::where('user_id', $user->id)
+            ->where('otp_code', $request->otp_code)
+            ->where('type', 'login')
+            ->where('is_used', false)
+            ->first();
+
+        if (!$otp || !$otp->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP'
+            ], 400);
+        }
+
+        // Mark OTP as used
+        $otp->markAsUsed();
+
+        // Create token
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'citizen_id' => $user->citizen_id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'extension_name' => $user->extension_name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'is_active' => $user->is_active,
+                ],
+                'token' => $token
+            ]
+        ]);
+    }
+
+    /**
+     * Register user with Google OAuth
+     */
+    public function registerWithGoogle(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+            'mobile' => 'required|string|regex:/^09[0-9]{9}$/',
+            'birthdate' => 'required|date|before:today',
+            'address' => 'required|string|max:500',
+            'houseNumber' => 'required|string|max:50',
+            'street' => 'required|string|max:255',
+            'barangay' => 'required|string|max:255',
+        ], [
+            'mobile.regex' => 'Mobile number must be in format 09XXXXXXXXX.',
+            'birthdate.before' => 'Birthdate must be before today.',
+        ]);
+
+        try {
+            // Log the incoming request for debugging
+            \Log::info('Google registration request:', [
+                'code' => $request->code,
+                'mobile' => $request->mobile,
+                'birthdate' => $request->birthdate,
+                'address' => $request->address,
+                'houseNumber' => $request->houseNumber,
+                'street' => $request->street,
+                'barangay' => $request->barangay
+            ]);
+            
+            // Exchange authorization code for access token
+            $client = new \GuzzleHttp\Client([
+                'verify' => false, // Disable SSL verification for development
+                'timeout' => 30,
+            ]);
+            
+            \Log::info('Attempting Google OAuth token exchange with code: ' . $request->code);
+            
+            $response = $client->post('https://oauth2.googleapis.com/token', [
+                'form_params' => [
+                    'client_id' => env('GOOGLE_CLIENT_ID'),
+                    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+                    'code' => $request->code,
+                    'grant_type' => 'authorization_code',
+                    'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+                ]
+            ]);
+
+            $tokenData = json_decode($response->getBody(), true);
+            \Log::info('Google OAuth token response:', $tokenData);
+            $accessToken = $tokenData['access_token'];
+
+            // Get user info from Google
+            $userResponse = $client->get('https://www.googleapis.com/oauth2/v2/userinfo', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                ],
+                'verify' => false, // Disable SSL verification for development
+            ]);
+
+            $googleUser = json_decode($userResponse->getBody(), true);
+
+            // For development mode, we'll skip People API and use form data only
+            // In production, you can enable People API after Google verification
+            $additionalInfo = [];
+
+            // Check if user already exists
+            $existingUser = User::where('email', $googleUser['email'])->first();
+            if ($existingUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This Google account is already registered. Please login instead.'
+                ], 400);
+            }
+
+            // Generate citizen ID
+            $citizenId = 'CC' . date('Y') . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
+
+            // Create user with Google data (use Google data if available, otherwise use form data)
+            $user = User::create([
+                'citizen_id' => $citizenId,
+                'first_name' => $googleUser['given_name'] ?? '',
+                'last_name' => $googleUser['family_name'] ?? '',
+                'middle_name' => null,
+                'extension_name' => null,
+                'email' => $googleUser['email'],
+                'mobile' => $additionalInfo['mobile'] ?? $request->mobile,
+                'birthdate' => $additionalInfo['birthdate'] ?? $request->birthdate,
+                'address' => $additionalInfo['address'] ?? $request->address,
+                'house_number' => $additionalInfo['houseNumber'] ?? $request->houseNumber,
+                'street' => $additionalInfo['street'] ?? $request->street,
+                'barangay' => $additionalInfo['barangay'] ?? $request->barangay,
+                'password' => Hash::make(Str::random(32)), // Random password for Google users
+                'role' => 'citizen',
+                'email_verified_at' => now(), // Google emails are pre-verified
+                'status' => 'active', // Auto-activate Google users
+                'email_verification_token' => null,
+            ]);
+
+            // Create token
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration with Google successful',
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'citizen_id' => $user->citizen_id,
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'middle_name' => $user->middle_name,
+                        'extension_name' => $user->extension_name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'is_active' => $user->is_active,
+                    ],
+                    'token' => $token
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('Google registration error: ' . $e->getMessage());
+            \Log::error('Google registration stack trace: ' . $e->getTraceAsString());
+            
+            // Handle specific Google OAuth errors
+            if (strpos($e->getMessage(), 'invalid_grant') !== false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Google authorization code has expired or is invalid. Please try logging in with Google again.'
+                ], 400);
+            }
+            
+            if (strpos($e->getMessage(), 'Malformed auth code') !== false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Google authorization code is invalid. Please try logging in with Google again.'
+                ], 400);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Google registration failed. Please try again.'
+            ], 400);
+        }
     }
 }

@@ -29,9 +29,20 @@ export const GatewayLogin: React.FC = () => {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [hasReadTerms, setHasReadTerms] = useState(false)
   const [hasReadPrivacy, setHasReadPrivacy] = useState(false)
-  const [otpTimer, setOtpTimer] = useState(300)
+  const [showGoogleRegistration, setShowGoogleRegistration] = useState(false)
+  const [googleUserData, setGoogleUserData] = useState<any>(null)
+  const [googleRegistrationData, setGoogleRegistrationData] = useState({
+    mobile: '',
+    birthdate: '',
+    address: '',
+    houseNumber: '',
+    street: '',
+    barangay: ''
+  })
+  const [otpTimer, setOtpTimer] = useState(600)
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', ''])
   const [otpEmail, setOtpEmail] = useState('')
+  const [otpType, setOtpType] = useState<'registration' | 'login'>('registration')
   const [showPassword, setShowPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -58,7 +69,7 @@ export const GatewayLogin: React.FC = () => {
     number: false,
     special: false
   })
-	const { login, register, googleLogin, error, clearError } = useAuthStore()
+	const { login, loginWithOtp, register, googleLogin, googleRegister, error, clearError } = useAuthStore()
 	const currentUser = useAuthStore(s => s.currentUser)
 	const isLoading = useAuthStore(s => s.isLoading)
   const [showLoginSplash, setShowLoginSplash] = useState(false)
@@ -170,6 +181,17 @@ export const GatewayLogin: React.FC = () => {
 				else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
 				else navigate('/portal', { replace: true })
 			}, 1500) // Show splash for 1.5 seconds
+		} else {
+			// Check if OTP is required
+			const currentError = useAuthStore.getState().error
+			if (currentError && currentError.startsWith('OTP_REQUIRED|')) {
+				const [, otpEmail] = currentError.split('|')
+				setOtpEmail(otpEmail)
+				setOtpType('login')
+				setShowOtp(true)
+				startOtpTimer()
+				showNotification('OTP sent to your email. Please verify to complete login.', 'info')
+			}
 		}
 	}
 
@@ -225,7 +247,29 @@ export const GatewayLogin: React.FC = () => {
           else navigate('/portal', { replace: true })
         }, 1500) // Show splash for 1.5 seconds
       } else {
+        // Check if it's a NOT_REGISTERED error
+        const currentError = useAuthStore.getState().error
+        if (currentError && currentError.startsWith('NOT_REGISTERED|')) {
+          const [, email, firstName, lastName] = currentError.split('|')
+          setGoogleUserData({ email, firstName, lastName, code: response.code })
+          
+          // Pre-populate form with Google data if available
+          const additionalInfo = useAuthStore.getState().additionalInfo || {}
+          setGoogleRegistrationData({
+            mobile: additionalInfo.mobile || '',
+            birthdate: additionalInfo.birthdate || '',
+            address: additionalInfo.address || '',
+            houseNumber: additionalInfo.houseNumber || '',
+            street: additionalInfo.street || '',
+            barangay: additionalInfo.barangay || ''
+          })
+          
+          setShowGoogleRegistration(true)
+          setShowRegister(false) // Hide regular registration form
+          showNotification('Google account not registered. Please complete registration.', 'info')
+      } else {
         showNotification('Google login failed. Please try again.', 'error')
+        }
       }
     } catch (error) {
       console.error('Google callback error:', error)
@@ -300,11 +344,128 @@ export const GatewayLogin: React.FC = () => {
     if (success) {
       showNotification('Registration successful! Please check your email for OTP verification.', 'success')
       setOtpEmail(registrationData.regEmail)
+      setOtpType('registration')
       setShowRegister(false)
       setShowOtp(true)
       startOtpTimer()
     } else {
       showNotification('Registration failed. Please try again.', 'error')
+    }
+  }
+
+  const handleGoogleRegistration = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!googleUserData) {
+      showNotification('Google user data not available. Please try again.', 'error')
+      return
+    }
+
+    // Validate required fields for Google registration
+    const requiredFields = ['mobile', 'birthdate', 'address', 'houseNumber', 'street', 'barangay']
+    const missingFields = requiredFields.filter(field => !googleRegistrationData[field as keyof typeof googleRegistrationData])
+    
+    if (missingFields.length > 0) {
+      showNotification(`Please fill in all required fields: ${missingFields.join(', ')}`, 'error')
+      return
+    }
+
+    // Validate mobile number format
+    const mobileRegex = /^09[0-9]{9}$/
+    if (!mobileRegex.test(googleRegistrationData.mobile)) {
+      showNotification('Mobile number must be in format 09XXXXXXXXX (11 digits starting with 09)', 'error')
+      return
+    }
+
+    // Validate birthdate is before today
+    const today = new Date().toISOString().split('T')[0]
+    if (googleRegistrationData.birthdate >= today) {
+      showNotification('Birthdate must be before today', 'error')
+      return
+    }
+
+    setSubmitting(true)
+    
+    // Get a fresh Google OAuth code for registration
+    try {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '855545694637-gi7vtpce9f672hn7me86ugvv2nc8jp1q.apps.googleusercontent.com'
+      
+      if (!window.google) {
+        showNotification('Google OAuth not available. Please try again.', 'error')
+        setSubmitting(false)
+        return
+      }
+
+      // Get fresh OAuth code
+      const freshCode = await new Promise((resolve, reject) => {
+        window.google.accounts.oauth2.initCodeClient({
+          client_id: clientId,
+          scope: 'email profile',
+          ux_mode: 'popup',
+          callback: (response: any) => {
+            if (response.code) {
+              resolve(response.code)
+            } else {
+              reject(new Error('No code received'))
+            }
+          }
+        }).requestCode()
+      })
+
+      const success = await googleRegister(freshCode, {
+        mobile: googleRegistrationData.mobile,
+        birthdate: googleRegistrationData.birthdate,
+        address: googleRegistrationData.address,
+        houseNumber: googleRegistrationData.houseNumber,
+        street: googleRegistrationData.street,
+        barangay: googleRegistrationData.barangay,
+      })
+      
+      if (success) {
+        showNotification('Registration with Google successful!', 'success')
+        setShowGoogleRegistration(false)
+        setGoogleUserData(null)
+        // Reset Google registration data
+        setGoogleRegistrationData({
+          mobile: '',
+          birthdate: '',
+          address: '',
+          houseNumber: '',
+          street: '',
+          barangay: ''
+        })
+        // Show splash screen before navigation
+        setShowLoginSplash(true)
+        setTimeout(() => {
+          const role = useAuthStore.getState().currentUser?.role
+          if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+          else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
+          else navigate('/portal', { replace: true })
+        }, 1500) // Show splash for 1.5 seconds
+      } else {
+        const error = useAuthStore.getState().error
+        if (error && (error.includes('expired') || error.includes('invalid'))) {
+          showNotification('Google authorization expired. Please try logging in with Google again.', 'error')
+          // Close the registration modal and let user try again
+          setShowGoogleRegistration(false)
+          setGoogleUserData(null)
+          setGoogleRegistrationData({
+            mobile: '',
+            birthdate: '',
+            address: '',
+            houseNumber: '',
+            street: '',
+            barangay: ''
+          })
+        } else {
+          showNotification('Google registration failed. Please try again.', 'error')
+        }
+      }
+    } catch (error) {
+      console.error('Error getting fresh Google OAuth code:', error)
+      showNotification('Failed to get Google authorization. Please try again.', 'error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -319,7 +480,7 @@ export const GatewayLogin: React.FC = () => {
   }
 
   const startOtpTimer = () => {
-    setOtpTimer(300)
+    setOtpTimer(600)
     const interval = setInterval(() => {
       setOtpTimer(prev => {
         if (prev <= 1) {
@@ -393,30 +554,94 @@ export const GatewayLogin: React.FC = () => {
       return
     }
 
-    try {
-      const res = await fetch('http://localhost:8000/api/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: otpEmail,
-          otp_code: code
-        })
-      })
+    setSubmitting(true)
+    
+    if (otpType === 'login') {
+      // Handle login OTP verification
+      const success = await loginWithOtp(otpEmail, code)
+      setSubmitting(false)
       
-      const data = await res.json()
-      
-      if (res.ok && data.success) {
+      if (success) {
         setShowOtp(false)
-        showNotification('Account verified successfully! You can now login.', 'success')
-        // Reset OTP form
         setOtpCode(['', '', '', '', '', ''])
         setOtpEmail('')
-      } else {
-        showNotification(data.message || 'OTP verification failed', 'error')
+        // Show splash screen before navigation
+        setShowLoginSplash(true)
+        setTimeout(() => {
+          const role = useAuthStore.getState().currentUser?.role
+          if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+          else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
+          else navigate('/portal', { replace: true })
+        }, 1500) // Show splash for 1.5 seconds
       }
-    } catch (error) {
-      console.error('OTP verification error:', error)
-      showNotification('Network error. Please try again.', 'error')
+    } else {
+      // Handle registration OTP verification
+      try {
+        const res = await fetch('http://localhost:8000/api/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: otpEmail,
+            otp_code: code
+          })
+        })
+        
+        const data = await res.json()
+        setSubmitting(false)
+        
+        if (res.ok && data.success) {
+          // Auto-login after successful registration OTP verification
+          const { user, token } = data.data
+          const userData = {
+            id: String(user.id),
+            citizen_id: user.citizen_id ?? '',
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            middle_name: user.middle_name,
+            extension_name: user.extension_name,
+            mobile: user.mobile,
+            birthdate: user.birthdate,
+            address: user.address,
+            house_number: user.house_number,
+            street: user.street,
+            barangay: user.barangay,
+            role: user.role,
+            is_active: user.is_active,
+          }
+          
+          // Save user data to localStorage for API service
+          localStorage.setItem('user_data', JSON.stringify(userData));
+          localStorage.setItem('auth_token', token);
+          
+          // Update auth store
+          useAuthStore.setState({ 
+            currentUser: userData, 
+            token, 
+            error: null 
+          });
+          
+          setShowOtp(false)
+          setOtpCode(['', '', '', '', '', ''])
+          setOtpEmail('')
+          showNotification('Account verified successfully! You are now logged in.', 'success')
+          
+          // Show splash screen before navigation
+          setShowLoginSplash(true)
+          setTimeout(() => {
+            const role = userData.role
+            if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+            else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
+            else navigate('/portal', { replace: true })
+          }, 1500) // Show splash for 1.5 seconds
+        } else {
+          showNotification(data.message || 'OTP verification failed', 'error')
+        }
+      } catch (error) {
+        console.error('OTP verification error:', error)
+        showNotification('Network error. Please try again.', 'error')
+        setSubmitting(false)
+      }
     }
   }
 
@@ -871,7 +1096,40 @@ export const GatewayLogin: React.FC = () => {
                 <p className="text-xs text-gray-600">By clicking on the register button below, I hereby agree to both the Terms of Use and Data Privacy Policy</p>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex flex-col space-y-3 pt-2">
+                {/* Google Registration Option */}
+                <div className="text-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-white text-gray-500">Or register with</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={!isGoogleOAuthConfigured}
+                    className="mt-3 w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Register with Google
+                  </button>
+                  {!isGoogleOAuthConfigured && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Google OAuth is not configured. Please contact support.
+                    </p>
+                  )}
+                </div>
+
+                {/* Regular Registration Buttons */}
+                <div className="flex justify-end space-x-3">
                 <button type="button" onClick={() => setShowRegister(false)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Cancel</button>
                 <button 
                   type="submit" 
@@ -889,6 +1147,7 @@ export const GatewayLogin: React.FC = () => {
                 >
                   {submitting ? 'Registering...' : 'Register'}
                 </button>
+                </div>
               </div>
               {(!hasReadTerms || !hasReadPrivacy) && (
                 <div className="text-center mt-2">
@@ -897,6 +1156,154 @@ export const GatewayLogin: React.FC = () => {
                   </p>
                 </div>
               )}
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Google Registration Modal */}
+      {showGoogleRegistration && googleUserData && (
+        <div className="fixed inset-0 z-30 flex items-start justify-center pt-20 px-4 bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="bg-white border-b border-gray-200 px-6 py-4 text-center flex-shrink-0">
+              <h2 className="text-xl md:text-2xl font-semibold text-secondary-600">Complete Registration with Google</h2>
+              <p className="text-sm text-gray-600 mt-2">
+                Welcome {googleUserData.firstName} {googleUserData.lastName}! 
+                Please provide additional information to complete your registration.
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <form onSubmit={handleGoogleRegistration} className="space-y-5">
+                {/* Google Account Info (Read-only) */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">Google Account Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-blue-600 font-medium">Name:</span> {googleUserData.firstName} {googleUserData.lastName}
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Email:</span> {googleUserData.email}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Required Additional Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">Mobile Number<span className="text-red-500">*</span></label>
+                    <input 
+                      type="tel" 
+                      name="mobile" 
+                      required
+                      pattern="09[0-9]{9}"
+                      title="Mobile number must be in format 09XXXXXXXXX (11 digits starting with 09)"
+                      placeholder="09XXXXXXXXX"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      value={googleRegistrationData.mobile}
+                      onChange={(e) => setGoogleRegistrationData({...googleRegistrationData, mobile: e.target.value})}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Format: 09XXXXXXXXX (11 digits starting with 09)
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Birthdate<span className="text-red-500">*</span></label>
+                    <input 
+                      type="date" 
+                      name="birthdate" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      value={googleRegistrationData.birthdate}
+                      onChange={(e) => setGoogleRegistrationData({...googleRegistrationData, birthdate: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1">Address<span className="text-red-500">*</span></label>
+                  <input 
+                    type="text" 
+                    name="address" 
+                    required 
+                    placeholder="Complete address"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={googleRegistrationData.address}
+                    onChange={(e) => setGoogleRegistrationData({...googleRegistrationData, address: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">House Number<span className="text-red-500">*</span></label>
+                    <input 
+                      type="text" 
+                      name="houseNumber" 
+                      required 
+                      placeholder="123"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      value={googleRegistrationData.houseNumber}
+                      onChange={(e) => setGoogleRegistrationData({...googleRegistrationData, houseNumber: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Street<span className="text-red-500">*</span></label>
+                    <input 
+                      type="text" 
+                      name="street" 
+                      required 
+                      placeholder="Main Street"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      value={googleRegistrationData.street}
+                      onChange={(e) => setGoogleRegistrationData({...googleRegistrationData, street: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Barangay<span className="text-red-500">*</span></label>
+                    <input 
+                      type="text" 
+                      name="barangay" 
+                      required 
+                      placeholder="Barangay Name"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      value={googleRegistrationData.barangay}
+                      onChange={(e) => setGoogleRegistrationData({...googleRegistrationData, barangay: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setShowGoogleRegistration(false)
+                      setGoogleUserData(null)
+                      // Reset Google registration data
+                      setGoogleRegistrationData({
+                        mobile: '',
+                        birthdate: '',
+                        address: '',
+                        houseNumber: '',
+                        street: '',
+                        barangay: ''
+                      })
+                    }} 
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={submitting} 
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      submitting
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-secondary-500 hover:bg-secondary-600 text-white'
+                    }`}
+                  >
+                    {submitting ? 'Registering...' : 'Complete Registration'}
+                  </button>
+                </div>
               </form>
             </div>
           </div>

@@ -61,7 +61,7 @@ class OtpVerification extends Model
             'user_id' => $userId,
             'otp_code' => $otpCode,
             'type' => $type,
-            'expires_at' => now()->addMinutes(5), // OTP expires in 5 minutes
+            'expires_at' => now()->addMinutes(10), // OTP expires in 10 minutes
         ]);
     }
 }

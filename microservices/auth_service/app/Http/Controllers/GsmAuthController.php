@@ -3,12 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\OtpVerification;
+use App\Services\BrevoEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class GsmAuthController extends Controller
 {
+    protected $brevoService;
+
+    public function __construct(BrevoEmailService $brevoService)
+    {
+        $this->brevoService = $brevoService;
+    }
+
     /**
      * POST /api/gsm/login
      * Accepts { email, password } and returns a response compatible with the legacy gsm_login endpoint.
@@ -31,7 +40,7 @@ class GsmAuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password) || !$user->is_active) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password',
@@ -40,39 +49,44 @@ class GsmAuthController extends Controller
             ], 401);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Check if user is active
+        if ($user->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account is not active. Please verify your email first.',
+                'data' => null,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 401);
+        }
 
-        $safeUser = [
-            'id' => $user->id,
-            'citizen_id' => $user->citizen_id,
-            'email' => $user->email,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'middle_name' => $user->middle_name,
-            'extension_name' => $user->extension_name,
-            'mobile' => $user->mobile,
-            'birthdate' => $user->birthdate,
-            'address' => $user->address,
-            'house_number' => $user->house_number,
-            'street' => $user->street,
-            'barangay' => $user->barangay,
-            'role' => $user->role,
-            'status' => $user->is_active ? 'active' : 'inactive',
-        ];
-
-        // If user is staff, fetch system role from scholarship service
-        if ($user->role === 'staff') {
-            $systemRole = $this->getStaffSystemRole($user->id);
-            $safeUser['system_role'] = $systemRole;
+        // Generate and send OTP for login verification
+        try {
+            $otp = OtpVerification::generateOtp($user->id, 'login');
+            $userName = trim($user->first_name . ' ' . $user->last_name);
+            
+            $this->brevoService->sendLoginOtpEmail(
+                $user->email,
+                $userName,
+                $otp->otp_code,
+                $otp->expires_at
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again.',
+                'data' => null,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 500);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Login successful',
+            'message' => 'OTP sent to your email. Please verify to complete login.',
             'data' => [
-                'user' => $safeUser,
-                'token' => $token,
-                'redirect' => 'portal',
+                'email' => $user->email,
+                'requires_otp' => true,
+                'expires_in' => 600 // 10 minutes
             ],
             'timestamp' => now()->format('Y-m-d H:i:s'),
         ]);
