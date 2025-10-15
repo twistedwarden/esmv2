@@ -1394,7 +1394,7 @@ class ScholarshipApplicationController extends Controller
     }
 
     /**
-     * Get applications pending SSC review (endorsed to SSC)
+     * Get applications ready for SSC endorsement (completed interviews)
      */
     public function getSscPendingApplications(Request $request): JsonResponse
     {
@@ -1409,7 +1409,7 @@ class ScholarshipApplicationController extends Controller
                 'documents.documentType',
                 'interviewSchedule.evaluation',
                 'latestSscDecision'
-            ])->where('status', 'endorsed_to_ssc');
+            ])->where('status', 'interview_completed');
 
             // Apply filters
             if ($request->has('category_id')) {

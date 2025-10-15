@@ -240,7 +240,7 @@ class InterviewController extends Controller
                 'leadership_involvement_score' => 'required|integer|min:1|max:5',
                 'financial_need_score' => 'required|integer|min:1|max:5',
                 'character_values_score' => 'required|integer|min:1|max:5',
-                'overall_recommendation' => 'required|in:Highly Recommended,Recommended,Not Recommended',
+                'overall_recommendation' => 'required|in:recommended,not_recommended,needs_followup',
                 'remarks' => 'nullable|string|max:1000',
             ]);
 
@@ -285,8 +285,9 @@ class InterviewController extends Controller
                 'interview_schedule_id' => $schedule->id,
                 'student_id' => $schedule->application->student_id,
                 'application_id' => $schedule->application_id,
+                'interviewer_id' => $schedule->interviewer_id, // Add missing interviewer_id
                 'interviewer_name' => $authUser['first_name'] . ' ' . $authUser['last_name'],
-                'interview_date' => $schedule->interview_date,
+                'evaluation_date' => now(), // Add missing evaluation_date
                 'evaluated_by' => $staff->id,
                 'academic_motivation_score' => $request->academic_motivation_score,
                 'leadership_involvement_score' => $request->leadership_involvement_score,
@@ -302,6 +303,33 @@ class InterviewController extends Controller
                 'status' => 'completed',
                 'completed_at' => now()
             ]);
+
+            // Update application status based on evaluation recommendation
+            $application = $schedule->application;
+            $statusUpdate = [
+                'interview_completed_at' => now(),
+                'interview_completed_by' => $staff->id,
+            ];
+
+            // Set status based on overall recommendation
+            switch ($request->overall_recommendation) {
+                case 'recommended':
+                    $statusUpdate['status'] = 'interview_completed';
+                    break;
+                case 'needs_followup':
+                    // Keep as interview_completed but mark for consideration in evaluation
+                    $statusUpdate['status'] = 'interview_completed';
+                    break;
+                case 'not_recommended':
+                    $statusUpdate['status'] = 'rejected';
+                    $statusUpdate['rejection_reason'] = 'Not recommended after interview evaluation';
+                    break;
+                default:
+                    $statusUpdate['status'] = 'interview_completed';
+                    break;
+            }
+
+            $application->update($statusUpdate);
 
             return response()->json([
                 'success' => true,
