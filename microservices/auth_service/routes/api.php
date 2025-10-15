@@ -34,6 +34,7 @@ Route::post('/login-with-otp', [AuthController::class, 'loginWithOtp']);
 
 // GSM-compatible endpoints (migrated from sqlite PHP script)
 Route::post('/gsm/login', [GsmAuthController::class, 'login']);
+Route::post('/gsm/login-with-otp', [GsmAuthController::class, 'loginWithOtp']);
 Route::post('/gsm/check-email', [GsmAuthController::class, 'checkEmail']);
 
 // User management endpoints (for other services)

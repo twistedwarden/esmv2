@@ -122,6 +122,96 @@ class GsmAuthController extends Controller
     }
 
     /**
+     * POST /api/gsm/login-with-otp
+     * GSM-compatible OTP login with staff permission check
+     */
+    public function loginWithOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+            'otp_code' => 'required|string|size:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'data' => ['errors' => $validator->errors()->all()],
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 400);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        
+        $otp = \App\Models\OtpVerification::where('user_id', $user->id)
+            ->where('otp_code', $request->otp_code)
+            ->where('type', 'login')
+            ->where('is_used', false)
+            ->first();
+
+        if (!$otp || !$otp->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP',
+                'data' => null,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 400);
+        }
+
+        // For staff users, check if they have permissions in scholarship service
+        if ($user->role === 'staff') {
+            $staffData = $this->getStaffDataFromScholarshipService($user->id);
+            if (!$staffData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. You do not have staff permissions.',
+                    'data' => null,
+                    'timestamp' => now()->format('Y-m-d H:i:s'),
+                ], 403);
+            }
+        }
+
+        // Mark OTP as used
+        $otp->markAsUsed();
+
+        // Create token
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Get staff system role for staff users
+        $systemRole = null;
+        if ($user->role === 'staff') {
+            $systemRole = $this->getStaffSystemRole($user->id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'citizen_id' => $user->citizen_id,
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'extension_name' => $user->extension_name,
+                    'mobile' => $user->mobile,
+                    'birthdate' => $user->birthdate,
+                    'address' => $user->address,
+                    'house_number' => $user->house_number,
+                    'street' => $user->street,
+                    'barangay' => $user->barangay,
+                    'role' => $user->role,
+                    'system_role' => $systemRole,
+                    'is_active' => $user->is_active,
+                ],
+                'token' => $token
+            ],
+            'timestamp' => now()->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
      * Get staff system role from scholarship service
      */
     private function getStaffSystemRole($userId)
@@ -130,7 +220,7 @@ class GsmAuthController extends Controller
             $scholarshipServiceUrl = config('services.scholarship_service.url', 'http://localhost:8001');
             
             $response = \Illuminate\Support\Facades\Http::timeout(10)
-                ->get("{$scholarshipServiceUrl}/api/staff/user/{$userId}");
+                ->get("{$scholarshipServiceUrl}/api/public/staff/verify/{$userId}");
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -141,6 +231,33 @@ class GsmAuthController extends Controller
         } catch (\Exception $e) {
             // Log error but don't fail login
             \Illuminate\Support\Facades\Log::warning('Failed to fetch staff system role', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Check if staff user exists in scholarship service
+     */
+    private function getStaffDataFromScholarshipService($userId)
+    {
+        try {
+            $scholarshipServiceUrl = config('services.scholarship_service.url', 'http://localhost:8001');
+            
+            $response = \Illuminate\Support\Facades\Http::timeout(10)
+                ->get("{$scholarshipServiceUrl}/api/public/staff/verify/{$userId}");
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                if ($data['success'] && isset($data['data'])) {
+                    return $data['data'];
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch staff data from scholarship service', [
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);

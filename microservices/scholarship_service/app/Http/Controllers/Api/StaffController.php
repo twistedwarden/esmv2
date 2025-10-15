@@ -232,4 +232,44 @@ class StaffController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Verify staff by user ID (public endpoint for auth service)
+     */
+    public function verifyStaff($userId): JsonResponse
+    {
+        try {
+            $staff = Staff::where('user_id', $userId)
+                ->where('is_active', true)
+                ->first();
+            
+            if (!$staff) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Staff not found',
+                    'data' => null
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $staff->id,
+                    'user_id' => $staff->user_id,
+                    'citizen_id' => $staff->citizen_id,
+                    'system_role' => $staff->system_role,
+                    'department' => $staff->department,
+                    'position' => $staff->position,
+                    'is_active' => $staff->is_active,
+                ],
+                'message' => 'Staff verified successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify staff member: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
 }

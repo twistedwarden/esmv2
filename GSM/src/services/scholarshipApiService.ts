@@ -924,21 +924,21 @@ class ScholarshipApiService {
     const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
       '/api/staff/interviewers'
     );
-    return response.data!;
+    return response;
   }
 
   async getAllStaff(): Promise<{ success: boolean; data: any[]; message: string }> {
     const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
       '/api/staff'
     );
-    return response.data!;
+    return response;
   }
 
   async getStaffById(id: number): Promise<{ success: boolean; data: any; message: string }> {
     const response = await this.makeRequest<{ success: boolean; data: any; message: string }>(
       `/api/staff/${id}`
     );
-    return response.data!;
+    return response;
   }
 
   // Interview Evaluation Methods

@@ -48,7 +48,7 @@ class InterviewController extends Controller
                 'application.subcategory',
                 'application.school',
                 'evaluation'
-            ])->where('staff_id', $staff->id);
+            ])->where('interviewer_id', $userId);
 
             // Apply filters
             if ($request->has('status')) {

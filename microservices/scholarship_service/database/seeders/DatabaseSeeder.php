@@ -16,7 +16,8 @@ class DatabaseSeeder extends Seeder
             SchoolSeeder::class,
             DocumentTypeSeeder::class,
             PartnerSchoolRepresentativeSeeder::class, // Must run after SchoolSeeder
-            StaffSeederWithRealIds::class, // Use the seeder with real user IDs
+            // StaffSeederWithRealIds::class, // Use the seeder with real user IDs
+            StaffSeeder::class, // Use the seeder with real user IDs
             SampleApplicationSeeder::class,
             //EnrollmentVerificationSeeder::class, // Must run after SampleApplicationSeeder
             InterviewScheduleSeeder::class, // Must run after SampleApplicationSeeder

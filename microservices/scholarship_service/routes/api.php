@@ -6,6 +6,24 @@ use Illuminate\Http\Request;
 Route::get('/test-top', function () {
     return response()->json(['message' => 'Top test route works']);
 });
+
+// Temporary public test endpoint for staff interviewers
+Route::get('/test-staff-interviewers', function () {
+    try {
+        $interviewers = \App\Models\Staff::getActiveInterviewersWithUserData();
+        return response()->json([
+            'success' => true,
+            'data' => $interviewers,
+            'message' => 'Test endpoint - Interviewers retrieved successfully'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Test endpoint - Failed to retrieve interviewers: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ScholarshipApplicationController;
@@ -17,6 +35,9 @@ use App\Http\Controllers\EnrollmentVerificationController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\InterviewEvaluationController;
 use App\Http\Controllers\Api\StaffController;
+
+// Public staff interviewers endpoint (temporarily for debugging)
+Route::get('/staff/interviewers', [StaffController::class, 'getInterviewers']);
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +66,9 @@ Route::prefix('public')->group(function () {
     Route::get('/scholarship-categories', [ScholarshipCategoryController::class, 'index']);
     Route::get('/document-types', [DocumentController::class, 'getDocumentTypes']);
     Route::get('/required-documents', [DocumentController::class, 'getRequiredDocuments']);
+    
+    // Staff verification endpoint for auth service
+    Route::get('/staff/verify/{userId}', [StaffController::class, 'verifyStaff']);
 });
 
 // Student routes (protected by authentication)
@@ -218,7 +242,8 @@ Route::prefix('interview-evaluations')->middleware(['auth.auth_service'])->group
 
 // Staff routes (protected by authentication)
 Route::prefix('staff')->middleware(['auth.auth_service'])->group(function () {
-    Route::get('/interviewers', [StaffController::class, 'getInterviewers']);
+    // Temporarily make interviewers endpoint public for debugging
+    // Route::get('/interviewers', [StaffController::class, 'getInterviewers']);
     Route::get('/', [StaffController::class, 'getAllStaff']);
     Route::get('/user/{userId}', [StaffController::class, 'getStaffByUserId']);
     Route::get('/{id}', [StaffController::class, 'getStaffById']);
@@ -275,7 +300,7 @@ Route::get('/test/users', function () {
 // Partner School Enrollment Data Management routes have been removed - automatic verification is disabled
 
 // Form-specific endpoints for easy integration (protected by authentication)
-Route::prefix('forms')->group(function () {
+Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
     // New Application Form
     Route::post('/new-application', function (Request $request) {
         $studentController = new StudentController();

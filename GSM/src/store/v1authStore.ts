@@ -430,7 +430,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		set({ isLoading: true, error: null })
 		
 		try {
-			const response = await fetch(`${API_BASE_URL}/login-with-otp`, {
+			const response = await fetch(`${API_BASE_URL}/gsm/login-with-otp`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

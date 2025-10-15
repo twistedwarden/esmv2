@@ -20,7 +20,7 @@ export const ToastProvider = ({ children }) => {
             {children}
             <ToastContainer 
                 toasts={toast.toasts} 
-                onRemoveToast={toast.removeToast} 
+                removeToast={toast.removeToast} 
             />
         </ToastContext.Provider>
     );

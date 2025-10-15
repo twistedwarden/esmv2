@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Services\AuthServiceClient;
 
 class StaffSeeder extends Seeder
 {
@@ -17,69 +16,69 @@ class StaffSeeder extends Seeder
         // These user IDs should match the staff users created in auth service
         $expectedStaffUsers = [
             [
-                'email' => 'peter.santos@scholarship.gov.ph',
+                'user_id' => 311,
+                'email' => 'grindshine478@gmail.com',
                 'name' => 'Peter Santos',
                 'citizen_id' => 'STAFF-002',
             ],
             [
+                'user_id' => 312,
                 'email' => 'maria.reyes@scholarship.gov.ph',
                 'name' => 'Maria Reyes',
                 'citizen_id' => 'STAFF-003',
             ],
             [
+                'user_id' => 313,
                 'email' => 'john.cruz@scholarship.gov.ph',
                 'name' => 'John Cruz',
                 'citizen_id' => 'STAFF-004',
             ],
             [
+                'user_id' => 314,
                 'email' => 'ana.lopez@scholarship.gov.ph',
                 'name' => 'Ana Lopez',
                 'citizen_id' => 'STAFF-005',
             ],
             [
+                'user_id' => 315,
                 'email' => 'carlos.mendoza@scholarship.gov.ph',
                 'name' => 'Carlos Mendoza',
                 'citizen_id' => 'STAFF-006',
             ],
         ];
 
-        // Try to fetch actual staff users from auth service
-        try {
-            $authService = app(AuthServiceClient::class);
-            $authStaffUsers = $authService->getStaffUsers();
+        // Create staff records directly using the known user IDs from auth service
+        foreach ($expectedStaffUsers as $expectedUser) {
+            $existingStaff = DB::table('staff')->where('user_id', $expectedUser['user_id'])->first();
             
-            foreach ($expectedStaffUsers as $expectedUser) {
-                // Find the user in auth service by email
-                $authUser = collect($authStaffUsers)->first(function ($user) use ($expectedUser) {
-                    return $user['email'] === $expectedUser['email'];
-                });
+            if (!$existingStaff) {
+                DB::table('staff')->insert([
+                    'user_id' => $expectedUser['user_id'],
+                    'citizen_id' => $expectedUser['citizen_id'],
+                    'system_role' => 'interviewer',
+                    'department' => 'Scholarship Management',
+                    'position' => 'Interview Coordinator',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
                 
-                if ($authUser) {
-                    $existingStaff = DB::table('staff')->where('user_id', $authUser['id'])->first();
-                    
-                    if (!$existingStaff) {
-                        DB::table('staff')->insert([
-                            'user_id' => $authUser['id'],
-                            'citizen_id' => $expectedUser['citizen_id'],
-                            'system_role' => 'interviewer',
-                            'department' => 'Scholarship Management',
-                            'position' => 'Interview Coordinator',
-                            'is_active' => true,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                        
-                        $this->command->info("Created staff record for {$expectedUser['name']} (User ID: {$authUser['id']})");
-                    } else {
-                        $this->command->info("Staff record already exists for {$expectedUser['name']} (User ID: {$authUser['id']})");
-                    }
-                } else {
-                    $this->command->warn("User not found in auth service: {$expectedUser['email']}");
-                }
+                $this->command->info("Created staff record for {$expectedUser['name']} (User ID: {$expectedUser['user_id']})");
+            } else {
+                // Update existing record to ensure it matches
+                DB::table('staff')
+                    ->where('user_id', $expectedUser['user_id'])
+                    ->update([
+                        'citizen_id' => $expectedUser['citizen_id'],
+                        'system_role' => 'interviewer',
+                        'department' => 'Scholarship Management',
+                        'position' => 'Interview Coordinator',
+                        'is_active' => true,
+                        'updated_at' => now(),
+                    ]);
+                
+                $this->command->info("Updated staff record for {$expectedUser['name']} (User ID: {$expectedUser['user_id']})");
             }
-        } catch (\Exception $e) {
-            $this->command->error("Could not connect to auth service: " . $e->getMessage());
-            $this->command->info("Please ensure the auth service is running and seeded before running this seeder.");
         }
     }
 }

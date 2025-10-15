@@ -194,34 +194,19 @@ function InterviewSchedules() {
 
   const fetchStaffMembers = async () => {
     try {
-      // Try to fetch from API first
       const response = await scholarshipApiService.getStaffInterviewers();
       
       if (response.success && response.data) {
         setStaffMembers(response.data);
       } else {
-        // Fallback to mock data if API fails
-        console.warn('API failed, using mock staff data:', response.message);
-        const mockStaff = [
-          { id: 1, name: 'Peter Santos', email: 'peter.santos@scholarship.gov.ph' },
-          { id: 2, name: 'Maria Reyes', email: 'maria.reyes@scholarship.gov.ph' },
-          { id: 3, name: 'John Cruz', email: 'john.cruz@scholarship.gov.ph' },
-          { id: 4, name: 'Ana Lopez', email: 'ana.lopez@scholarship.gov.ph' },
-          { id: 5, name: 'Carlos Mendoza', email: 'carlos.mendoza@scholarship.gov.ph' },
-        ];
-        setStaffMembers(mockStaff);
+        console.error('Failed to fetch staff members:', response.message);
+        showError('Failed to load interviewers. Please refresh the page.');
+        setStaffMembers([]);
       }
     } catch (error) {
       console.error('Error fetching staff members:', error);
-      // Fallback to mock data
-      const mockStaff = [
-        { id: 1, name: 'Peter Santos', email: 'peter.santos@scholarship.gov.ph' },
-        { id: 2, name: 'Maria Reyes', email: 'maria.reyes@scholarship.gov.ph' },
-        { id: 3, name: 'John Cruz', email: 'john.cruz@scholarship.gov.ph' },
-        { id: 4, name: 'Ana Lopez', email: 'ana.lopez@scholarship.gov.ph' },
-        { id: 5, name: 'Carlos Mendoza', email: 'carlos.mendoza@scholarship.gov.ph' },
-      ];
-      setStaffMembers(mockStaff);
+      showError('Failed to load interviewers. Please refresh the page.');
+      setStaffMembers([]);
     }
   };
 
@@ -882,6 +867,10 @@ function InterviewSchedules() {
           if (!selectedStaff) {
             throw new Error('Selected interviewer not found');
           }
+          
+          if (!selectedStaff.user_id) {
+            throw new Error('Selected interviewer is missing user ID. Please refresh the page and try again.');
+          }
 
       const interviewData = {
         interview_date: createFormData.interviewDate,
@@ -890,6 +879,7 @@ function InterviewSchedules() {
             interview_type: 'online',
             meeting_link: createFormData.meetingLink,
             staff_id: createFormData.staffId,
+            interviewer_id: selectedStaff.user_id,
             interviewer_name: selectedStaff.name,
         scheduling_type: 'manual',
         interview_notes: createFormData.notes,
@@ -1104,6 +1094,10 @@ function InterviewSchedules() {
             if (!selectedStaff) {
               throw new Error('Selected interviewer not found');
             }
+            
+            if (!selectedStaff.user_id) {
+              throw new Error('Selected interviewer is missing user ID. Please refresh the page and try again.');
+            }
 
             // Schedule interviews for all selected pending applications with consecutive times
             const promises = pendingItems.map((item, index) => {
@@ -1115,6 +1109,7 @@ function InterviewSchedules() {
                 interview_type: 'online',
                 meeting_link: bulkFormData.meetingLink,
                 staff_id: bulkFormData.staffId,
+                interviewer_id: selectedStaff.user_id,
                 interviewer_name: selectedStaff.name,
                 scheduling_type: 'manual',
                 interview_notes: `${bulkFormData.notes}\n\nScheduled Time: ${timeSlot.displayTime} - ${formatTimeForDisplay(timeSlot.endTime)}`,
@@ -1963,8 +1958,8 @@ Please check your internet connection and try again. If the problem persists, co
                 >
                   <option value="">Select an interviewer</option>
                   {staffMembers.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.name}
+                    <option key={staff.id} value={staff.id} disabled={!staff.user_id}>
+                      {staff.name} {!staff.user_id ? '(Missing User ID)' : ''}
                     </option>
                   ))}
                 </select>
@@ -2781,8 +2776,8 @@ Please check your internet connection and try again. If the problem persists, co
                 >
                   <option value="">Select an interviewer</option>
                   {staffMembers.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.name}
+                    <option key={staff.id} value={staff.id} disabled={!staff.user_id}>
+                      {staff.name} {!staff.user_id ? '(Missing User ID)' : ''}
                     </option>
                   ))}
                 </select>

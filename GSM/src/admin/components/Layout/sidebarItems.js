@@ -85,24 +85,84 @@ export const getSidebarItems = (userRole, userSystemRole = null) => {
         ];
     }
     
-    // Staff with interviewer system role see only interview-related modules
-    if (userRole === 'staff' && userSystemRole === 'interviewer') {
+    // Staff users are restricted - they must have a system_role from scholarship service
+    if (userRole === 'staff') {
+        // If no system_role, deny all access
+        if (!userSystemRole) {
+            return [
+                { id: 'access-denied', icon: Shield, label: 'Access Denied' }
+            ];
+        }
+        
+        // Staff with interviewer system role see only interview-related modules
+        if (userSystemRole === 'interviewer') {
+            return [
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                {
+                    id: 'interviews', icon: ClipboardList, label: 'My Interviews',
+                    subItems: [
+                        { id: 'interviews-pending', label: 'Pending Interviews' },
+                        { id: 'interviews-completed', label: 'Completed' },
+                        { id: 'interviews-all', label: 'All Interviews' }
+                    ]
+                },
+                { id: 'settings', icon: Settings, label: 'Settings' }
+            ];
+        }
+        
+        // Staff with other system roles see limited modules based on their role
+        if (userSystemRole === 'reviewer') {
+            return [
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                {
+                    id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+                    subItems: [
+                        { id: 'scholarship-overview', label: 'Overview' },
+                        { id: 'scholarship-applications', label: 'Applications' }
+                    ]
+                },
+                { id: 'settings', icon: Settings, label: 'Settings' }
+            ];
+        }
+        
+        if (userSystemRole === 'coordinator') {
+            return [
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                {
+                    id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+                    subItems: [
+                        { id: 'scholarship-overview', label: 'Overview' },
+                        { id: 'scholarship-applications', label: 'Applications' },
+                        { id: 'scholarship-programs', label: 'Programs' }
+                    ]
+                },
+                {
+                    id: 'studentRegistry', icon: ClipboardList, label: 'Student Registry',
+                    subItems: [
+                        { id: 'studentRegistry-overview', label: 'Overview' },
+                        { id: 'studentRegistry-active-students', label: 'Active Students' }
+                    ]
+                },
+                { id: 'settings', icon: Settings, label: 'Settings' }
+            ];
+        }
+        
+        // For any other system_role, show limited access
         return [
             { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            {
-                id: 'interviews', icon: ClipboardList, label: 'My Interviews',
-                subItems: [
-                    { id: 'interviews-pending', label: 'Pending Interviews' },
-                    { id: 'interviews-completed', label: 'Completed' },
-                    { id: 'interviews-all', label: 'All Interviews' }
-                ]
-            },
             { id: 'settings', icon: Settings, label: 'Settings' }
         ];
     }
     
-    // Admin and other staff see all modules
-    return allSidebarItems;
+    // Admin users see all modules
+    if (userRole === 'admin') {
+        return allSidebarItems;
+    }
+    
+    // Default: no access
+    return [
+        { id: 'access-denied', icon: Shield, label: 'Access Denied' }
+    ];
 };
 
 // Default export for backward compatibility

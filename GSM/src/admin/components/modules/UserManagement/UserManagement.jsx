@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Eye, EyeOff, Lock, Mail, Phone, MapPin, Calendar, User, Building, Briefcase, AlertCircle, CheckCircle, XCircle, School, MoreVertical } from 'lucide-react';
 import axios from 'axios';
 import UserActionModal from './UserActionModal';
-import ToastContainer from '../../../../components/ui/ToastContainer';
+import { useToastContext } from '../../../../components/providers/ToastProvider';
 
 const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
 
@@ -56,20 +56,11 @@ const UserManagement = () => {
     const [showActionModal, setShowActionModal] = useState(false);
     const [selectedActionUser, setSelectedActionUser] = useState(null);
     const [isActionLoading, setIsActionLoading] = useState(false);
-    const [toasts, setToasts] = useState([]);
+    // Use global toast context
+    const { showSuccess, showError, showWarning } = useToastContext();
     
     // Check if a role is selected to enable/disable form fields
     const isRoleSelected = formData.role && formData.role !== '';
-    
-    // Toast helper functions
-    const addToast = (message, type = 'info', duration = 3000) => {
-        const id = Date.now() + Math.random();
-        setToasts(prev => [...prev, { id, message, type, duration }]);
-    };
-
-    const removeToast = (id) => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-    };
     
     // Helper function to get disabled state and styling for form fields
     const getFieldProps = () => ({
@@ -257,7 +248,7 @@ const UserManagement = () => {
             const response = await axios.post(`${SCHOLARSHIP_API}/users`, sanitizedData);
             
             if (response.data.success) {
-                addToast('User created successfully!', 'success');
+                showSuccess('User created successfully!');
                 setShowCreateModal(false);
                 resetForm();
                 fetchUsers();
@@ -270,14 +261,14 @@ const UserManagement = () => {
             if (error.response?.data?.errors) {
                 const serverErrors = error.response.data.errors;
                 setFormErrors(serverErrors);
-                addToast('Please fix the validation errors and try again.', 'error');
+                showError('Please fix the validation errors and try again.');
             } else if (error.response?.data?.message) {
-                addToast(`Error: ${error.response.data.message}`, 'error');
+                showError(`Error: ${error.response.data.message}`);
             } else if (error.code === 'NETWORK_ERROR') {
-                addToast('Network error. Please check your connection and try again.', 'error');
+                showError('Network error. Please check your connection and try again.');
             } else {
                 const errorMessage = error.response?.data?.message || error.message;
-                addToast('Error creating user: ' + errorMessage, 'error');
+                showError('Error creating user: ' + errorMessage);
             }
         } finally {
             setIsSubmitting(false);
@@ -317,13 +308,13 @@ const UserManagement = () => {
         try {
             const response = await axios.put(`${SCHOLARSHIP_API}/users/${userId}/activate`);
             if (response.data.success) {
-                addToast(`User activated successfully!`, 'success');
+                showSuccess(`User activated successfully!`);
                 fetchUsers();
                 fetchStats();
                 closeActionModal();
             }
         } catch (error) {
-            addToast(`Error activating user: ${error.response?.data?.message || error.message}`, 'error');
+            showError(`Error activating user: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsActionLoading(false);
         }
@@ -334,13 +325,13 @@ const UserManagement = () => {
         try {
             const response = await axios.delete(`${SCHOLARSHIP_API}/users/${userId}`);
             if (response.data.success) {
-                addToast(`User deactivated successfully!`, 'warning');
+                showWarning(`User deactivated successfully!`);
                 fetchUsers();
                 fetchStats();
                 closeActionModal();
             }
         } catch (error) {
-            addToast(`Error deactivating user: ${error.response?.data?.message || error.message}`, 'error');
+            showError(`Error deactivating user: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsActionLoading(false);
         }
@@ -351,13 +342,13 @@ const UserManagement = () => {
         try {
             const response = await axios.delete(`${SCHOLARSHIP_API}/users/${userId}/permanent`);
             if (response.data.success) {
-                addToast(`User permanently deleted successfully!`, 'success');
+                showSuccess(`User permanently deleted successfully!`);
                 fetchUsers();
                 fetchStats();
                 closeActionModal();
             }
         } catch (error) {
-            addToast(`Error permanently deleting user: ${error.response?.data?.message || error.message}`, 'error');
+            showError(`Error permanently deleting user: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsActionLoading(false);
         }
@@ -1679,8 +1670,6 @@ const UserManagement = () => {
                 isLoading={isActionLoading}
             />
 
-            {/* Toast Container */}
-            <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
     );
 };
