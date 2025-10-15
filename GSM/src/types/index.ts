@@ -77,7 +77,7 @@ export interface StatusCheckData {
   remarks?: string;
 }
 
-export type UserRole = 'admin' | 'student' | 'staff';
+export type UserRole = 'admin' | 'student' | 'staff' | 'ssc';
 
 export interface School {
   school_id: string;

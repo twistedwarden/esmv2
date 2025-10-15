@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Document;
 use App\Models\DocumentType;
+use App\Models\FileSecurityLog;
+use App\Services\FileSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -94,6 +96,49 @@ class DocumentController extends Controller
                 'error' => $file->getError(),
                 'error_message' => $file->getErrorMessage()
             ]);
+
+                   // File security validation
+                   $securityService = new FileSecurityService();
+                   $securityResult = $securityService->validateFile($file);
+                   
+                   // Log the security scan
+                   $securityLog = FileSecurityLog::create([
+                       'file_name' => $file->getClientOriginalName(),
+                       'file_path' => 'temp/' . $file->getClientOriginalName(), // Temporary path before storage
+                       'mime_type' => $file->getMimeType(),
+                       'file_size' => $file->getSize(),
+                       'is_clean' => $securityResult['is_clean'],
+                       'threat_name' => $securityResult['threat_name'],
+                       'notes' => implode('; ', $securityResult['notes'] ?? []),
+                       'scan_duration' => $securityResult['scan_duration'],
+                       'scanner_type' => 'file_security',
+                       'student_id' => $request->student_id,
+                       'application_id' => $request->application_id,
+                   ]);
+                   
+                   if (!$securityResult['is_clean']) {
+                       Log::warning('File upload rejected due to security concerns', [
+                           'file_name' => $file->getClientOriginalName(),
+                           'threat' => $securityResult['threat_name'],
+                           'student_id' => $request->student_id,
+                           'security_log_id' => $securityLog->id
+                       ]);
+                       
+                       return response()->json([
+                           'success' => false,
+                           'message' => 'File upload rejected due to security concerns',
+                           'data' => [
+                               'reason' => $securityResult['threat_name'],
+                               'scan_time' => $securityResult['scan_duration']
+                           ]
+                       ], 422);
+                   }
+                   
+                   Log::info('File passed security validation', [
+                       'filename' => $file->getClientOriginalName(),
+                       'scan_duration' => $securityResult['scan_duration'] ?? 0,
+                       'security_log_id' => $securityLog->id
+                   ]);
             
             $originalName = $file->getClientOriginalName();
             $extension = $file->getClientOriginalExtension();
@@ -122,24 +167,28 @@ class DocumentController extends Controller
                     'verification_notes' => null,
                     'verified_by' => null,
                     'verified_at' => null,
+                    'virus_scan_log_id' => $scanResult['log_id'] ?? null,
                 ]);
 
-                // Store the new file
-                Log::info('Storing file to: ' . $filePath);
-                $fileContents = file_get_contents($file);
-                if ($fileContents === false) {
-                    throw new \Exception('Failed to read file contents');
-                }
-                Storage::disk('public')->put($filePath, $fileContents);
-                Log::info('File stored successfully');
+                       // Store the new file
+                       Log::info('Storing file to: ' . $filePath);
+                       $fileContents = file_get_contents($file);
+                       if ($fileContents === false) {
+                           throw new \Exception('Failed to read file contents');
+                       }
+                       Storage::disk('public')->put($filePath, $fileContents);
+                       Log::info('File stored successfully');
 
-                $existingDocument->load(['student', 'application', 'documentType']);
+                       // Update security log with final file path
+                       $securityLog->update(['file_path' => $filePath]);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Document replaced successfully',
-                    'data' => $existingDocument
-                ], 200);
+                       $existingDocument->load(['student', 'application', 'documentType']);
+
+                       return response()->json([
+                           'success' => true,
+                           'message' => 'Document replaced successfully',
+                           'data' => $existingDocument
+                       ], 200);
             } else {
                 // Store the new file
                 Log::info('Storing new file to: ' . $filePath);
@@ -159,6 +208,12 @@ class DocumentController extends Controller
                     'file_size' => $file->getSize(),
                     'mime_type' => $file->getMimeType(),
                     'status' => 'pending',
+                ]);
+
+                // Update security log with document ID and final file path
+                $securityLog->update([
+                    'file_path' => $filePath,
+                    'document_id' => $document->id
                 ]);
 
                 $document->load(['student', 'application', 'documentType']);
@@ -400,6 +455,50 @@ class DocumentController extends Controller
             'success' => true,
             'data' => $requiredDocuments
         ]);
+    }
+
+    /**
+     * Get scan status for a document
+     */
+    public function getScanStatus(Document $document): JsonResponse
+    {
+        try {
+            $scanLog = $document->virusScanLog;
+            
+            if (!$scanLog) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'status' => 'not_scanned',
+                        'message' => 'Document has not been scanned yet'
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'status' => $scanLog->is_clean ? 'clean' : 'infected',
+                    'is_clean' => $scanLog->is_clean,
+                    'threat_name' => $scanLog->threat_name,
+                    'scan_duration' => $scanLog->scan_duration,
+                    'scanned_at' => $scanLog->created_at,
+                    'scan_type' => $scanLog->scan_type
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get document scan status', [
+                'document_id' => $document->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get scan status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

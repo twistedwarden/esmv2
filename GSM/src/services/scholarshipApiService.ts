@@ -694,6 +694,21 @@ class ScholarshipApiService {
     return response.data!.data!;
   }
 
+  // Check document scan status
+  async checkDocumentScanStatus(documentId: number): Promise<{
+    status: 'not_scanned' | 'clean' | 'infected',
+    is_clean?: boolean,
+    threat_name?: string,
+    scan_duration?: number,
+    scanned_at?: string,
+    scan_type?: string
+  }> {
+    const response = await this.makeRequest<{ data: any }>(
+      `${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENTS}/${documentId}/scan-status`
+    );
+    return response.data!.data!;
+  }
+
   async getDocument(id: number): Promise<Document> {
     const response = await this.makeRequest<{ data: Document }>(
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENT(id)

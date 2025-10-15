@@ -1,5 +1,5 @@
 // Sidebar items configuration for Sidebar.jsx
-import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield, ShieldCheck } from 'lucide-react';
 
 const allSidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -57,6 +57,15 @@ const allSidebarItems = [
     },
     { id: 'user-management', icon: Users, label: 'User Management' },
     { id: 'audit-logs', icon: Shield, label: 'Audit Logs' },
+    { 
+        id: 'security', icon: ShieldCheck, label: 'Security',
+        subItems: [
+            { id: 'security-dashboard', label: 'Document Security' },
+            { id: 'security-threats', label: 'Threat Monitoring' },
+            { id: 'security-quarantine', label: 'Quarantine' },
+            { id: 'security-settings', label: 'Security Settings' }
+        ]
+    },
     { id: 'settings', icon: Settings, label: 'Settings' }
 ];
 

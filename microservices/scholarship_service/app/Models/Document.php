@@ -22,6 +22,7 @@ class Document extends Model
         'verification_notes',
         'verified_by',
         'verified_at',
+        'virus_scan_log_id',
     ];
 
     protected $casts = [
@@ -43,6 +44,11 @@ class Document extends Model
     public function documentType(): BelongsTo
     {
         return $this->belongsTo(DocumentType::class);
+    }
+
+    public function virusScanLog(): BelongsTo
+    {
+        return $this->belongsTo(VirusScanLog::class);
     }
 
     // Scopes
