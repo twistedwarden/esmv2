@@ -1,8 +1,8 @@
 // API Configuration
 export const API_CONFIG = {
     AUTH_SERVICE: {
-        // Use environment variable, fallback to local development
-        BASE_URL: import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:8000',
+        // Production auth service
+        BASE_URL: 'http://localhost:8000',
         ENDPOINTS: {
             LOGIN: '/api/login',
             LOGOUT: '/api/logout',

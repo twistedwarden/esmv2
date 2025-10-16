@@ -22,17 +22,15 @@ export const API_CONFIG = {
 
 **Switch to Production**:
 
-<!--
 ```typescript
 export const API_CONFIG = {
-  BASE_URL: "https://api.gsph.com",
-  AUTH_SERVICE: "https://auth.gsph.com",
-  SCHOLARSHIP_SERVICE: "https://scholarship.gsph.com",
+  // BASE_URL: "https://api.gsph.com",
+  AUTH_SERVICE: "https://auth-gsph.up.railway.app",
+  SCHOLARSHIP_SERVICE: "https://scholarship-gsph.up.railway.app",
   AID_SERVICE: "https://aid.gsph.com",
   MONITORING_SERVICE: "https://monitoring.gsph.com",
-}; -->
-
-````
+};
+```
 
 ### Method 2: Update Vite Config
 
@@ -49,7 +47,7 @@ export default defineConfig({
     __API_ENV__: JSON.stringify("local"), // or 'production'
   },
 });
-````
+```
 
 Then in your code:
 
