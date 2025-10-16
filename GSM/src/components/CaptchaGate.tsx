@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+// @ts-ignore - Optional dependency for Google reCAPTCHA
 import ReCAPTCHA from 'react-google-recaptcha'
 
 type CaptchaGateProps = {
