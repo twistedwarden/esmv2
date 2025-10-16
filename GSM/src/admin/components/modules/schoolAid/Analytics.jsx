@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, BarChart3, PieChart, MapPin, DollarSign, Users, School, Calendar, Download, Filter } from 'lucide-react';
+import { LoadingData } from '../../ui/LoadingSpinner';
 
 function Analytics({ onPageChange }) {
     const [selectedPeriod, setSelectedPeriod] = useState('ytd');
@@ -71,11 +72,7 @@ function Analytics({ onPageChange }) {
     const schools = ['All Schools', 'University of the Philippines', 'Ateneo de Manila University', 'De La Salle University'];
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-        );
+        return <LoadingData />;
     }
 
     return (

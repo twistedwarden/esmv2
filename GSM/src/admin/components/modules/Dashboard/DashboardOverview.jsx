@@ -1,192 +1,436 @@
-import React from 'react';
-import {
-	Users,
-	GraduationCap,
-	TrendingUp,
-	Award,
-	School,
-	Calendar,
-	PieChart,
-	HandCoins,
-	FileBarChart,
-	UserPlus,
+import React, { useState, useEffect } from 'react';
+import { 
+  Users,
+  GraduationCap, 
+  FileText, 
+  DollarSign, 
+  TrendingUp, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle,
+  School,
+  Award,
+  Calendar,
+  BarChart3,
+  PieChart,
+  Activity,
+  Eye,
+  Download,
+  RefreshCw,
+  Plus,
+  Filter,
+  Search,
+  HandCoins,
+  UserCheck,
+  FileBarChart,
+  Target,
+  Zap
 } from 'lucide-react';
+import { LoadingDashboard } from '../../ui/LoadingSpinner';
 import StatsCard from './components/StatsCard';
 import ChartCard from './components/ChartCard';
 import RecentActivities from './components/RecentActivities';
 import PerformanceMetrics from './components/PerformanceMetrics';
 
 function DashboardOverview() {
-	// Mock stats
-	const stats = [
-		{ title: 'Active Scholarships', value: '3,421', change: '+12.3%', trend: 'up', icon: GraduationCap, color: 'green' },
-		{ title: 'School Aid Distributed', value: '₱1,245,000', change: '+15.2%', trend: 'up', icon: HandCoins, color: 'blue' },
-		{ title: 'Registered Students', value: '12,847', change: '+5.2%', trend: 'up', icon: Users, color: 'purple' },
-		{ title: 'Partner Schools', value: '156', change: '+2.1%', trend: 'up', icon: School, color: 'orange' },
-		{ title: 'Reports Generated', value: '24', change: '+8.3%', trend: 'up', icon: FileBarChart, color: 'green' },
-	];
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-	// Mock chart data
-	const scholarshipApplicationsTrend = [
-		{ month: 'Jan', applications: 320 },
-		{ month: 'Feb', applications: 410 },
-		{ month: 'Mar', applications: 390 },
-		{ month: 'Apr', applications: 450 },
-		{ month: 'May', applications: 500 },
-		{ month: 'Jun', applications: 530 },
-		{ month: 'Jul', applications: 600 },
-	];
-	const schoolAidDistribution = [
-		{ name: 'Educational Supplies', value: 36, color: '#3B82F6' },
-		{ name: 'Transportation Aid', value: 28, color: '#10B981' },
-		{ name: 'Meal Allowance', value: 20, color: '#F59E0B' },
-		{ name: 'Uniform Assistance', value: 16, color: '#8B5CF6' },
-	];
-	const studentRegistryGrowth = [
-		{ month: 'Jan', students: 10500 },
-		{ month: 'Feb', students: 10800 },
-		{ month: 'Mar', students: 11200 },
-		{ month: 'Apr', students: 11600 },
-		{ month: 'May', students: 12000 },
-		{ month: 'Jun', students: 12400 },
-		{ month: 'Jul', students: 12847 },
-	];
-	const partnerSchoolTypes = [
-		{ name: 'Public High School', value: 40, color: '#3B82F6' },
-		{ name: 'Private Elementary', value: 30, color: '#10B981' },
-		{ name: 'Public Elementary', value: 20, color: '#F59E0B' },
-		{ name: 'Private High School', value: 10, color: '#8B5CF6' },
-	];
-	const reportCategories = [
-		{ name: 'Academic', value: 8, color: '#3B82F6' },
-		{ name: 'Enrollment', value: 6, color: '#10B981' },
-		{ name: 'Scholarship', value: 5, color: '#F59E0B' },
-		{ name: 'Financial', value: 3, color: '#8B5CF6' },
-		{ name: 'Compliance', value: 2, color: '#EF4444' },
-	];
+  // Mock data based on actual system structure
+  const mockDashboardData = {
+    overview: {
+      totalApplications: 1247,
+      approvedApplications: 892,
+      pendingReview: 234,
+      rejectedApplications: 121,
+      totalBudget: 45200000,
+      disbursedAmount: 32100000,
+      remainingBudget: 13100000,
+      activeStudents: 892,
+      partnerSchools: 45,
+      sscReviews: 156,
+      interviewsScheduled: 89
+    },
+    applicationTrends: {
+      monthly: [
+        { month: 'Jan', applications: 65, approved: 45, rejected: 8 },
+        { month: 'Feb', applications: 78, approved: 52, rejected: 12 },
+        { month: 'Mar', applications: 90, approved: 68, rejected: 15 },
+        { month: 'Apr', applications: 81, approved: 58, rejected: 11 },
+        { month: 'May', applications: 96, approved: 72, rejected: 18 },
+        { month: 'Jun', applications: 105, approved: 78, rejected: 22 }
+      ]
+    },
+    statusDistribution: {
+      approved: 45,
+      pending: 30,
+      rejected: 15,
+      underReview: 10
+    },
+    sscWorkflow: {
+      documentVerification: 45,
+      financialReview: 32,
+      academicReview: 28,
+      finalApproval: 15
+    },
+    scholarshipCategories: {
+      'Merit Scholarship': 456,
+      'Need-Based Scholarship': 321,
+      'Special Program': 234,
+      'Renewal': 236
+    },
+    recentActivities: [
+      {
+        id: 1,
+        type: 'application_approved',
+        title: 'Application Approved',
+        description: 'APP-2024-000123 approved for John Doe',
+        timestamp: '2 minutes ago',
+        icon: CheckCircle,
+        color: 'text-green-600'
+      },
+      {
+        id: 2,
+        type: 'interview_scheduled',
+        title: 'Interview Scheduled',
+        description: 'Interview scheduled for Jane Smith on Dec 15, 2024',
+        timestamp: '15 minutes ago',
+        icon: Calendar,
+        color: 'text-blue-600'
+      },
+      {
+        id: 3,
+        type: 'document_uploaded',
+        title: 'Document Uploaded',
+        description: 'New document uploaded for APP-2024-000124',
+        timestamp: '1 hour ago',
+        icon: FileText,
+        color: 'text-purple-600'
+      },
+      {
+        id: 4,
+        type: 'payment_disbursed',
+        title: 'Payment Disbursed',
+        description: '₱25,000 disbursed to Maria Garcia',
+        timestamp: '2 hours ago',
+        icon: DollarSign,
+        color: 'text-green-600'
+      },
+      {
+        id: 5,
+        type: 'application_rejected',
+        title: 'Application Rejected',
+        description: 'APP-2024-000125 rejected - incomplete documents',
+        timestamp: '3 hours ago',
+        icon: XCircle,
+        color: 'text-red-600'
+      }
+    ],
+    topSchools: [
+      { name: 'University of the Philippines', applications: 156, approved: 98 },
+      { name: 'Ateneo de Manila University', applications: 134, approved: 89 },
+      { name: 'De La Salle University', applications: 98, approved: 67 },
+      { name: 'University of Santo Tomas', applications: 87, approved: 54 },
+      { name: 'Polytechnic University', applications: 76, approved: 45 }
+    ]
+  };
 
-	return (
-		<div className="">
-			{/* Header */}
-			<div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-				<div className="flex flex-col md:flex-row md:items-center md:justify-between">
-					<div>
-						<h1 className="text-2xl font-bold text-slate-800 dark:text-white">Education and Scholarship Dashboard</h1>
-						<p className="text-slate-600 dark:text-slate-400 mt-1">Overview of all education and scholarship modules performance</p>
-					</div>
-					<div className="flex items-center space-x-3 mt-4 md:mt-0">
-						<div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
-							<Calendar className="w-4 h-4" />
-							<span>Last updated: {new Date().toLocaleDateString()}</span>
-						</div>
-						<button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">Generate Report</button>
-					</div>
-				</div>
-			</div>
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-			{/* Stats Cards */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-				{stats.map((stat, index) => (
-					<StatsCard key={index} {...stat} />
-				))}
-			</div>
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setDashboardData(mockDashboardData);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-			{/* Charts Row */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<ChartCard
-					title="Scholarship Applications Trend"
-					subtitle="Monthly applications received"
-					icon={TrendingUp}
-					data={scholarshipApplicationsTrend.map(d => ({ month: d.month, students: d.applications }))}
-					type="line"
-				/>
-				<ChartCard
-					title="School Aid Distribution"
-					subtitle="By aid type"
-					icon={PieChart}
-					data={schoolAidDistribution}
-					type="pie"
-				/>
-			</div>
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<ChartCard
-					title="Student Registry Growth"
-					subtitle="Monthly student registrations"
-					icon={Users}
-					data={studentRegistryGrowth}
-					type="line"
-				/>
-				<ChartCard
-					title="Partner School Types"
-					subtitle="Distribution by type"
-					icon={School}
-					data={partnerSchoolTypes}
-					type="pie"
-				/>
-			</div>
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<ChartCard
-					title="Report Categories"
-					subtitle="Reports by category"
-					icon={FileBarChart}
-					data={reportCategories}
-					type="pie"
-				/>
-			</div>
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboardData();
+    setRefreshing(false);
+  };
 
-			{/* Performance Metrics and Activities */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				<div className="lg:col-span-2">
-					<PerformanceMetrics />
-				</div>
-				<div>
-					<RecentActivities />
-				</div>
-			</div>
+  if (loading) {
+    return <LoadingDashboard />;
+  }
 
-			{/* Quick Actions */}
-			<div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-				<h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Quick Actions</h3>
-				<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-					<button className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-						<Award className="w-6 h-6 text-green-600 dark:text-green-400" />
-						<div className="text-left">
-							<div className="font-medium text-slate-800 dark:text-white">New Scholarship</div>
-							<div className="text-sm text-slate-600 dark:text-slate-400">Create scholarship program</div>
-						</div>
-					</button>
-					<button className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-						<HandCoins className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-						<div className="text-left">
-							<div className="font-medium text-slate-800 dark:text-white">Distribute Aid</div>
-							<div className="text-sm text-slate-600 dark:text-slate-400">Process school aid</div>
-						</div>
-					</button>
-					<button className="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
-						<UserPlus className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-						<div className="text-left">
-							<div className="font-medium text-slate-800 dark:text-white">Register Student</div>
-							<div className="text-sm text-slate-600 dark:text-slate-400">Add new student</div>
-						</div>
-					</button>
-					<button className="flex items-center space-x-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
-						<School className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-						<div className="text-left">
-							<div className="font-medium text-slate-800 dark:text-white">Add Partner School</div>
-							<div className="text-sm text-slate-600 dark:text-slate-400">Register partner school</div>
-						</div>
-					</button>
-					<button className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors">
-						<FileBarChart className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-						<div className="text-left">
-							<div className="font-medium text-slate-800 dark:text-white">Generate Report</div>
-							<div className="text-sm text-slate-600 dark:text-slate-400">Create new report</div>
-						</div>
-					</button>
-				</div>
-			</div>
-		</div>
-	);
+  const { overview, applicationTrends, statusDistribution, sscWorkflow, scholarshipCategories, recentActivities, topSchools } = dashboardData;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">ESM Dashboard</h1>
+            <p className="text-blue-100 text-lg">
+              Education & Scholarship Management System - GoServePH
+            </p>
+            <div className="flex items-center space-x-4 mt-4">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Last updated: {new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Activity className="w-4 h-4" />
+                <span className="text-sm">System Status: Online</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            <button className="flex items-center space-x-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+              <Download className="w-4 h-4" />
+              <span>Export Report</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Total Applications"
+          value={overview.totalApplications.toLocaleString()}
+          change="+12%"
+          changeType="positive"
+          icon={FileText}
+          color="blue"
+          subtitle="This month"
+        />
+        <StatsCard
+          title="Approved Applications"
+          value={overview.approvedApplications.toLocaleString()}
+          change="+8%"
+          changeType="positive"
+          icon={CheckCircle}
+          color="green"
+          subtitle={`${Math.round((overview.approvedApplications / overview.totalApplications) * 100)}% approval rate`}
+        />
+        <StatsCard
+          title="Pending Review"
+          value={overview.pendingReview.toLocaleString()}
+          change="-5%"
+          changeType="negative"
+          icon={Clock}
+          color="yellow"
+          subtitle="Awaiting review"
+        />
+        <StatsCard
+          title="Total Budget"
+          value={`₱${(overview.totalBudget / 1000000).toFixed(1)}M`}
+          change="+15%"
+          changeType="positive"
+          icon={DollarSign}
+          color="emerald"
+          subtitle={`₱${(overview.disbursedAmount / 1000000).toFixed(1)}M disbursed`}
+        />
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Active Students"
+          value={overview.activeStudents.toLocaleString()}
+          change="+5%"
+          changeType="positive"
+          icon={Users}
+          color="indigo"
+          subtitle="Currently enrolled"
+        />
+        <StatsCard
+          title="Partner Schools"
+          value={overview.partnerSchools.toLocaleString()}
+          change="+2"
+          changeType="positive"
+          icon={School}
+          color="purple"
+          subtitle="Educational institutions"
+        />
+        <StatsCard
+          title="SSC Reviews"
+          value={overview.sscReviews.toLocaleString()}
+          change="+18%"
+          changeType="positive"
+          icon={Award}
+          color="orange"
+          subtitle="In progress"
+        />
+        <StatsCard
+          title="Interviews Scheduled"
+          value={overview.interviewsScheduled.toLocaleString()}
+          change="+7%"
+          changeType="positive"
+          icon={Calendar}
+          color="pink"
+          subtitle="This week"
+        />
+      </div>
+
+      {/* Charts and Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard
+          title="Application Trends"
+          subtitle="Monthly application submissions and approvals"
+          type="line"
+          data={{
+            labels: applicationTrends.monthly.map(item => item.month),
+            datasets: [
+              {
+                label: 'Applications',
+                data: applicationTrends.monthly.map(item => item.applications),
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4
+              },
+              {
+                label: 'Approved',
+                data: applicationTrends.monthly.map(item => item.approved),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4
+              }
+            ]
+          }}
+        />
+        <ChartCard
+          title="Application Status Distribution"
+          subtitle="Current status breakdown"
+          type="doughnut"
+          data={{
+            labels: ['Approved', 'Pending', 'Rejected', 'Under Review'],
+            datasets: [{
+              data: [statusDistribution.approved, statusDistribution.pending, statusDistribution.rejected, statusDistribution.underReview],
+              backgroundColor: [
+                'rgb(34, 197, 94)',
+                'rgb(251, 191, 36)',
+                'rgb(239, 68, 68)',
+                'rgb(59, 130, 246)'
+              ]
+            }]
+          }}
+        />
+      </div>
+
+      {/* SSC Workflow and Scholarship Categories */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard
+          title="SSC Review Workflow"
+          subtitle="Applications in each review stage"
+          type="bar"
+          data={{
+            labels: ['Document Verification', 'Financial Review', 'Academic Review', 'Final Approval'],
+            datasets: [{
+              label: 'Applications',
+              data: [sscWorkflow.documentVerification, sscWorkflow.financialReview, sscWorkflow.academicReview, sscWorkflow.finalApproval],
+              backgroundColor: [
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(251, 191, 36, 0.8)',
+                'rgba(168, 85, 247, 0.8)'
+              ]
+            }]
+          }}
+        />
+        <ChartCard
+          title="Scholarship Categories"
+          subtitle="Distribution by scholarship type"
+          type="pie"
+          data={{
+            labels: Object.keys(scholarshipCategories),
+            datasets: [{
+              data: Object.values(scholarshipCategories),
+              backgroundColor: [
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(251, 191, 36, 0.8)',
+                'rgba(168, 85, 247, 0.8)'
+              ]
+            }]
+          }}
+        />
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <RecentActivities activities={recentActivities} />
+        <PerformanceMetrics />
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Partner Schools</h3>
+          <div className="space-y-4">
+            {topSchools.map((school, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{school.name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {school.applications} applications, {school.approved} approved
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {Math.round((school.approved / school.applications) * 100)}%
+                  </p>
+                  <p className="text-xs text-gray-500">approval rate</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button 
+            onClick={() => window.location.hash = '#scholarship/application'}
+            className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+          >
+            <FileText className="w-5 h-5" />
+            <span>Review Applications</span>
+          </button>
+          <button 
+            onClick={() => window.location.hash = '#scholarship/ssc'}
+            className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+          >
+            <Award className="w-5 h-5" />
+            <span>SSC Reviews</span>
+          </button>
+          <button 
+            onClick={() => window.location.hash = '#partner-school'}
+            className="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+          >
+            <School className="w-5 h-5" />
+            <span>Partner Schools</span>
+          </button>
+          <button 
+            onClick={() => window.location.hash = '#user-management'}
+            className="flex items-center space-x-3 p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+          >
+            <Users className="w-5 h-5" />
+            <span>User Management</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default DashboardOverview; 
+export default DashboardOverview;

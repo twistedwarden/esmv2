@@ -14,9 +14,35 @@ import {
     FileText,
     RefreshCw
 } from 'lucide-react';
+import { LoadingData } from '../../ui/LoadingSpinner';
 import axios from 'axios';
 
 const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
+
+// Mock data generation function
+const generateMockAuditLogs = () => {
+    const actions = ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'];
+    const userRoles = ['Admin', 'User', 'Moderator', 'Reviewer'];
+    const resourceTypes = ['User', 'Application', 'Document', 'School', 'Student'];
+    const statuses = ['success', 'failed', 'error'];
+    const users = ['admin@example.com', 'user@example.com', 'moderator@example.com', 'reviewer@example.com'];
+    
+    return Array.from({ length: 5 }, (_, i) => ({
+        id: i + 1,
+        action: actions[Math.floor(Math.random() * actions.length)],
+        user_email: users[Math.floor(Math.random() * users.length)],
+        user_role: userRoles[Math.floor(Math.random() * userRoles.length)],
+        description: `Sample audit log entry ${i + 1}`,
+        resource_type: resourceTypes[Math.floor(Math.random() * resourceTypes.length)],
+        resource_id: Math.floor(Math.random() * 1000) + 1,
+        status: statuses[Math.floor(Math.random() * statuses.length)],
+        created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        old_values: i % 2 === 0 ? { field: 'old_value' } : null,
+        new_values: i % 2 === 0 ? { field: 'new_value' } : null,
+        metadata: { ip_address: '192.168.1.1', user_agent: 'Mozilla/5.0...' },
+        error_message: i % 3 === 0 ? 'Sample error message' : null
+    }));
+};
 
 const AuditLog = () => {
     const [logs, setLogs] = useState([]);
@@ -58,47 +84,46 @@ const AuditLog = () => {
 
     const fetchLogs = async () => {
         setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                page: pagination.current_page,
-                per_page: pagination.per_page,
-                search: searchTerm,
-                ...filters
-            });
-
-            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs?${params}`);
-            
-            if (response.data.success) {
-                setLogs(response.data.data);
-                setPagination(response.data.pagination);
-            }
-        } catch (error) {
-            console.error('Error fetching audit logs:', error);
-        } finally {
-            setLoading(false);
-        }
+        
+        // Use mock data directly instead of making API calls
+        setLogs(generateMockAuditLogs());
+        setPagination({
+            current_page: 1,
+            last_page: 1,
+            per_page: 25,
+            total: 5,
+            from: 1,
+            to: 5
+        });
+        setLoading(false);
     };
 
     const fetchFilterOptions = async () => {
-        try {
-            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs/filter-options`);
-            if (response.data.success) {
-                setFilterOptions(response.data.data);
-            }
-        } catch (error) {
-            console.error('Error fetching filter options:', error);
-        }
+        // Use mock filter options directly instead of making API calls
+        setFilterOptions({
+            actions: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'],
+            user_roles: ['Admin', 'User', 'Moderator', 'Reviewer'],
+            resource_types: ['User', 'Application', 'Document', 'School', 'Student'],
+            statuses: ['success', 'failed', 'error', 'pending']
+        });
     };
 
     const fetchStatistics = async () => {
-        try {
-            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs/statistics`);
-            if (response.data.success) {
-                setStatistics(response.data.data);
+        // Use mock statistics directly instead of making API calls
+        setStatistics({
+            total_logs: 1247,
+            by_status: {
+                success: 1156,
+                failed: 67,
+                error: 24
+            },
+            by_user_role: {
+                'Admin': 45,
+                'User': 892,
+                'Moderator': 234,
+                'Reviewer': 76
             }
-        } catch (error) {
-            console.error('Error fetching statistics:', error);
-        }
+        });
     };
 
     const handleFilterChange = (key, value) => {
@@ -141,28 +166,17 @@ const AuditLog = () => {
     };
 
     const exportLogs = async () => {
-        try {
-            const params = new URLSearchParams({
-                search: searchTerm,
-                ...filters
-            });
-
-            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs/export?${params}`, {
-                responseType: 'blob'
-            });
-
-            const blob = new Blob([response.data], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } catch (error) {
-            console.error('Error exporting logs:', error);
-        }
+        // Export mock data directly instead of making API calls
+        const mockData = generateMockAuditLogs();
+        const blob = new Blob([JSON.stringify(mockData, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
     };
 
     const getActionBadgeColor = (action) => {
@@ -198,14 +212,7 @@ const AuditLog = () => {
     };
 
     if (loading && logs.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-400">Loading audit logs...</p>
-                </div>
-            </div>
-        );
+        return <LoadingData />;
     }
 
     return (

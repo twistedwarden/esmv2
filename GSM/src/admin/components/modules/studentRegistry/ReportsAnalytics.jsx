@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart3, PieChart, TrendingUp, Users, GraduationCap, Download, Calendar, Filter } from 'lucide-react';
+import { LoadingStudents } from '../../ui/LoadingSpinner';
 import { API_CONFIG, getScholarshipServiceUrl } from '../../../../config/api';
 
 function ReportsAnalytics() {
@@ -240,14 +241,7 @@ function ReportsAnalytics() {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-400">Loading analytics...</p>
-                </div>
-            </div>
-        );
+        return <LoadingStudents />;
     }
 
     return (

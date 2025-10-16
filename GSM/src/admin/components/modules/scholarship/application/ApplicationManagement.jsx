@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import TabNavigation, { AnimatedTabContent } from '../../../ui/TabNavigation';
 import ApplicationOverview from './ApplicationOverview';
 import ScholarshipApplications from './ScholarshipApplications';
 // VerifiedEnrolledStudents removed - automatic verification disabled
@@ -21,26 +22,19 @@ function ApplicationManagement() {
   return (
     <div>
       {/* Application Sub-navigation */}
-      <div className="border-b border-gray-200 dark:border-slate-700 mb-6">
-        <nav className="-mb-px flex space-x-8 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-slate-600'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <TabNavigation
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        className="mb-6"
+        layoutId="activeApplicationTab"
+        variant="compact"
+      />
 
-      {/* Render Active Component */}
-      <ActiveComponent />
+      {/* Render Active Component with smooth transition */}
+      <AnimatedTabContent activeTab={activeTab}>
+        <ActiveComponent />
+      </AnimatedTabContent>
     </div>
   );
 }

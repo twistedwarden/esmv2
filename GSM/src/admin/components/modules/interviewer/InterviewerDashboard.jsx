@@ -9,6 +9,7 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
+import { LoadingDashboard } from '../../ui/LoadingSpinner';
 import { scholarshipApiService } from '../../../../services/scholarshipApiService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 
@@ -38,15 +39,8 @@ function InterviewerDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+        return <LoadingDashboard />;
+    }
 
   if (error) {
     return (

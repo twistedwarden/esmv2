@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from 'lucide-react';
+import { LoadingApplications } from '../../../ui/LoadingSpinner';
 
 function ApplicationOverview() {
   const [stats, setStats] = useState({
@@ -118,15 +119,8 @@ function ApplicationOverview() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading overview...</p>
-        </div>
-      </div>
-    );
-  }
+        return <LoadingApplications />;
+    }
 
   return (
     <div className="space-y-6">

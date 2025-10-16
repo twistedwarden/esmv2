@@ -35,6 +35,7 @@ type AuthState = {
 	logout: () => Promise<void>
 	clearError: () => void
 	initializeAuth: () => Promise<void>
+	updateCurrentUser: (userData: Partial<AuthUser>) => void
 }
 
 const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
@@ -517,7 +518,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		set({ currentUser: null, token: null, error: null, isLoggingOut: false })
 	},
 
-	clearError: () => set({ error: null, additionalInfo: null })
+	clearError: () => set({ error: null, additionalInfo: null }),
+	
+	updateCurrentUser: (userData: Partial<AuthUser>) => {
+		const { currentUser } = get()
+		if (currentUser) {
+			const updatedUser = { ...currentUser, ...userData }
+			set({ currentUser: updatedUser })
+			// Also update localStorage
+			localStorage.setItem('user_data', JSON.stringify(updatedUser))
+		}
+	}
 }))
 
 // Initialize auth on app start

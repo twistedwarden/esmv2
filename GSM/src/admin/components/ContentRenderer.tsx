@@ -1,5 +1,4 @@
 import Dashboard from './modules/Dashboard/DashboardOverview'
-import ScholarshipOverview from './modules/scholarship/ScholarshipOverview'
 import ApplicationManagement from './modules/scholarship/application/ApplicationManagement'
 import ScholarshipPrograms from './modules/scholarship/ScholarshipPrograms'
 import SSCManagement from './modules/scholarship/ssc/SSCManagement'
@@ -91,8 +90,6 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 			return <div><Dashboard /></div>
 		case 'Settings':
 			return <div><SettingsOverview /></div>
-		case 'scholarship-overview':
-			return <div><ScholarshipOverview /></div>
 		case 'scholarship-applications':
 			return <div><ApplicationManagement /></div>
 		case 'scholarship-programs':

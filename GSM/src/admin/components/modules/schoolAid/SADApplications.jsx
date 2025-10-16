@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, Check, X, Plus, Download, School, Calendar, User, Edit, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import { LoadingData } from '../../ui/LoadingSpinner';
 import ApplicationModal from './components/ApplicationModal';
 import StatusUpdateModal from './components/StatusUpdateModal';
 import ApplicationFormModal from './components/ApplicationFormModal';
@@ -415,11 +416,7 @@ function SADApplications({ onPageChange }) {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-        );
+        return <LoadingData />;
     }
 
     return (

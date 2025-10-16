@@ -19,6 +19,7 @@ import {
   X,
   ExternalLink
 } from 'lucide-react';
+import { LoadingData } from '../../ui/LoadingSpinner';
 import { scholarshipApiService } from '../../../../services/scholarshipApiService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import InterviewEvaluationModal from './InterviewEvaluationModal';
@@ -167,15 +168,8 @@ function MyInterviews({ filter = 'all' }) {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading interviews...</p>
-        </div>
-      </div>
-    );
-  }
+        return <LoadingData />;
+    }
 
   if (error) {
     return (
