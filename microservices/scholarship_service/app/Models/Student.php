@@ -42,6 +42,10 @@ class Student extends Model
         'voter_nationality',
         'has_paymaya_account',
         'preferred_mobile_number',
+        'scholarship_status',
+        'current_scholarship_id',
+        'approved_amount',
+        'scholarship_start_date',
     ];
 
     protected $casts = [
@@ -57,6 +61,8 @@ class Student extends Model
         'birth_date' => 'date',
         'height_cm' => 'decimal:2',
         'weight_kg' => 'decimal:2',
+        'approved_amount' => 'decimal:2',
+        'scholarship_start_date' => 'date',
     ];
 
     // Relationships
@@ -103,6 +109,11 @@ class Student extends Model
     public function enrollmentData(): HasMany
     {
         return $this->hasMany(PartnerSchoolEnrollmentData::class, 'student_id_number', 'student_id_number');
+    }
+
+    public function scholarshipRecords(): HasMany
+    {
+        return $this->hasMany(ScholarshipRecord::class);
     }
 
     // Accessors
