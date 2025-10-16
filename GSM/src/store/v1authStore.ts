@@ -27,18 +27,18 @@ type AuthState = {
 	additionalInfo: any
 	isLoading: boolean
 	isLoggingOut: boolean
-	login: (username: string, password: string) => Promise<boolean>
+	login: (username: string, password: string, captchaToken?: string | null) => Promise<boolean>
 	loginWithOtp: (email: string, otpCode: string) => Promise<boolean>
-	register: (userData: any) => Promise<boolean>
-	googleLogin: (code: string) => Promise<boolean>
-	googleRegister: (code: string, additionalData: any) => Promise<boolean>
+	register: (userData: any, captchaToken?: string | null) => Promise<boolean>
+	googleLogin: (code: string, captchaToken?: string | null) => Promise<boolean>
+	googleRegister: (code: string, additionalData: any, captchaToken?: string | null) => Promise<boolean>
 	logout: () => Promise<void>
 	clearError: () => void
 	initializeAuth: () => Promise<void>
 	updateCurrentUser: (userData: Partial<AuthUser>) => void
 }
 
-const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || 'http://auth-gsph.up.railway.app/api' || 'http://localhost:8000/api'
+const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || '' || 'http://localhost:8000/api'
 
 // Utility function to construct full name from name components
 export const getFullName = (user: AuthUser): string => {
@@ -161,7 +161,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 	},
 
-    login: async (username, password) => {
+	login: async (username, password, captchaToken) => {
 		try {
             // Migrate to GSM-compatible endpoint (email + password)
             const response = await fetch(`${API_BASE_URL}/gsm/login`, {
@@ -170,7 +170,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					'Content-Type': 'application/json',
 					'Accept': 'application/json',
 				},
-                body: JSON.stringify({ email: username, password }),
+					body: JSON.stringify({ email: username, password, captcha_token: captchaToken }),
 			})
 
 			const data = await response.json()
@@ -232,7 +232,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 	},
 
-	register: async (userData: any) => {
+register: async (userData: any, captchaToken?: string | null) => {
 		set({ isLoading: true, error: null })
 		
 		try {
@@ -247,7 +247,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 				},
 				body: JSON.stringify({
 					...userData,
-					confirmPassword: userData.confirmPassword
+					confirmPassword: userData.confirmPassword,
+					captcha_token: captchaToken
 				}),
 			})
 
@@ -293,7 +294,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 	},
 
-	googleLogin: async (code: string) => {
+googleLogin: async (code: string, captchaToken?: string | null) => {
 		set({ isLoading: true, error: null })
 		
 		try {
@@ -305,7 +306,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					'Content-Type': 'application/json',
 					'Accept': 'application/json',
 				},
-				body: JSON.stringify({ code }),
+				body: JSON.stringify({ code, captcha_token: captchaToken }),
 			})
 
 			const data = await response.json()
@@ -368,7 +369,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 	},
 
-	googleRegister: async (code: string, additionalData: any) => {
+googleRegister: async (code: string, additionalData: any, captchaToken?: string | null) => {
 		set({ isLoading: true, error: null })
 		
 		try {
@@ -382,7 +383,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 				},
 				body: JSON.stringify({
 					code,
-					...additionalData
+					...additionalData,
+					captcha_token: captchaToken
 				}),
 			})
 
