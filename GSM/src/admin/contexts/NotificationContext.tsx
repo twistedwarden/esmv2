@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
+import notificationService from '../../services/notificationService';
 import axios from 'axios';
 
 interface NotificationCounts {
@@ -30,6 +31,7 @@ interface NotificationContextType {
   refreshNotifications: () => Promise<void>;
   markAsRead: (module: keyof NotificationCounts, subModule?: string) => void;
   triggerNotification: (module: keyof NotificationCounts, subModule?: string) => void;
+  triggerScholarshipNotification: (type: string, data: any) => void;
   isLoading: boolean;
 }
 
@@ -246,11 +248,66 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     };
   }, []);
 
+  // Initialize notification service
+  useEffect(() => {
+    // Request notification permission
+    notificationService.requestPermission();
+
+    // Listen for scholarship notifications
+    const handleScholarshipNotification = (notification: any) => {
+      if (notification.type.startsWith('scholarship_')) {
+        triggerNotification('scholarship', 'applications');
+      }
+    };
+
+    notificationService.subscribe('scholarship_new_application', handleScholarshipNotification);
+    notificationService.subscribe('scholarship_application_review', handleScholarshipNotification);
+    notificationService.subscribe('scholarship_interview_scheduled', handleScholarshipNotification);
+    notificationService.subscribe('scholarship_interview_completed', handleScholarshipNotification);
+    notificationService.subscribe('scholarship_final_approval', handleScholarshipNotification);
+    notificationService.subscribe('scholarship_bulk_action', handleScholarshipNotification);
+
+    return () => {
+      notificationService.unsubscribe('scholarship_new_application', handleScholarshipNotification);
+      notificationService.unsubscribe('scholarship_application_review', handleScholarshipNotification);
+      notificationService.unsubscribe('scholarship_interview_scheduled', handleScholarshipNotification);
+      notificationService.unsubscribe('scholarship_interview_completed', handleScholarshipNotification);
+      notificationService.unsubscribe('scholarship_final_approval', handleScholarshipNotification);
+      notificationService.unsubscribe('scholarship_bulk_action', handleScholarshipNotification);
+    };
+  }, []);
+
+  const triggerScholarshipNotification = (type: string, data: any) => {
+    switch (type) {
+      case 'new_application':
+        notificationService.notifyNewApplication(data);
+        break;
+      case 'application_review':
+        notificationService.notifyApplicationReview(data.application, data.action);
+        break;
+      case 'interview_scheduled':
+        notificationService.notifyInterviewScheduled(data);
+        break;
+      case 'interview_completed':
+        notificationService.notifyInterviewCompleted(data.interview, data.result);
+        break;
+      case 'final_approval':
+        notificationService.notifyFinalApproval(data);
+        break;
+      case 'bulk_action':
+        notificationService.notifyBulkAction(data.action, data.count);
+        break;
+      default:
+        console.warn('Unknown scholarship notification type:', type);
+    }
+  };
+
   const value: NotificationContextType = {
     notificationCounts,
     refreshNotifications,
     markAsRead,
     triggerNotification,
+    triggerScholarshipNotification,
     isLoading,
   };
 

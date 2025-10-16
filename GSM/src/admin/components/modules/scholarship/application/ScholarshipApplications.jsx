@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
+import { useNotifications } from '../../../../contexts/NotificationContext';
 import { 
   Search, 
   Filter, 
@@ -53,6 +54,9 @@ import { LoadingApplications } from '../../../ui/LoadingSpinner';
 function ScholarshipApplications() {
   // Toast context
   const { showSuccess, showError, showWarning, showInfo } = useToastContext();
+  
+  // Notification context
+  const { triggerScholarshipNotification } = useNotifications();
   
   // Core state
   const [applications, setApplications] = useState([]);
@@ -447,6 +451,12 @@ function ScholarshipApplications() {
       setIsReviewModalOpen(false);
       setReviewedConfirmation(''); // Reset confirmation
       showSuccess('Application Reviewed', 'Application has been reviewed and approved. Student is now ready for interview scheduling.');
+      
+      // Trigger notification
+      triggerScholarshipNotification('application_review', {
+        application: activeApplication,
+        action: 'reviewed'
+      });
     } catch (e) {
       console.error('Mark as reviewed failed', e);
       const errorMessage = e.message || 'Failed to mark as reviewed. Please try again.';
@@ -468,6 +478,12 @@ function ScholarshipApplications() {
       await fetchApplications();
       setIsReviewModalOpen(false);
       showSuccess('Application Rejected', 'Application has been successfully rejected.');
+      
+      // Trigger notification
+      triggerScholarshipNotification('application_review', {
+        application: activeApplication,
+        action: 'rejected'
+      });
     } catch (e) {
       console.error('Reject failed', e);
       showError('Rejection Failed', 'Failed to reject application. Please try again.');
@@ -494,6 +510,12 @@ function ScholarshipApplications() {
       await fetchApplications();
       setIsReviewModalOpen(false);
       showSuccess('Application Flagged for Compliance', 'Application has been flagged for compliance review. Student will be notified to correct the information.');
+      
+      // Trigger notification
+      triggerScholarshipNotification('application_review', {
+        application: activeApplication,
+        action: 'compliance'
+      });
     } catch (e) {
       console.error('Compliance flagging failed', e);
       showError('Compliance Flagging Failed', 'Failed to flag application for compliance. Please try again.');
@@ -685,6 +707,12 @@ function ScholarshipApplications() {
       await Promise.all(promises);
       await fetchApplications();
       setSelectedApplications([]);
+      
+      // Trigger notification for bulk action
+      triggerScholarshipNotification('bulk_action', {
+        action: bulkActionType,
+        count: count
+      });
       
       // Show success message based on action type
       switch (bulkActionType) {

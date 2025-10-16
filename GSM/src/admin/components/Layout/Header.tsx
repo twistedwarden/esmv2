@@ -1,6 +1,7 @@
 import { Bell, Menu, User } from 'lucide-react'
 import React from 'react'
 import { useAuthStore, getFullName } from '../../../store/v1authStore'
+import NotificationBell from '../NotificationBell'
 
 type HeaderProps = {
 	sidebarCollapsed: boolean
@@ -60,10 +61,7 @@ function Header({ onToggleSidebar, breadcrumb = ['Dashboard'] }: HeaderProps) {
 						</span>
 					</div>
 					
-					<button className='relative rounded-xl p-2 text-slate-600 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer'>
-						<Bell className='w-6 h-6' />
-						<span className='absolute top-0 w-4 h-4 text-white text-xs bg-red-500 rounded-full flex items-center justify-center'>1</span>
-					</button>
+					<NotificationBell />
 					
 					<button className='ml-2 rounded-xl p-2 bg-slate-300 text-slate-600 hover:bg-slate-400 dark:bg-slate-700 dark:text-yellow-400 dark:hover:bg-slate-900 transition-colors cursor-pointer' onClick={toggleTheme} aria-label='Toggle dark mode'>
 						{theme === 'dark' ? (
