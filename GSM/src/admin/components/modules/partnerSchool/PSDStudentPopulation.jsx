@@ -114,13 +114,13 @@ function PSDStudentPopulation() {
         <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
             {/* Header Section */}
             <div className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700">
-                <div className="px-6 py-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Population</h1>
+                <div className="px-4 sm:px-6 py-4 sm:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Student Population</h1>
                             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Track student demographics and scholarship distribution across partner schools</p>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                             <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
                                 <button
                                     onClick={() => setViewMode('table')}
@@ -145,80 +145,80 @@ function PSDStudentPopulation() {
                             </div>
                             <button 
                                 onClick={() => setShowAddModal(true)}
-                                className="inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md text-sm sm:text-base w-full sm:w-auto"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
-                                Add Population Data
+                                <span className="truncate">Add Population Data</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-6 py-6">
+            <div className="px-4 sm:px-6 py-4 sm:py-6">
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
                         <div className="flex items-center">
-                            <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            <div className="p-2 sm:p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+                                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Students</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.total_students.toLocaleString()}</p>
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-slate-400 truncate">Total Students</p>
+                                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totals.total_students.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
                         <div className="flex items-center">
-                            <div className="p-3 rounded-lg bg-orange-100 dark:bg-orange-900/20">
-                                <GraduationCap className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                            <div className="p-2 sm:p-3 rounded-lg bg-orange-100 dark:bg-orange-900/20">
+                                <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
                             </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Scholars</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.total_scholars.toLocaleString()}</p>
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-slate-400 truncate">Total Scholars</p>
+                                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totals.total_scholars.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
                         <div className="flex items-center">
-                            <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
-                                <UserCheck className="w-6 h-6 text-green-600 dark:text-green-400" />
+                            <div className="p-2 sm:p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
+                                <UserCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                             </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Active Scholars</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.active_scholars.toLocaleString()}</p>
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-slate-400 truncate">Active Scholars</p>
+                                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totals.active_scholars.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
                         <div className="flex items-center">
-                            <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/20">
-                                <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                            <div className="p-2 sm:p-3 rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Scholarship Rate</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.scholarship_rate}%</p>
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-slate-400 truncate">Scholarship Rate</p>
+                                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totals.scholarship_rate}%</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
                         <div className="flex items-center">
-                            <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/20">
-                                <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                            <div className="p-2 sm:p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/20">
+                                <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
                             </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Graduated</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totals.graduated_scholars.toLocaleString()}</p>
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-slate-400 truncate">Graduated</p>
+                                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totals.graduated_scholars.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Search and Filter Section */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-6">
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                        <div className="flex-1 max-w-md">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mb-4 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+                        <div className="flex-1 w-full sm:max-w-md">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
@@ -226,17 +226,17 @@ function PSDStudentPopulation() {
                                     placeholder="Search schools..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white text-sm"
                                 />
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
                             <div className="flex items-center gap-2">
                                 <Filter className="w-4 h-4 text-gray-500" />
                                 <select
                                     value={filterSchool}
                                     onChange={(e) => setFilterSchool(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white"
+                                    className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white text-sm"
                                 >
                                     <option value="all">All Schools</option>
                                     {schoolOptions.map(school => (
@@ -246,7 +246,7 @@ function PSDStudentPopulation() {
                             </div>
                             <button 
                                 onClick={handleExport}
-                                className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                                className="inline-flex items-center px-3 py-2 sm:px-4 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md text-sm"
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 Export

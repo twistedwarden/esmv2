@@ -684,95 +684,95 @@ const UserManagement = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Manage system users and their roles</p>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">User Management</h2>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Manage system users and their roles</p>
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
                 >
-                    <UserPlus size={20} />
-                    Add New User
+                    <UserPlus size={18} className="sm:w-5 sm:h-5" />
+                    <span className="truncate">Add New User</span>
                 </button>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Users</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{getTotalUsers()}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Total Users</p>
+                            <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{getTotalUsers()}</p>
                         </div>
-                        <Users className="text-blue-500" size={32} />
+                        <Users className="text-blue-500 flex-shrink-0" size={24} />
                     </div>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Citizens</p>
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{users.citizens?.length || 0}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Citizens</p>
+                            <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{users.citizens?.length || 0}</p>
                         </div>
-                        <UserCheck className="text-green-500" size={32} />
+                        <UserCheck className="text-green-500 flex-shrink-0" size={24} />
                     </div>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Staff Members</p>
-                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{users.staff?.length || 0}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Staff Members</p>
+                            <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{users.staff?.length || 0}</p>
                         </div>
-                        <Shield className="text-blue-500" size={32} />
+                        <Shield className="text-blue-500 flex-shrink-0" size={24} />
                     </div>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Administrators</p>
-                            <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{users.admins?.length || 0}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Administrators</p>
+                            <p className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{users.admins?.length || 0}</p>
                         </div>
-                        <Shield className="text-red-500" size={32} />
+                        <Shield className="text-red-500 flex-shrink-0" size={24} />
                     </div>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">Partner School Reps</p>
-                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{users.ps_reps?.length || 0}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Partner School Reps</p>
+                            <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{users.ps_reps?.length || 0}</p>
                         </div>
-                        <Shield className="text-purple-500" size={32} />
+                        <Shield className="text-purple-500 flex-shrink-0" size={24} />
                     </div>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <div className="flex flex-col md:flex-row gap-4">
+            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             type="text"
                             placeholder="Search by name, email, or citizen ID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                         />
                     </div>
                     
                     <div className="flex items-center gap-2">
-                        <Filter size={20} className="text-gray-600 dark:text-gray-400" />
+                        <Filter size={18} className="text-gray-600 dark:text-gray-400" />
                         <select
                             value={selectedRole}
                             onChange={(e) => setSelectedRole(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                         >
                             <option value="all">All Roles</option>
                             <option value="citizen">Citizens</option>

@@ -537,40 +537,40 @@ function SettingsOverview() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Settings</h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">Manage your profile, account, notifications, and system preferences.</p>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">Settings</h1>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-1">Manage your profile, account, notifications, and system preferences.</p>
             </div>
 
             {/* Tabs */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="border-b border-slate-200 dark:border-slate-700">
-                    <nav className="flex space-x-8 px-6">
+                    <nav className="flex flex-col sm:flex-row sm:space-x-8 px-4 sm:px-6 overflow-x-auto">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                                    className={`py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center justify-center sm:justify-start space-x-2 whitespace-nowrap min-w-0 ${
                                         activeTab === tab.id
                                             ? 'border-orange-500 text-orange-600'
                                             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                                     }`}
                                 >
-                                    <Icon className="w-4 h-4" />
-                                    <span>{tab.label}</span>
+                                    <Icon className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate">{tab.label}</span>
                                 </button>
                             );
                         })}
                     </nav>
             </div>
 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     {/* Profile Tab */}
                     {activeTab === 'profile' && (
-                        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">First Name</label>
                                     <input
@@ -641,9 +641,9 @@ function SettingsOverview() {
 
                     {/* Security Tab */}
                     {activeTab === 'security' && (
-                        <div className="space-y-6">
-                            <div className="max-w-md">
-                                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-4">Change Password</h3>
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="max-w-full sm:max-w-md">
+                                <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white mb-4">Change Password</h3>
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Current Password</label>
@@ -864,8 +864,8 @@ function SettingsOverview() {
 
                     {/* System Tab */}
                     {activeTab === 'system' && (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('Theme')}</label>
                                     <select
@@ -972,7 +972,7 @@ function SettingsOverview() {
 
                     {/* Admin Tools Tab */}
                     {activeTab === 'admin' && (
-                        <div className="space-y-6">
+                        <div className="space-y-4 sm:space-y-6">
                             {/* System Health */}
                             {systemHealth && (
                                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
@@ -989,7 +989,7 @@ function SettingsOverview() {
                                             <RefreshCw className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                         <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg">
                                             <div className="text-2xl font-bold text-green-600">{systemHealth.uptime || '99.9%'}</div>
                                             <div className="text-sm text-slate-600 dark:text-slate-400">Uptime</div>
@@ -1034,7 +1034,7 @@ function SettingsOverview() {
                                             <RefreshCw className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                                         <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg">
                                             <div className="text-2xl font-bold text-blue-600">{adminStats.total_users || '0'}</div>
                                             <div className="text-sm text-slate-600 dark:text-slate-400">Total Users</div>
@@ -1060,77 +1060,77 @@ function SettingsOverview() {
                             )}
 
                             {/* Admin Actions */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                 <button
                                     onClick={() => exportData('users')}
-                                    className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
+                                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <Users className="w-6 h-6 text-blue-500" />
                                         <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
                                     </div>
-                                    <div className="font-medium text-slate-900 dark:text-white">Export Users</div>
-                                    <div className="text-sm text-slate-500 dark:text-slate-400">Download user data as CSV</div>
+                                    <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white">Export Users</div>
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Download user data as CSV</div>
                                 </button>
 
                                 <button
                                     onClick={() => exportData('applications')}
-                                    className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
+                                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <FileText className="w-6 h-6 text-green-500" />
                                         <Download className="w-4 h-4 text-slate-400 group-hover:text-green-500 transition-colors" />
                                     </div>
-                                    <div className="font-medium text-slate-900 dark:text-white">Export Applications</div>
-                                    <div className="text-sm text-slate-500 dark:text-slate-400">Download application data</div>
+                                    <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white">Export Applications</div>
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Download application data</div>
                                 </button>
 
                                 <button
                                     onClick={clearCache}
-                                    className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
+                                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <RefreshCw className="w-6 h-6 text-orange-500" />
                                         <Zap className="w-4 h-4 text-slate-400 group-hover:text-orange-500 transition-colors" />
                                     </div>
-                                    <div className="font-medium text-slate-900 dark:text-white">Clear Cache</div>
-                                    <div className="text-sm text-slate-500 dark:text-slate-400">Clear system cache</div>
+                                    <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white">Clear Cache</div>
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Clear system cache</div>
                                 </button>
 
                                 <button
                                     onClick={refreshSystemData}
-                                    className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
+                                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <Activity className="w-6 h-6 text-purple-500" />
                                         <RefreshCw className="w-4 h-4 text-slate-400 group-hover:text-purple-500 transition-colors" />
                                     </div>
-                                    <div className="font-medium text-slate-900 dark:text-white">Refresh Data</div>
-                                    <div className="text-sm text-slate-500 dark:text-slate-400">Update system statistics</div>
+                                    <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white">Refresh Data</div>
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Update system statistics</div>
                                 </button>
 
                                 <button
                                     onClick={backupSystem}
-                                    className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
+                                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <Database className="w-6 h-6 text-indigo-500" />
                                         <Download className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                     </div>
-                                    <div className="font-medium text-slate-900 dark:text-white">System Backup</div>
-                                    <div className="text-sm text-slate-500 dark:text-slate-400">Create system backup</div>
+                                    <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white">System Backup</div>
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Create system backup</div>
                                 </button>
 
                                 <button
                                     onClick={() => window.open('/admin/logs', '_blank')}
-                                    className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
+                                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <FileText className="w-6 h-6 text-red-500" />
                                         <Clock className="w-4 h-4 text-slate-400 group-hover:text-red-500 transition-colors" />
                                     </div>
-                                    <div className="font-medium text-slate-900 dark:text-white">View Logs</div>
-                                    <div className="text-sm text-slate-500 dark:text-slate-400">Access system logs</div>
+                                    <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white">View Logs</div>
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Access system logs</div>
                                 </button>
                             </div>
                         </div>

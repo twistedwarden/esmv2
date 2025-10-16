@@ -6,16 +6,16 @@ function ChartCard({ title, subtitle, data, type }) {
             return <div className="h-64 flex items-center justify-center text-gray-500">No data available</div>;
         }
 
-        const allValues = data.datasets.flatMap(dataset => dataset.data);
-        const maxValue = Math.max(...allValues);
-        const minValue = Math.min(...allValues);
+        const allValues = data.datasets.flatMap(dataset => dataset.data).filter(val => !isNaN(val) && val !== null && val !== undefined);
+        const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0;
+        const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
         const range = maxValue - minValue;
 
         return (
             <div className="h-64 flex items-end justify-between px-4 pb-4">
                 {data.labels.map((label, index) => {
-                    const values = data.datasets.map(dataset => dataset.data[index]);
-                    const maxDatasetValue = Math.max(...values);
+                    const values = data.datasets.map(dataset => dataset.data[index] || 0).filter(val => !isNaN(val));
+                    const maxDatasetValue = values.length > 0 ? Math.max(...values) : 0;
                     const height = range > 0 ? ((maxDatasetValue - minValue) / range) * 200 + 20 : 120;
                     
                     return (
@@ -51,18 +51,28 @@ function ChartCard({ title, subtitle, data, type }) {
                 <div className="relative">
                     <svg width="200" height="200" className="transform -rotate-90">
                         {data.labels.map((label, index) => {
-                            const value = dataset.data[index];
-                            const angle = (value / total) * 360;
+                            const value = dataset.data[index] || 0;
+                            const angle = total > 0 ? (value / total) * 360 : 0;
                             const startAngle = currentAngle;
                             currentAngle += angle;
 
-                            const x1 = 100 + 80 * Math.cos((startAngle * Math.PI) / 180);
-                            const y1 = 100 + 80 * Math.sin((startAngle * Math.PI) / 180);
-                            const x2 = 100 + 80 * Math.cos((currentAngle * Math.PI) / 180);
-                            const y2 = 100 + 80 * Math.sin((currentAngle * Math.PI) / 180);
+                            // Ensure we have valid numbers
+                            const validStartAngle = isNaN(startAngle) ? 0 : startAngle;
+                            const validCurrentAngle = isNaN(currentAngle) ? 0 : currentAngle;
+                            const validAngle = isNaN(angle) ? 0 : angle;
 
-                            const largeArcFlag = angle > 180 ? 1 : 0;
+                            const x1 = 100 + 80 * Math.cos((validStartAngle * Math.PI) / 180);
+                            const y1 = 100 + 80 * Math.sin((validStartAngle * Math.PI) / 180);
+                            const x2 = 100 + 80 * Math.cos((validCurrentAngle * Math.PI) / 180);
+                            const y2 = 100 + 80 * Math.sin((validCurrentAngle * Math.PI) / 180);
+
+                            const largeArcFlag = validAngle > 180 ? 1 : 0;
                             const color = dataset.backgroundColor[index] || '#3B82F6';
+
+                            // Skip if we have invalid coordinates
+                            if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+                                return null;
+                            }
 
                             return (
                                 <path

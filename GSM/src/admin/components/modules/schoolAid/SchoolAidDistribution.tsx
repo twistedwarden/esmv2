@@ -148,13 +148,13 @@ const SchoolAidDistribution = () => {
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-        <h1 className="text-2xl font-bold text-gray-900">School Aid Distribution</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Manage and track scholarship fund disbursements to students
-        </p>
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">School Aid Distribution</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Manage and track scholarship fund disbursements to students
+            </p>
           </div>
           {selectedApplications.length > 0 && (
             <div className="flex items-center gap-2">
@@ -174,8 +174,8 @@ const SchoolAidDistribution = () => {
 
       {/* Main Tabs */}
       <div className="bg-white border-b border-gray-200">
-        <div className="px-6">
-          <nav className="flex space-x-8" aria-label="Tabs">
+        <div className="px-4 sm:px-6">
+          <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -184,8 +184,8 @@ const SchoolAidDistribution = () => {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={`
-                    flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm
-                    transition-colors duration-200 relative
+                    flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm
+                    transition-colors duration-200 relative whitespace-nowrap flex-shrink-0
                     ${
                       isActive
                         ? 'border-blue-500 text-blue-600'
@@ -193,10 +193,10 @@ const SchoolAidDistribution = () => {
                     }
                   `}
                 >
-                  <Icon className="w-5 h-5" />
-                  {tab.label}
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="truncate">{tab.label}</span>
                   {tab.badge && (
-                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                    <span className="ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
                       {tab.badge}
                     </span>
                   )}
@@ -210,7 +210,7 @@ const SchoolAidDistribution = () => {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {renderTabContent()}
         </div>
       </div>

@@ -72,4 +72,12 @@ class User extends Authenticatable
     {
         return $this->attributes['assigned_school_id'];
     }
+
+    /**
+     * Get the school assigned to this user
+     */
+    public function assignedSchool()
+    {
+        return $this->belongsTo(School::class, 'assigned_school_id');
+    }
 }
