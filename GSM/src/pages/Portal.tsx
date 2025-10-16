@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { ScholarshipDirectoryModal } from '../components/ScholarshipDirectoryModal';
 import { scholarshipApiService } from '../services/scholarshipApiService';
 import { useAuthStore } from '../store/v1authStore';
 import { Skeleton } from '../components/ui/Skeleton';
+import { HumanVerification } from '../components/HumanVerification';
 
 // Add custom CSS for world-class animations
 const customStyles = `
@@ -79,10 +80,12 @@ if (typeof document !== 'undefined') {
 }
 
 export const Portal: React.FC = () => {
+  const navigate = useNavigate();
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
   const [hasActiveApplication, setHasActiveApplication] = useState(false);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
   const [showToast, setShowToast] = useState(false);
+  const [showHumanVerification, setShowHumanVerification] = useState(false);
   const currentUser = useAuthStore(s => s.currentUser);
 
   // Check for existing applications on component mount
@@ -147,7 +150,6 @@ export const Portal: React.FC = () => {
     }
   };
 
-
   console.log('Portal render - showDirectoryModal:', showDirectoryModal);
 
   return (
@@ -181,17 +183,17 @@ export const Portal: React.FC = () => {
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-accent-200 rounded-full blur-3xl opacity-10"></div>
         </div>
 
-                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="text-center space-y-6">
-             {/* Enhanced heading with animated gradient and better contrast */}
-             <div className="space-y-3 -mt-4">
-                               <h3 className="text-3xl lg:text-5xl font-bold animated-text drop-shadow-lg uppercase">
-                  Ready to Begin Your Journey?
-                </h3>
-               <p className="text-lg text-gray-600 max-w-2xl mx-auto smooth-transition hover:text-gray-800">
-                 Take the first step towards your educational dreams with our comprehensive scholarship program
-               </p>
-             </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-6">
+            {/* Enhanced heading with animated gradient and better contrast */}
+            <div className="space-y-3 -mt-4">
+              <h3 className="text-3xl lg:text-5xl font-bold animated-text drop-shadow-lg uppercase">
+                Ready to Begin Your Journey?
+              </h3>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto smooth-transition hover:text-gray-800">
+                Take the first step towards your educational dreams with our comprehensive scholarship program
+              </p>
+            </div>
 
             {/* Responsive card-style buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 justify-center items-center max-w-6xl mx-auto">
@@ -220,14 +222,13 @@ export const Portal: React.FC = () => {
                     New Application
                   </Button>
                 ) : (
-                  <Link to="/new-application" className="block w-full">
-                    <Button 
-                      size="lg" 
-                      className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
-                    >
-                      New Application
-                    </Button>
-                  </Link>
+                  <Button 
+                    size="lg"
+                    onClick={() => setShowHumanVerification(true)}
+                    className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
+                  >
+                    New Application
+                  </Button>
                 )}
               </div>
                 
@@ -245,7 +246,7 @@ export const Portal: React.FC = () => {
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">
                 <Button 
                   size="lg" 
-                    className="bg-gradient-to-r from-secondary-500 to-secondary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
+                  className="bg-gradient-to-r from-secondary-500 to-secondary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
                 >
                   Tertiary Portal
                 </Button>
@@ -273,6 +274,16 @@ export const Portal: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Human Verification Modal */}
+      <HumanVerification 
+        isOpen={showHumanVerification}
+        onClose={() => setShowHumanVerification(false)}
+        onVerified={() => {
+          setShowHumanVerification(false);
+          navigate('/new-application');
+        }}
+      />
 
       {/* Toast Notification */}
       {showToast && (

@@ -77,10 +77,10 @@ export const GatewayLogin: React.FC = () => {
 	const navigate = useNavigate()
   const [now, setNow] = useState<string>(new Date().toLocaleString())
   const [googleReady, setGoogleReady] = useState(false)
-  const [showLoginCaptcha, setShowLoginCaptcha] = useState(false)
   const [showGoogleCaptcha, setShowGoogleCaptcha] = useState(false)
-  const [loginCaptchaVerified, setLoginCaptchaVerified] = useState(false)
+  const [showRegisterCaptcha, setShowRegisterCaptcha] = useState(false)
   const [googleCaptchaVerified, setGoogleCaptchaVerified] = useState(false)
+  const [registerCaptchaVerified, setRegisterCaptchaVerified] = useState(false)
 
   useEffect(() => {
     const i = setInterval(() => setNow(new Date().toLocaleString()), 1000)
@@ -174,13 +174,9 @@ export const GatewayLogin: React.FC = () => {
 
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-		if (!loginCaptchaVerified) { 
-      setShowLoginCaptcha(true)
-      return 
-    }
 		setSubmitting(true)
 		clearError()
-    const ok = await login(email, password, 'captcha-verified')
+    const ok = await login(email, password, null)
 		setSubmitting(false)
 		if (ok) {
 			// Show splash screen before navigation
@@ -293,7 +289,10 @@ export const GatewayLogin: React.FC = () => {
 
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!registerCaptcha) { showNotification('Please complete the CAPTCHA', 'error'); return }
+    if (!registerCaptchaVerified) { 
+      setShowRegisterCaptcha(true)
+      return 
+    }
     
     // Validate required fields
     const requiredFields = ['firstName', 'lastName', 'birthdate', 'regEmail', 'mobile', 'address', 'houseNumber', 'street', 'barangay', 'regPassword', 'confirmPassword']
@@ -353,7 +352,7 @@ export const GatewayLogin: React.FC = () => {
     })
 
     setSubmitting(true)
-    const success = await register(registrationData, registerCaptcha)
+    const success = await register(registrationData, 'captcha-verified')
     setSubmitting(false)
     
     if (success) {
@@ -1061,11 +1060,6 @@ export const GatewayLogin: React.FC = () => {
                 </div>
               </div>
 
-              {/* Registration CAPTCHA */}
-              <div className="flex justify-center">
-                <CaptchaGate onVerified={setRegisterCaptcha} />
-              </div>
-
               <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <label className="inline-flex items-center">
@@ -1126,7 +1120,7 @@ export const GatewayLogin: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    disabled={!isGoogleOAuthConfigured || !googleCaptcha}
+                    disabled={!isGoogleOAuthConfigured}
                     className="mt-3 w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -1655,20 +1649,6 @@ export const GatewayLogin: React.FC = () => {
 
       {/* Click-in-Order CAPTCHA Modals */}
       <ClickOrderCaptcha 
-        isOpen={showLoginCaptcha} 
-        onClose={() => setShowLoginCaptcha(false)}
-        onVerified={() => {
-          setLoginCaptchaVerified(true)
-          setShowLoginCaptcha(false)
-          // Auto-submit the form after CAPTCHA verification
-          setTimeout(() => {
-            const form = document.querySelector('form') as HTMLFormElement
-            if (form) form.requestSubmit()
-          }, 100)
-        }}
-      />
-
-      <ClickOrderCaptcha 
         isOpen={showGoogleCaptcha} 
         onClose={() => setShowGoogleCaptcha(false)}
         onVerified={() => {
@@ -1677,6 +1657,25 @@ export const GatewayLogin: React.FC = () => {
           // Trigger Google login after CAPTCHA verification
           setTimeout(() => {
             handleGoogleLogin()
+          }, 100)
+        }}
+      />
+
+      <ClickOrderCaptcha 
+        isOpen={showRegisterCaptcha} 
+        onClose={() => setShowRegisterCaptcha(false)}
+        onVerified={() => {
+          setRegisterCaptchaVerified(true)
+          setShowRegisterCaptcha(false)
+          // Auto-submit the registration form after CAPTCHA verification
+          setTimeout(() => {
+            const forms = document.querySelectorAll('form')
+            // Find the registration form (it's the second form in the modal)
+            const regForm = Array.from(forms).find(form => {
+              const inputs = form.querySelectorAll('input[name="firstName"]')
+              return inputs.length > 0
+            })
+            if (regForm) (regForm as HTMLFormElement).requestSubmit()
           }, 100)
         }}
       />
