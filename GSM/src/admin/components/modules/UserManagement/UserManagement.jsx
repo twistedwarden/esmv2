@@ -280,14 +280,14 @@ const UserManagement = () => {
         try {
             const response = await axios.put(`${SCHOLARSHIP_API}/users/${selectedUser.id}`, formData);
             if (response.data.success) {
-                alert('User updated successfully!');
+                showSuccess('User updated successfully!');
                 setShowEditModal(false);
                 setSelectedUser(null);
                 resetForm();
                 fetchUsers();
             }
         } catch (error) {
-            alert('Error updating user: ' + (error.response?.data?.message || error.message));
+            showError('Error updating user: ' + (error.response?.data?.message || error.message));
         }
     };
 

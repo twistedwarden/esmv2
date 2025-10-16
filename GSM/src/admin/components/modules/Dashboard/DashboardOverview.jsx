@@ -28,6 +28,10 @@ import {
   Zap
 } from 'lucide-react';
 import { LoadingDashboard } from '../../ui/LoadingSpinner';
+import StandardLoading from '../../ui/StandardLoading';
+import AnimatedCard, { StatsCard as AnimatedStatsCard } from '../../ui/AnimatedCard';
+import AnimatedContainer, { AnimatedGrid, AnimatedSection } from '../../ui/AnimatedContainer';
+import { transitions } from '../../../../utils/transitions';
 import StatsCard from './components/StatsCard';
 import ChartCard from './components/ChartCard';
 import RecentActivities from './components/RecentActivities';
@@ -161,13 +165,13 @@ function DashboardOverview() {
   };
 
   if (loading) {
-    return <LoadingDashboard />;
+    return <StandardLoading variant="module" module="dashboard" message="Loading dashboard..." />;
   }
 
   const { overview, applicationTrends, statusDistribution, sscWorkflow, scholarshipCategories, recentActivities, topSchools } = dashboardData;
 
   return (
-    <div className="space-y-6">
+    <AnimatedContainer variant="page" className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
         <div className="flex items-center justify-between">
@@ -205,87 +209,71 @@ function DashboardOverview() {
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
+      <AnimatedGrid columns={4} staggerDelay={0.1}>
+        <AnimatedStatsCard
           title="Total Applications"
           value={overview.totalApplications.toLocaleString()}
-          change="+12%"
-          changeType="positive"
           icon={FileText}
           color="blue"
-          subtitle="This month"
+          index={0}
         />
-        <StatsCard
+        <AnimatedStatsCard
           title="Approved Applications"
           value={overview.approvedApplications.toLocaleString()}
-          change="+8%"
-          changeType="positive"
           icon={CheckCircle}
           color="green"
-          subtitle={`${Math.round((overview.approvedApplications / overview.totalApplications) * 100)}% approval rate`}
+          index={1}
         />
-        <StatsCard
+        <AnimatedStatsCard
           title="Pending Review"
           value={overview.pendingReview.toLocaleString()}
-          change="-5%"
-          changeType="negative"
           icon={Clock}
           color="yellow"
-          subtitle="Awaiting review"
+          index={2}
         />
-        <StatsCard
+        <AnimatedStatsCard
           title="Total Budget"
           value={`₱${(overview.totalBudget / 1000000).toFixed(1)}M`}
-          change="+15%"
-          changeType="positive"
           icon={DollarSign}
           color="emerald"
-          subtitle={`₱${(overview.disbursedAmount / 1000000).toFixed(1)}M disbursed`}
+          index={3}
         />
-      </div>
+      </AnimatedGrid>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
+      <AnimatedGrid columns={4} staggerDelay={0.1}>
+        <AnimatedStatsCard
           title="Active Students"
           value={overview.activeStudents.toLocaleString()}
-          change="+5%"
-          changeType="positive"
           icon={Users}
           color="indigo"
-          subtitle="Currently enrolled"
+          index={0}
         />
-        <StatsCard
+        <AnimatedStatsCard
           title="Partner Schools"
           value={overview.partnerSchools.toLocaleString()}
-          change="+2"
-          changeType="positive"
           icon={School}
           color="purple"
-          subtitle="Educational institutions"
+          index={1}
         />
-        <StatsCard
+        <AnimatedStatsCard
           title="SSC Reviews"
           value={overview.sscReviews.toLocaleString()}
-          change="+18%"
-          changeType="positive"
           icon={Award}
           color="orange"
-          subtitle="In progress"
+          index={2}
         />
-        <StatsCard
+        <AnimatedStatsCard
           title="Interviews Scheduled"
           value={overview.interviewsScheduled.toLocaleString()}
-          change="+7%"
-          changeType="positive"
           icon={Calendar}
           color="pink"
-          subtitle="This week"
+          index={3}
         />
-      </div>
+      </AnimatedGrid>
 
       {/* Charts and Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <AnimatedGrid columns={2} staggerDelay={0.1}>
         <ChartCard
           title="Application Trends"
           subtitle="Monthly application submissions and approvals"
@@ -327,10 +315,10 @@ function DashboardOverview() {
             }]
           }}
         />
-      </div>
+      </AnimatedGrid>
 
       {/* SSC Workflow and Scholarship Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <AnimatedGrid columns={2} staggerDelay={0.1}>
         <ChartCard
           title="SSC Review Workflow"
           subtitle="Applications in each review stage"
@@ -366,10 +354,10 @@ function DashboardOverview() {
             }]
           }}
         />
-      </div>
+      </AnimatedGrid>
 
       {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <AnimatedGrid columns={3} staggerDelay={0.1}>
         <RecentActivities activities={recentActivities} />
         <PerformanceMetrics />
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -393,7 +381,7 @@ function DashboardOverview() {
             ))}
           </div>
         </div>
-      </div>
+      </AnimatedGrid>
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -429,7 +417,7 @@ function DashboardOverview() {
           </button>
         </div>
       </div>
-    </div>
+    </AnimatedContainer>
   );
 }
 

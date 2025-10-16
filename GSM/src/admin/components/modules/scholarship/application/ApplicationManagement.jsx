@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import TabNavigation, { AnimatedTabContent } from '../../../ui/TabNavigation';
+import AnimatedContainer from '../../../ui/AnimatedContainer';
 import ApplicationOverview from './ApplicationOverview';
 import ScholarshipApplications from './ScholarshipApplications';
 // VerifiedEnrolledStudents removed - automatic verification disabled
@@ -20,7 +21,7 @@ function ApplicationManagement() {
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || ApplicationOverview;
 
   return (
-    <div>
+    <AnimatedContainer variant="page">
       {/* Application Sub-navigation */}
       <TabNavigation
         tabs={tabs}
@@ -35,7 +36,7 @@ function ApplicationManagement() {
       <AnimatedTabContent activeTab={activeTab}>
         <ActiveComponent />
       </AnimatedTabContent>
-    </div>
+    </AnimatedContainer>
   );
 }
 

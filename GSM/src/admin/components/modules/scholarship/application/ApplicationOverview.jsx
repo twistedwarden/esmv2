@@ -13,6 +13,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { LoadingApplications } from '../../../ui/LoadingSpinner';
+import StandardLoading from '../../../ui/StandardLoading';
+import AnimatedContainer, { AnimatedGrid, AnimatedSection } from '../../../ui/AnimatedContainer';
+import AnimatedCard, { StatsCard } from '../../../ui/AnimatedCard';
 
 function ApplicationOverview() {
   const [stats, setStats] = useState({
@@ -119,11 +122,11 @@ function ApplicationOverview() {
   };
 
   if (loading) {
-        return <LoadingApplications />;
-    }
+    return <StandardLoading variant="module" module="applications" message="Loading applications..." />;
+  }
 
   return (
-    <div className="space-y-6">
+    <AnimatedContainer variant="page" className="space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -146,111 +149,64 @@ function ApplicationOverview() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Applications */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Applications</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalApplications}</p>
-            </div>
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Review */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending Review</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingReview}</p>
-            </div>
-            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Under Review */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Under Review</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.underReview}</p>
-            </div>
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Approved */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Approved</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.approved}</p>
-            </div>
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
-              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Verified Students */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Verified Students</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.verifiedStudents}</p>
-            </div>
-            <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
-              <School className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Scheduled Interviews */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Scheduled Interviews</p>
-              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{stats.scheduledInterviews}</p>
-            </div>
-            <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-              <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Endorsed to SSC */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Endorsed to SSC</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.endorsedToSSC}</p>
-            </div>
-            <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/30">
-              <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Rejected */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Rejected</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.rejected}</p>
-            </div>
-            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30">
-              <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <AnimatedGrid columns={4} staggerDelay={0.1}>
+        <StatsCard
+          title="Total Applications"
+          value={stats.totalApplications.toLocaleString()}
+          icon={Users}
+          color="blue"
+          index={0}
+        />
+        <StatsCard
+          title="Pending Review"
+          value={stats.pendingReview.toLocaleString()}
+          icon={Clock}
+          color="yellow"
+          index={1}
+        />
+        <StatsCard
+          title="Under Review"
+          value={stats.underReview.toLocaleString()}
+          icon={FileText}
+          color="blue"
+          index={2}
+        />
+        <StatsCard
+          title="Approved"
+          value={stats.approved.toLocaleString()}
+          icon={CheckCircle}
+          color="green"
+          index={3}
+        />
+        <StatsCard
+          title="Verified Students"
+          value={stats.verifiedStudents.toLocaleString()}
+          icon={School}
+          color="purple"
+          index={4}
+        />
+        <StatsCard
+          title="Scheduled Interviews"
+          value={stats.scheduledInterviews.toLocaleString()}
+          icon={Calendar}
+          color="indigo"
+          index={5}
+        />
+        <StatsCard
+          title="Endorsed to SSC"
+          value={stats.endorsedToSSC.toLocaleString()}
+          icon={Award}
+          color="orange"
+          index={6}
+        />
+        <StatsCard
+          title="Rejected"
+          value={stats.rejected.toLocaleString()}
+          icon={AlertTriangle}
+          color="red"
+          index={7}
+        />
+      </AnimatedGrid>
 
       {/* Recent Activities */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
@@ -334,7 +290,7 @@ function ApplicationOverview() {
           </button>
         </div>
       </div>
-    </div>
+    </AnimatedContainer>
   );
 }
 

@@ -77,7 +77,15 @@ function FinalApprovalReview() {
         final_notes: finalDecision.final_notes
       });
 
-      showSuccess('Application finally approved! Moving to grants processing.');
+      // Auto-register student in Student Registry
+      try {
+        const { default: studentRegistrationService } = await import('../../../../../services/studentRegistrationService');
+        await studentRegistrationService.autoRegisterFromSSCApproval(selectedApplication);
+        showSuccess('Application finally approved! Student registered in Student Registry.');
+      } catch (registrationError) {
+        console.error('Error auto-registering student:', registrationError);
+        showSuccess('Application finally approved! Moving to grants processing. (Note: Student registration failed - please register manually)');
+      }
       setShowReviewModal(false);
       fetchApplications();
     } catch (error) {

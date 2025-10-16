@@ -27,6 +27,7 @@ import SettingsOverview from './modules/settings/SettingsOverview'
 import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
 import MyInterviews from './modules/interviewer/MyInterviews'
 import DocumentSecurityDashboard from './modules/security/DocumentSecurityDashboard'
+import ArchivedOverview from './modules/archived/ArchivedOverview'
 
 type Props = { activeItem: string; onPageChange?: (id: string) => void; userRole?: string; userSystemRole?: string }
 
@@ -157,6 +158,8 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
                 return <div><DocumentSecurityDashboard activeItem="security-settings" /></div>
             case 'settings':
                 return <div><SettingsOverview /></div>
+            case 'archived':
+                return <div><ArchivedOverview /></div>
 		// Interviewer routes
 		case 'interviews-pending':
 			return <div><MyInterviews filter="pending" /></div>

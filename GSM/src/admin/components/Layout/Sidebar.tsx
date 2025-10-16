@@ -180,7 +180,12 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 							}}
 						>
 							<motion.button
-								className={`w-full flex justify-between items-center p-2 md:p-2 rounded-xl transition-all duration-200 text-left ${shouldCollapse ? 'px-2' : 'px-3'} ${(activeItem === item.id || ((item as any).subItems && (item as any).subItems.some((sub: any) => sub.id === activeSubItem))) ? 'bg-orange-200 text-orange-600 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-slate-600 dark:hover:bg-slate-200'}`}
+								className={`w-full flex justify-between items-center p-2 md:p-2 rounded-xl transition-all duration-300 text-left ${shouldCollapse ? 'px-2' : 'px-3'} relative overflow-hidden group`}
+								style={{
+									background: (activeItem === item.id || ((item as any).subItems && (item as any).subItems.some((sub: any) => sub.id === activeSubItem))) 
+										? 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%)' 
+										: 'transparent'
+								}}
 								onClick={() => {
 									if ((item as any).subItems) {
 										toggleExpanded(item.id)
@@ -195,12 +200,76 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 										markAsRead(item.id as any)
 									}
 								}}
-								whileHover={{ scale: 1.02 }}
-								whileTap={{ scale: 0.98 }}
+								whileHover={{ 
+									scale: 1.02,
+									transition: { duration: 0.2, ease: "easeOut" }
+								}}
+								whileTap={{ 
+									scale: 0.98,
+									transition: { duration: 0.1, ease: "easeInOut" }
+								}}
+								initial={{ opacity: 0, x: -20 }}
+								animate={{ 
+									opacity: 1, 
+									x: 0,
+									transition: { 
+										delay: index * 0.1,
+										duration: 0.3,
+										ease: "easeOut"
+									}
+								}}
+								exit={{ 
+									opacity: 0, 
+									x: -20,
+									transition: { 
+										duration: 0.2,
+										ease: "easeIn"
+									}
+								}}
 							>
-								<div className='flex items-center space-x-3 min-w-0'>
+								{/* Glass hover effect with green gradient zoom */}
+								<motion.div
+									className="absolute inset-0 bg-gradient-to-r from-green-500/20 via-green-400/10 to-transparent rounded-xl opacity-0"
+									initial={{ opacity: 0, scaleX: 0, x: "100%" }}
+									whileHover={{ 
+										opacity: 1, 
+										scaleX: 1, 
+										x: 0,
+										transition: { 
+											duration: 0.4, 
+											ease: "easeOut" 
+										}
+									}}
+									style={{
+										background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 50%, transparent 100%)',
+										backdropFilter: 'blur(10px)',
+										WebkitBackdropFilter: 'blur(10px)',
+									}}
+								/>
+								
+								{/* Glass shine effect */}
+								<motion.div
+									className="absolute inset-0 bg-gradient-to-r from-white/20 via-white/10 to-transparent rounded-xl opacity-0"
+									initial={{ opacity: 0, scaleX: 0, x: "100%" }}
+									whileHover={{ 
+										opacity: 1, 
+										scaleX: 1, 
+										x: 0,
+										transition: { 
+											duration: 0.3, 
+											ease: "easeOut",
+											delay: 0.1
+										}
+									}}
+								/>
+								
+								<div className='flex items-center space-x-3 min-w-0 relative z-10'>
 									<div className='relative'>
-										<item.icon className='w-5 h-5 flex-shrink-0' />
+										<item.icon className={`w-5 h-5 flex-shrink-0 transition-colors duration-300 ${
+											(activeItem === item.id || ((item as any).subItems && (item as any).subItems.some((sub: any) => sub.id === activeSubItem))) 
+												? 'text-green-600 dark:text-green-400' 
+												: 'text-slate-600 dark:text-slate-400 group-hover:text-green-500 dark:group-hover:text-green-400'
+										}`} />
 										{getNotificationCount(item.id) > 0 && (
 											<NotificationDot 
 												count={getNotificationCount(item.id)} 
@@ -221,7 +290,11 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 													ease: "easeInOut"
 												}}
 											>
-												<span className='text-sm font-medium truncate'>
+												<span className={`text-sm font-medium truncate transition-colors duration-300 ${
+													(activeItem === item.id || ((item as any).subItems && (item as any).subItems.some((sub: any) => sub.id === activeSubItem))) 
+														? 'text-green-700 dark:text-green-300 font-semibold' 
+														: 'text-slate-600 dark:text-slate-400 group-hover:text-green-600 dark:group-hover:text-green-400'
+												}`}>
 													{item.label}
 												</span>
 											</motion.div>
@@ -261,7 +334,12 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 											return (
 												<motion.button
 													key={subitem.id}
-													className={`w-full text-sm text-left p-2 rounded-lg transition-colors duration-200 ${activeSubItem === subitem.id ? 'bg-orange-100 text-orange-700 font-semibold' : 'text-slate-700 dark:text-slate-500 hover:bg-slate-200 dark:hover:text-slate-600 dark:hover:bg-slate-100'}`}
+													className={`w-full text-sm text-left p-2 rounded-lg transition-all duration-300 relative overflow-hidden group ${activeSubItem === subitem.id ? 'bg-green-100/50 dark:bg-green-900/20' : ''}`}
+													style={{
+														background: activeSubItem === subitem.id 
+															? 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)' 
+															: 'transparent'
+													}}
 													onClick={() => {
 														setActiveSubItem(subitem.id)
 														if (onPageChange) onPageChange(subitem.id)
@@ -275,11 +353,49 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 														duration: 0.2,
 														ease: "easeOut"
 													}}
-													whileHover={{ scale: 1.02 }}
-													whileTap={{ scale: 0.98 }}
+													whileHover={{ 
+														scale: 1.02,
+														transition: { duration: 0.2, ease: "easeOut" }
+													}}
+													whileTap={{ 
+														scale: 0.98,
+														transition: { duration: 0.1, ease: "easeInOut" }
+													}}
+													exit={{ 
+														opacity: 0, 
+														x: -10,
+														transition: { 
+															duration: 0.15,
+															ease: "easeIn"
+														}
+													}}
 												>
-													<div className="relative flex items-center">
-														<span className="truncate block flex-1">{subitem.label}</span>
+													{/* Glass hover effect for sub-items */}
+													<motion.div
+														className="absolute inset-0 bg-gradient-to-r from-green-500/15 via-green-400/8 to-transparent rounded-lg opacity-0"
+														initial={{ opacity: 0, scaleX: 0, x: "100%" }}
+														whileHover={{ 
+															opacity: 1, 
+															scaleX: 1, 
+															x: 0,
+															transition: { 
+																duration: 0.3, 
+																ease: "easeOut" 
+															}
+														}}
+														style={{
+															background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 50%, transparent 100%)',
+															backdropFilter: 'blur(8px)',
+															WebkitBackdropFilter: 'blur(8px)',
+														}}
+													/>
+													
+													<div className="relative flex items-center z-10">
+														<span className={`truncate block flex-1 transition-colors duration-300 ${
+															activeSubItem === subitem.id 
+																? 'text-green-700 dark:text-green-300 font-semibold' 
+																: 'text-slate-700 dark:text-slate-500 group-hover:text-green-600 dark:group-hover:text-green-400'
+														}`}>{subitem.label}</span>
 														{subItemNotificationCount > 0 && (
 															<NotificationDot 
 																count={subItemNotificationCount} 

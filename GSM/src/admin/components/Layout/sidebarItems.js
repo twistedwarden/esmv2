@@ -1,5 +1,5 @@
 // Sidebar items configuration for Sidebar.jsx
-import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield, ShieldCheck, Archive } from 'lucide-react';
 
 const allSidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -65,7 +65,8 @@ const allSidebarItems = [
             { id: 'security-settings', label: 'Security Settings' }
         ]
     },
-    { id: 'settings', icon: Settings, label: 'Settings' }
+    { id: 'settings', icon: Settings, label: 'Settings' },
+    { id: 'archived', icon: Archive, label: 'Archived Data' }
 ];
 
 // Function to get sidebar items based on user role

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import TabNavigation, { AnimatedTabContent } from '../../../ui/TabNavigation';
 import { LoadingDecisions } from '../../../ui/LoadingSpinner';
+import StandardLoading from '../../../ui/StandardLoading';
+import AnimatedContainer from '../../../ui/AnimatedContainer';
 import SSCOverview from './SSCOverview';
 import MyQueue from './MyQueue';
 import ApplicationReview from './ApplicationReview';
@@ -81,13 +83,13 @@ function SSCManagement() {
             Loading your SSC role information...
           </p>
         </div>
-        <LoadingDecisions />
+        <StandardLoading variant="module" module="ssc" message="Loading SSC management..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AnimatedContainer variant="page" className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -120,7 +122,7 @@ function SSCManagement() {
       <AnimatedTabContent activeTab={activeTab}>
         <ActiveComponent />
       </AnimatedTabContent>
-    </div>
+    </AnimatedContainer>
   );
 }
 

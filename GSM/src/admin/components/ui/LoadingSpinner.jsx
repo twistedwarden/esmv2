@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
+import StandardLoading from './StandardLoading';
 
 const LoadingSpinner = ({ 
   message = "Loading...", 
@@ -105,8 +106,10 @@ export const LoadingStudents = ({ className = "" }) => (
   />
 );
 
-export const LoadingData = ({ className = "" }) => (
-  <LoadingSpinner 
+export const LoadingData = ({ className = "", module = "default" }) => (
+  <StandardLoading 
+    variant="module"
+    module={module}
     message="Loading data..." 
     className={className}
   />

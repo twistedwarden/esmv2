@@ -35,6 +35,7 @@ use App\Http\Controllers\EnrollmentVerificationController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\InterviewEvaluationController;
 use App\Http\Controllers\Api\StaffController;
+use App\Http\Controllers\Api\ArchivedDataController;
 
 // Public staff interviewers endpoint (temporarily for debugging)
 Route::get('/staff/interviewers', [StaffController::class, 'getInterviewers']);
@@ -272,6 +273,19 @@ Route::prefix('audit-logs')->middleware(['auth.auth_service'])->group(function (
     Route::get('/user/{userId}', [App\Http\Controllers\Api\AuditLogController::class, 'byUser']);
     Route::get('/resource/{resourceType}/{resourceId}', [App\Http\Controllers\Api\AuditLogController::class, 'byResource']);
     Route::get('/{id}', [App\Http\Controllers\Api\AuditLogController::class, 'show']);
+});
+
+// Archived Data routes (protected by authentication - admin only)
+Route::prefix('archived')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/', [ArchivedDataController::class, 'getArchivedData']);
+    Route::get('/stats', [ArchivedDataController::class, 'getArchivedStats']);
+    Route::get('/search', [ArchivedDataController::class, 'searchArchivedData']);
+    Route::get('/{category}', [ArchivedDataController::class, 'getArchivedDataByCategory']);
+    Route::post('/{category}/{itemId}/restore', [ArchivedDataController::class, 'restoreItem']);
+    Route::delete('/{category}/{itemId}', [ArchivedDataController::class, 'permanentDeleteItem']);
+    Route::post('/{category}/bulk-restore', [ArchivedDataController::class, 'bulkRestoreItems']);
+    Route::post('/{category}/bulk-delete', [ArchivedDataController::class, 'bulkPermanentDeleteItems']);
+    Route::get('/{category}/{itemId}', [ArchivedDataController::class, 'getArchivedItemDetails']);
 });
 
 // Test endpoint for debugging (remove in production)

@@ -1,376 +1,613 @@
-import React from 'react';
-import { GraduationCap, Award, Search, Filter, Download, RefreshCw, TrendingUp } from 'lucide-react';
-import { API_CONFIG, getScholarshipServiceUrl } from '../../../../config/api';
+import React, { useState, useEffect } from 'react';
+import { 
+  Award, 
+  Search, 
+  Filter, 
+  AlertCircle, 
+  CheckCircle, 
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  DollarSign,
+  GraduationCap,
+  Eye,
+  Edit,
+  Download,
+  BarChart3,
+  PieChart,
+  Users,
+  Clock,
+  BookOpen,
+  AlertTriangle
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useToastContext } from '../../../../components/providers/ToastProvider';
+import { LoadingData } from '../../ui/LoadingSpinner';
+import studentApiService from '../../../../services/studentApiService';
+import StudentProfileModal from './StudentProfileModal';
 
 function Scholars() {
-    const [searchTerm, setSearchTerm] = React.useState('');
-    const [filterCampus, setFilterCampus] = React.useState('all');
-    const [filterYear, setFilterYear] = React.useState('all');
-    const [filterProgram, setFilterProgram] = React.useState('all');
-    const [filterScholarshipType, setFilterScholarshipType] = React.useState('all');
-    const [currentPage, setCurrentPage] = React.useState(1);
-    const [itemsPerPage] = React.useState(10);
-    const [students, setStudents] = React.useState([]);
-    const [loading, setLoading] = React.useState(true);
-    const [error, setError] = React.useState('');
+    const { showSuccess, showError } = useToastContext();
+    const [scholars, setScholars] = useState([]);
+    const [filteredScholars, setFilteredScholars] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [selectedStudentUuid, setSelectedStudentUuid] = useState(null);
+    const [filters, setFilters] = useState({
+        scholarship_type: 'all',
+        year_level: 'all',
+        compliance_status: 'all',
+        risk_level: 'all'
+    });
+    const [showFilters, setShowFilters] = useState(false);
+    const [statistics, setStatistics] = useState(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         fetchScholars();
     }, []);
 
-    const shortId = (uuid) => {
-        if (!uuid) return '';
-        const parts = String(uuid);
-        return `${parts.slice(0, 8)}…${parts.slice(-4)}`;
-    };
-
-    const mapToViewModel = (s) => {
-        const firstName = s.first_name || s.firstName || '';
-        const middleName = s.middle_name || s.middleName || '';
-        const lastName = s.last_name || s.lastName || '';
-        const nameFromParts = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
-        const fullName = (s.name && s.name.trim()) || nameFromParts;
-        const email = s.email || (s.user && s.user.email) || '';
-        const studentUuid = s.student_id || s.studentId || s.id || '';
-        const studentNumber = s.student_number || s.studentNumber || '';
-        const enrollmentDate = s.enrollmentDate || s.created_at || s.enrollment_date || s.enrollmentDate || Date.now();
-        const yearLevel = s.year_level || s.yearLevel || '';
-        const program = s.program || '';
-        const campus = s.campus || '';
-
-        let scholarshipStatus = 'none';
-        let scholarshipType = 'Unknown';
-        let scholarshipAmount = 0;
-        if (Array.isArray(s.scholarships) && s.scholarships.length > 0) {
-            const latest = s.scholarships[0];
-            scholarshipStatus = (latest.status || '').toLowerCase() === 'awarded' ? 'scholar' : 'applicant';
-            scholarshipType = latest.type || latest.scholarship_type || 'Unknown';
-            scholarshipAmount = latest.amount || latest.scholarship_amount || 0;
-        }
-
-        return {
-            name: fullName,
-            studentId: studentNumber || shortId(studentUuid),
-            student_uuid: studentUuid,
-            email,
-            year_level: yearLevel,
-            program,
-            campus,
-            status: (s.status || 'active'),
-            scholarshipStatus,
-            scholarshipType,
-            scholarshipAmount,
-            enrollmentDate,
-            first_name: firstName,
-            middle_name: middleName,
-            last_name: lastName,
-            student_number: studentNumber,
-        };
-    };
+    useEffect(() => {
+        filterScholars();
+    }, [scholars, searchTerm, filters]);
 
     const fetchScholars = async () => {
-        setError('');
+        setLoading(true);
         try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch(getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.STUDENTS), {
-                headers: {
-                    'Accept': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                }
-            });
-            const result = await response.json();
+            const response = await studentApiService.getStudentsByScholarshipStatus('scholar');
+            setScholars(response.data || []);
             
-            if (result.success) {
-                const raw = Array.isArray(result.data) 
-                    ? result.data 
-                    : Array.isArray(result?.data?.data) 
-                        ? result.data.data 
-                        : [];
-                const mapped = raw.map(mapToViewModel);
-                // Filter only scholars (students with scholarship status)
-                const scholars = mapped.filter(student => (student.scholarshipStatus || '').toLowerCase() === 'scholar');
-                setStudents(scholars);
-            } else {
-                setError(result.message || 'Failed to fetch scholars');
-            }
+            // Calculate statistics
+            const stats = calculateStatistics(response.data || []);
+            setStatistics(stats);
         } catch (error) {
-            setError('Network error while fetching scholars');
+            console.error('Error fetching scholars:', error);
+            showError('Failed to fetch scholars');
+            // Fallback to mock data
+            const mockScholars = [
+                {
+                    student_uuid: '1',
+                    student_number: 'GSM2024001',
+                    first_name: 'John',
+                    last_name: 'Doe',
+                    email: 'john.doe@example.com',
+                    program: 'Computer Science',
+                    year_level: '3rd Year',
+                    school_name: 'University of the Philippines',
+                    scholarship_status: 'scholar',
+                    current_scholarship_id: 1,
+                    approved_amount: 50000,
+                    scholarship_start_date: '2024-01-15T10:30:00Z',
+                    gpa: 3.5,
+                    status: 'active',
+                    compliance_status: 'compliant',
+                    risk_level: 'low',
+                    last_grade_submission: '2024-01-15T10:30:00Z',
+                    attendance_rate: 95
+                },
+                {
+                    student_uuid: '2',
+                    student_number: 'GSM2024002',
+                    first_name: 'Jane',
+                    last_name: 'Smith',
+                    email: 'jane.smith@example.com',
+                    program: 'Engineering',
+                    year_level: '2nd Year',
+                    school_name: 'Ateneo de Manila University',
+                    scholarship_status: 'scholar',
+                    current_scholarship_id: 2,
+                    approved_amount: 45000,
+                    scholarship_start_date: '2024-01-14T14:20:00Z',
+                    gpa: 2.8,
+                    status: 'active',
+                    compliance_status: 'at_risk',
+                    risk_level: 'high',
+                    last_grade_submission: '2024-01-10T10:30:00Z',
+                    attendance_rate: 78
+                }
+            ];
+            setScholars(mockScholars);
+            setStatistics(calculateStatistics(mockScholars));
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredStudents = students.filter(student => {
-        const matchesSearch = (student.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (student.studentId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (student.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCampusFilter = filterCampus === 'all' || (student.campus || '').toLowerCase() === filterCampus.toLowerCase();
-        const matchesYearFilter = filterYear === 'all' || (student.year_level || '').toLowerCase() === filterYear.toLowerCase();
-        const matchesProgramFilter = filterProgram === 'all' || (student.program || '').toLowerCase().includes(filterProgram.toLowerCase());
-        const matchesScholarshipTypeFilter = filterScholarshipType === 'all' || (student.scholarshipType || '').toLowerCase().includes(filterScholarshipType.toLowerCase());
-        return matchesSearch && matchesCampusFilter && matchesYearFilter && matchesProgramFilter && matchesScholarshipTypeFilter;
-    });
+    const calculateStatistics = (scholarsData) => {
+        const total = scholarsData.length;
+        const compliant = scholarsData.filter(s => s.compliance_status === 'compliant').length;
+        const atRisk = scholarsData.filter(s => s.compliance_status === 'at_risk').length;
+        const nonCompliant = scholarsData.filter(s => s.compliance_status === 'non_compliant').length;
+        const averageGPA = scholarsData.reduce((sum, s) => sum + (s.gpa || 0), 0) / total || 0;
+        const totalAwarded = scholarsData.reduce((sum, s) => sum + (s.approved_amount || 0), 0);
+        const averageAward = totalAwarded / total || 0;
 
-    const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
-
-    const handleExport = () => {
-        const csvContent = [
-            ['Name', 'Student ID', 'Email', 'Year Level', 'Program', 'Campus', 'Scholarship Type', 'Amount', 'Enrollment Date'],
-            ...filteredStudents.map(student => [
-                student.name,
-                student.studentId,
-                student.email,
-                student.year_level,
-                student.program,
-                student.campus,
-                student.scholarshipType,
-                student.scholarshipAmount,
-                new Date(student.enrollmentDate).toLocaleDateString()
-            ])
-        ].map(row => row.join(',')).join('\n');
-        
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'scholars.csv';
-        a.click();
-        window.URL.revokeObjectURL(url);
+        return {
+            total,
+            compliant,
+            atRisk,
+            nonCompliant,
+            averageGPA: Math.round(averageGPA * 100) / 100,
+            totalAwarded,
+            averageAward: Math.round(averageAward)
+        };
     };
 
-    const scholarsCount = students.length;
-    const totalScholarshipAmount = students.reduce((sum, student) => sum + (student.scholarshipAmount || 0), 0);
-    const averageAmount = scholarsCount > 0 ? totalScholarshipAmount / scholarsCount : 0;
+    const filterScholars = () => {
+        let filtered = [...scholars];
 
-    // Get unique scholarship types for filter
-    const scholarshipTypes = [...new Set(students.map(student => student.scholarshipType).filter(Boolean))];
+        // Search filter
+        if (searchTerm) {
+            filtered = filtered.filter(scholar =>
+                scholar.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                scholar.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                scholar.student_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                scholar.email?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Other filters
+        if (filters.scholarship_type !== 'all') {
+            filtered = filtered.filter(scholar => scholar.scholarship_type === filters.scholarship_type);
+        }
+        if (filters.year_level !== 'all') {
+            filtered = filtered.filter(scholar => scholar.year_level === filters.year_level);
+        }
+        if (filters.compliance_status !== 'all') {
+            filtered = filtered.filter(scholar => scholar.compliance_status === filters.compliance_status);
+        }
+        if (filters.risk_level !== 'all') {
+            filtered = filtered.filter(scholar => scholar.risk_level === filters.risk_level);
+        }
+
+        setFilteredScholars(filtered);
+    };
+
+    const handleViewScholar = (studentUuid) => {
+        setSelectedStudentUuid(studentUuid);
+        setShowProfileModal(true);
+    };
+
+    const handleEditScholar = (scholar) => {
+        // This would open the edit modal
+        console.log('Edit scholar:', scholar);
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    const getComplianceColor = (status) => {
+        switch (status) {
+            case 'compliant': return 'text-green-600 bg-green-100';
+            case 'at_risk': return 'text-yellow-600 bg-yellow-100';
+            case 'non_compliant': return 'text-red-600 bg-red-100';
+            default: return 'text-gray-600 bg-gray-100';
+        }
+    };
+
+    const getRiskLevelColor = (level) => {
+        switch (level) {
+            case 'low': return 'text-green-600 bg-green-100';
+            case 'medium': return 'text-yellow-600 bg-yellow-100';
+            case 'high': return 'text-red-600 bg-red-100';
+            default: return 'text-gray-600 bg-gray-100';
+        }
+    };
+
+    const getGPAStatus = (gpa) => {
+        if (gpa >= 3.5) return { color: 'text-green-600', icon: TrendingUp, status: 'Excellent' };
+        if (gpa >= 3.0) return { color: 'text-blue-600', icon: TrendingUp, status: 'Good' };
+        if (gpa >= 2.5) return { color: 'text-yellow-600', icon: TrendingDown, status: 'At Risk' };
+        return { color: 'text-red-600', icon: AlertTriangle, status: 'Critical' };
+    };
+
+    if (loading) {
+        return <LoadingData />;
+    }
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Scholars</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Manage students with active scholarships</p>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <Award className="w-8 h-8 text-blue-500" />
+                        Scholars Management
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                        Monitor and manage scholarship recipients
+                    </p>
                 </div>
                 <div className="flex items-center space-x-3">
-                    <button
-                        onClick={handleExport}
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span>Export CSV</span>
+                    <button className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        <BarChart3 className="w-4 h-4" />
+                        <span>Generate Report</span>
                     </button>
-                    <button
-                        onClick={fetchScholars}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                    >
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Refresh</span>
+                    <button className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                        <Download className="w-4 h-4" />
+                        <span>Export Data</span>
                     </button>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                            <GraduationCap className="w-6 h-6 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div className="ml-4">
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Scholars</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{scholarsCount}</p>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                                {statistics?.total || 0}
+                            </p>
+                        </div>
+                        <Users className="w-8 h-8 text-blue-500" />
+                    </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Compliant</p>
+                            <p className="text-3xl font-bold text-green-600">
+                                {statistics?.compliant || 0}
+                            </p>
+                        </div>
+                        <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">At Risk</p>
+                            <p className="text-3xl font-bold text-yellow-600">
+                                {statistics?.atRisk || 0}
+                            </p>
+                        </div>
+                        <AlertCircle className="w-8 h-8 text-yellow-500" />
+                    </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average GPA</p>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                                {statistics?.averageGPA || 0}
+                            </p>
+                        </div>
+                        <BookOpen className="w-8 h-8 text-purple-500" />
+                    </div>
+                </motion.div>
+            </div>
+
+            {/* Compliance Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                >
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Compliance Status</h3>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-3 h-3 rounded-full bg-green-500" />
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Compliant</span>
+                            </div>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                {statistics?.compliant || 0}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">At Risk</span>
+                </div>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                {statistics?.atRisk || 0}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-3 h-3 rounded-full bg-red-500" />
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Non-Compliant</span>
+                            </div>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                {statistics?.nonCompliant || 0}
+                            </span>
                         </div>
                     </div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                            <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                >
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Financial Overview</h3>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Awarded</span>
+                            <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                ₱{statistics?.totalAwarded?.toLocaleString() || 0}
+                            </span>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Amount</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">₱{totalScholarshipAmount.toLocaleString()}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Amount</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">₱{averageAmount.toLocaleString()}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                            <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Scholarship Types</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{scholarshipTypes.length}</p>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Award</span>
+                            <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                ₱{statistics?.averageAward?.toLocaleString() || 0}
+                            </span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 relative">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                    {/* Search */}
+                    <div className="flex-1">
+                        <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
                             type="text"
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            placeholder="Search scholars..."
+                                placeholder="Search scholars by name, student number, or email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
                         />
+                        </div>
                     </div>
-                    <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                        <Filter className="w-4 h-4" />
+                        <span>Filters</span>
+                    </button>
+                </div>
+
+                {/* Advanced Filters */}
+                {showFilters && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Scholarship Type
+                                </label>
                         <select
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            value={filterCampus}
-                            onChange={(e) => setFilterCampus(e.target.value)}
-                        >
-                            <option value="all">All Campuses</option>
-                            <option value="main">Main Campus</option>
-                            <option value="satellite">Satellite Campus</option>
+                                    value={filters.scholarship_type}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, scholarship_type: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                >
+                                    <option value="all">All Types</option>
+                                    <option value="merit">Merit Scholarship</option>
+                                    <option value="need_based">Need-Based</option>
+                                    <option value="athletic">Athletic</option>
                         </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Year Level
+                                </label>
                         <select
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            value={filterYear}
-                            onChange={(e) => setFilterYear(e.target.value)}
+                                    value={filters.year_level}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, year_level: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
                         >
                             <option value="all">All Years</option>
-                            <option value="1st year">1st Year</option>
-                            <option value="2nd year">2nd Year</option>
-                            <option value="3rd year">3rd Year</option>
-                            <option value="4th year">4th Year</option>
+                                    <option value="1st Year">1st Year</option>
+                                    <option value="2nd Year">2nd Year</option>
+                                    <option value="3rd Year">3rd Year</option>
+                                    <option value="4th Year">4th Year</option>
                         </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Compliance Status
+                                </label>
                         <select
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            value={filterProgram}
-                            onChange={(e) => setFilterProgram(e.target.value)}
-                        >
-                            <option value="all">All Programs</option>
-                            <option value="computer science">Computer Science</option>
-                            <option value="engineering">Engineering</option>
-                            <option value="business">Business</option>
-                            <option value="education">Education</option>
+                                    value={filters.compliance_status}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, compliance_status: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="compliant">Compliant</option>
+                                    <option value="at_risk">At Risk</option>
+                                    <option value="non_compliant">Non-Compliant</option>
                         </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Risk Level
+                                </label>
                         <select
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            value={filterScholarshipType}
-                            onChange={(e) => setFilterScholarshipType(e.target.value)}
-                        >
-                            <option value="all">All Types</option>
-                            {scholarshipTypes.map(type => (
-                                <option key={type} value={type.toLowerCase()}>{type}</option>
-                            ))}
+                                    value={filters.risk_level}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, risk_level: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                >
+                                    <option value="all">All Levels</option>
+                                    <option value="low">Low Risk</option>
+                                    <option value="medium">Medium Risk</option>
+                                    <option value="high">High Risk</option>
                         </select>
                     </div>
                 </div>
+                    </div>
+                )}
             </div>
 
             {/* Scholars Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {loading ? 'Loading scholars...' : `Showing ${startIndex + 1}-${Math.min(endIndex, filteredStudents.length)} of ${filteredStudents.length} scholars`}
-                    </p>
-                </div>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Student ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Year Level</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Program</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Campus</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scholarship Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Scholar
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Program
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Award Amount
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    GPA Status
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Compliance
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Risk Level
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                        Loading scholars...
-                                    </td>
-                                </tr>
-                            ) : filteredStudents.length === 0 ? (
-                                <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                        No scholars found. Try adjusting your search or filters.
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedStudents.map((student, index) => (
-                                    <tr key={student.student_uuid || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                            {filteredScholars.map((scholar, index) => {
+                                const gpaStatus = getGPAStatus(scholar.gpa);
+                                return (
+                                    <motion.tr
+                                        key={scholar.student_uuid}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer"
+                                        onClick={() => handleViewScholar(scholar.student_uuid)}
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900 dark:text-white">{student.name}</div>
+                                            <div className="flex items-center">
+                                                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                                    <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                        {scholar.first_name} {scholar.last_name}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                        {scholar.student_number}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                        {scholar.email}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.studentId}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.year_level}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.program}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.campus}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.scholarshipType}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
-                                            ₱{student.scholarshipAmount.toLocaleString()}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900 dark:text-white">{scholar.program}</div>
+                                            <div className="text-sm text-gray-500 dark:text-gray-400">{scholar.year_level}</div>
                                         </td>
-                                    </tr>
-                                ))
-                            )}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                                ₱{scholar.approved_amount?.toLocaleString()}
+                                            </div>
+                                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                Since {formatDate(scholar.scholarship_start_date)}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center space-x-2">
+                                                <gpaStatus.icon className={`w-4 h-4 ${gpaStatus.color}`} />
+                                                <span className={`text-sm font-medium ${gpaStatus.color}`}>
+                                                    {scholar.gpa || 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                {gpaStatus.status}
+                                            </div>
+                                    </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getComplianceColor(scholar.compliance_status)}`}>
+                                                {scholar.compliance_status?.replace('_', ' ').toUpperCase()}
+                                            </span>
+                                    </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRiskLevelColor(scholar.risk_level)}`}>
+                                                {scholar.risk_level?.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewScholar(scholar.student_uuid);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleEditScholar(scholar);
+                                                    }}
+                                                    className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </motion.tr>
+                                );
+                            })}
                         </tbody>
                     </table>
-                </div>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-700 dark:text-gray-300">
-                        Showing {startIndex + 1} to {Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} results
+                {filteredScholars.length === 0 && (
+                    <div className="text-center py-12">
+                        <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No scholars found</h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                            {searchTerm || Object.values(filters).some(f => f !== 'all') 
+                                ? 'Try adjusting your search criteria' 
+                                : 'No scholars have been registered yet'
+                            }
+                        </p>
                     </div>
-                    <div className="flex space-x-2">
-                        <button
-                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1}
-                            className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
-                        >
-                            Previous
-                        </button>
-                        <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                            disabled={currentPage === totalPages}
-                            className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
-                        >
-                            Next
-                        </button>
-                    </div>
+                )}
                 </div>
-            )}
 
-            {/* Error Message */}
-            {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <p className="text-red-800 dark:text-red-200">{error}</p>
-                </div>
+            {/* Student Profile Modal */}
+            {showProfileModal && (
+                <StudentProfileModal
+                    isOpen={showProfileModal}
+                    onClose={() => setShowProfileModal(false)}
+                    studentUuid={selectedStudentUuid}
+                    onEdit={handleEditScholar}
+                />
             )}
         </div>
     );
