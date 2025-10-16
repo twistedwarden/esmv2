@@ -1,39 +1,47 @@
 import React from 'react';
-import { TrendingUp, Target, Users, BookOpen } from 'lucide-react';
+import { TrendingUp, Target, Users, BookOpen, Clock, CheckCircle, Award, DollarSign } from 'lucide-react';
 
 function PerformanceMetrics() {
     const metrics = [
         {
-            title: 'Academic Performance',
-            current: 85,
-            target: 90,
-            icon: BookOpen,
+            title: 'Application Processing Time',
+            current: 3.2,
+            target: 2.5,
+            icon: Clock,
             color: 'blue',
-            trend: '+2.3%'
+            trend: '-0.5 days',
+            unit: 'days',
+            description: 'Average processing time'
         },
         {
-            title: 'Scholarship Retention',
-            current: 92,
-            target: 95,
-            icon: Target,
+            title: 'Approval Rate',
+            current: 71.5,
+            target: 75,
+            icon: CheckCircle,
             color: 'green',
-            trend: '+1.8%'
+            trend: '+2.3%',
+            unit: '%',
+            description: 'Applications approved'
         },
         {
-            title: 'Student Engagement',
-            current: 78,
-            target: 85,
-            icon: Users,
+            title: 'SSC Review Efficiency',
+            current: 68,
+            target: 80,
+            icon: Award,
             color: 'purple',
-            trend: '+4.2%'
+            trend: '+5.2%',
+            unit: '%',
+            description: 'Reviews completed on time'
         },
         {
-            title: 'Program Effectiveness',
-            current: 88,
-            target: 90,
-            icon: TrendingUp,
+            title: 'Budget Utilization',
+            current: 71,
+            target: 85,
+            icon: DollarSign,
             color: 'orange',
-            trend: '+3.1%'
+            trend: '+8.1%',
+            unit: '%',
+            description: 'Scholarship funds utilized'
         }
     ];
 
@@ -92,13 +100,13 @@ function PerformanceMetrics() {
                                             {metric.title}
                                         </p>
                                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                                            {metric.current}% of {metric.target}% target
+                                            {metric.description}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                                        {metric.current}%
+                                        {metric.current}{metric.unit}
                                     </p>
                                     <p className="text-xs text-green-600 dark:text-green-400">
                                         {metric.trend}
@@ -114,8 +122,8 @@ function PerformanceMetrics() {
                                     />
                                 </div>
                                 <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                    <span>0%</span>
-                                    <span>{metric.target}%</span>
+                                    <span>0{metric.unit}</span>
+                                    <span>{metric.target}{metric.unit}</span>
                                 </div>
                             </div>
                         </div>

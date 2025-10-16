@@ -6,7 +6,6 @@ const allSidebarItems = [
     {
          id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
          subItems: [
-             { id: 'scholarship-overview', label: 'Overview' },
              { id: 'scholarship-applications', label: 'Applications' },
              { id: 'scholarship-programs', label: 'Programs' },
              { id: 'scholarship-ssc', label: 'SSC Management' }
@@ -117,7 +116,6 @@ export const getSidebarItems = (userRole, userSystemRole = null) => {
                 {
                     id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
                     subItems: [
-                        { id: 'scholarship-overview', label: 'Overview' },
                         { id: 'scholarship-applications', label: 'Applications' }
                     ]
                 },
@@ -131,7 +129,6 @@ export const getSidebarItems = (userRole, userSystemRole = null) => {
                 {
                     id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
                     subItems: [
-                        { id: 'scholarship-overview', label: 'Overview' },
                         { id: 'scholarship-applications', label: 'Applications' },
                         { id: 'scholarship-programs', label: 'Programs' }
                     ]

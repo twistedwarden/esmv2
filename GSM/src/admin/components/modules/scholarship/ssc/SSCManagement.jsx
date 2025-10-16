@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import TabNavigation, { AnimatedTabContent } from '../../../ui/TabNavigation';
+import { LoadingDecisions } from '../../../ui/LoadingSpinner';
 import SSCOverview from './SSCOverview';
 import MyQueue from './MyQueue';
 import ApplicationReview from './ApplicationReview';
@@ -79,9 +81,7 @@ function SSCManagement() {
             Loading your SSC role information...
           </p>
         </div>
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-        </div>
+        <LoadingDecisions />
       </div>
     );
   }
@@ -108,26 +108,18 @@ function SSCManagement() {
       </div>
 
       {/* SSC Sub-navigation */}
-      <div className="border-b border-gray-200 dark:border-slate-700">
-        <nav className="-mb-px flex space-x-8 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <TabNavigation
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        layoutId="activeSscTab"
+        variant="default"
+      />
 
-      {/* Render Active Component */}
-      <ActiveComponent />
+      {/* Render Active Component with smooth transition */}
+      <AnimatedTabContent activeTab={activeTab}>
+        <ActiveComponent />
+      </AnimatedTabContent>
     </div>
   );
 }

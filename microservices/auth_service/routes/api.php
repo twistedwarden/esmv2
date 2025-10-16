@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GsmAuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,4 +54,17 @@ Route::prefix('users')->group(function () {
     Route::put('/{id}/activate', [UserController::class, 'activateUser']);
     Route::delete('/{id}', [UserController::class, 'deleteUser']);
     Route::delete('/{id}/permanent', [UserController::class, 'permanentDeleteUser']);
+});
+
+// Settings routes (protected by authentication)
+Route::middleware(['auth:sanctum'])->group(function () {
+    // User notification preferences
+    Route::get('/user/notifications', [SettingsController::class, 'getNotificationPreferences']);
+    Route::put('/user/notifications', [SettingsController::class, 'updateNotificationPreferences']);
+    
+    // System settings (admin only)
+    Route::get('/admin/settings', [SettingsController::class, 'getSystemSettings']);
+    Route::put('/admin/settings', [SettingsController::class, 'updateSystemSettings']);
+    Route::get('/admin/health', [SettingsController::class, 'getSystemHealth']);
+    Route::get('/admin/stats', [SettingsController::class, 'getAdminStats']);
 });

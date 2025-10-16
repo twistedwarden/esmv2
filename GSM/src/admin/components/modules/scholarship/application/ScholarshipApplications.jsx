@@ -48,6 +48,7 @@ import {
   Send,
   DollarSign
 } from 'lucide-react';
+import { LoadingApplications } from '../../../ui/LoadingSpinner';
 
 function ScholarshipApplications() {
   // Toast context
@@ -1272,12 +1273,7 @@ function ScholarshipApplications() {
 
       {/* Applications Grid/List */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Loading applications...</p>
-              </div>
-            </div>
+        <LoadingApplications />
       ) : error ? (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
           <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />

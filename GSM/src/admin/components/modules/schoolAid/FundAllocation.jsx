@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, School, Calendar, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { LoadingData } from '../../ui/LoadingSpinner';
 
 function FundAllocation({ onPageChange }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -147,11 +148,7 @@ function FundAllocation({ onPageChange }) {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-        );
+        return <LoadingData />;
     }
 
     return (

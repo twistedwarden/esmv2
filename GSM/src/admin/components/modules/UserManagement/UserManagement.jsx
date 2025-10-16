@@ -3,6 +3,7 @@ import { Users, UserPlus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX
 import axios from 'axios';
 import UserActionModal from './UserActionModal';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
+import { LoadingUsers } from '../../ui/LoadingSpinner';
 
 const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
 
@@ -141,8 +142,7 @@ const UserManagement = () => {
                 });
             }
         } catch (error) {
-            console.error('Error fetching users:', error);
-            console.error('Error details:', error.response?.data);
+            console.warn('Users API not available, using empty data');
             setUsers({
                 citizens: [],
                 staff: [],
@@ -161,7 +161,7 @@ const UserManagement = () => {
                 setStats(response.data.data);
             }
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            console.warn('Stats API not available, using empty data');
         }
     };
 
@@ -186,7 +186,7 @@ const UserManagement = () => {
                 throw new Error(data.message || 'Failed to fetch schools');
             }
         } catch (err) {
-            console.error('Error fetching schools:', err);
+            console.warn('Schools API not available, using empty data');
         }
     };
 
@@ -680,14 +680,7 @@ const UserManagement = () => {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
-                </div>
-            </div>
-        );
+        return <LoadingUsers />;
     }
 
     return (

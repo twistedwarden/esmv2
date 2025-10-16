@@ -1,26 +1,34 @@
 import React from 'react';
 
-function ChartCard({ title, subtitle, icon: Icon, data, type }) {
+function ChartCard({ title, subtitle, data, type }) {
     const renderLineChart = () => {
-        const maxValue = Math.max(...data.map(d => d.students));
-        const minValue = Math.min(...data.map(d => d.students));
+        if (!data || !data.labels || !data.datasets) {
+            return <div className="h-64 flex items-center justify-center text-gray-500">No data available</div>;
+        }
+
+        const allValues = data.datasets.flatMap(dataset => dataset.data);
+        const maxValue = Math.max(...allValues);
+        const minValue = Math.min(...allValues);
         const range = maxValue - minValue;
 
         return (
             <div className="h-64 flex items-end justify-between px-4 pb-4">
-                {data.map((item, index) => {
-                    const height = range > 0 ? ((item.students - minValue) / range) * 200 + 20 : 120;
+                {data.labels.map((label, index) => {
+                    const values = data.datasets.map(dataset => dataset.data[index]);
+                    const maxDatasetValue = Math.max(...values);
+                    const height = range > 0 ? ((maxDatasetValue - minValue) / range) * 200 + 20 : 120;
+                    
                     return (
                         <div key={index} className="flex flex-col items-center space-y-2">
                             <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                {item.students.toLocaleString()}
+                                {maxDatasetValue.toLocaleString()}
                             </div>
                             <div
                                 className="w-8 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-500"
                                 style={{ height: `${height}px` }}
                             />
                             <div className="text-xs text-slate-500 dark:text-slate-400">
-                                {item.month}
+                                {label}
                             </div>
                         </div>
                     );
@@ -30,16 +38,21 @@ function ChartCard({ title, subtitle, icon: Icon, data, type }) {
     };
 
     const renderPieChart = () => {
-        const total = data.reduce((sum, item) => sum + item.value, 0);
+        if (!data || !data.labels || !data.datasets || !data.datasets[0]) {
+            return <div className="h-64 flex items-center justify-center text-gray-500">No data available</div>;
+        }
+
+        const dataset = data.datasets[0];
+        const total = dataset.data.reduce((sum, value) => sum + value, 0);
         let currentAngle = 0;
 
         return (
             <div className="h-64 flex items-center justify-center">
                 <div className="relative">
                     <svg width="200" height="200" className="transform -rotate-90">
-                        {data.map((item, index) => {
-                            const percentage = (item.value / total) * 100;
-                            const angle = (item.value / total) * 360;
+                        {data.labels.map((label, index) => {
+                            const value = dataset.data[index];
+                            const angle = (value / total) * 360;
                             const startAngle = currentAngle;
                             currentAngle += angle;
 
@@ -49,12 +62,13 @@ function ChartCard({ title, subtitle, icon: Icon, data, type }) {
                             const y2 = 100 + 80 * Math.sin((currentAngle * Math.PI) / 180);
 
                             const largeArcFlag = angle > 180 ? 1 : 0;
+                            const color = dataset.backgroundColor[index] || '#3B82F6';
 
                             return (
                                 <path
                                     key={index}
                                     d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
-                                    fill={item.color}
+                                    fill={color}
                                     className="hover:opacity-80 transition-opacity cursor-pointer"
                                 />
                             );
@@ -63,7 +77,7 @@ function ChartCard({ title, subtitle, icon: Icon, data, type }) {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
                             <div className="text-2xl font-bold text-slate-800 dark:text-white">
-                                {total}%
+                                {total}
                             </div>
                             <div className="text-sm text-slate-600 dark:text-slate-400">
                                 Total
@@ -72,41 +86,96 @@ function ChartCard({ title, subtitle, icon: Icon, data, type }) {
                     </div>
                 </div>
                 <div className="ml-8 space-y-2">
-                    {data.map((item, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                            <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: item.color }}
-                            />
-                            <span className="text-sm text-slate-600 dark:text-slate-400">
-                                {item.name}
-                            </span>
-                            <span className="text-sm font-medium text-slate-800 dark:text-white">
-                                {item.value}%
-                            </span>
-                        </div>
-                    ))}
+                    {data.labels.map((label, index) => {
+                        const value = dataset.data[index];
+                        const color = dataset.backgroundColor[index] || '#3B82F6';
+                        return (
+                            <div key={index} className="flex items-center space-x-2">
+                                <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: color }}
+                                />
+                                <span className="text-sm text-slate-600 dark:text-slate-400">
+                                    {label}
+                                </span>
+                                <span className="text-sm font-medium text-slate-800 dark:text-white">
+                                    {value}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );
     };
 
+    const renderBarChart = () => {
+        if (!data || !data.labels || !data.datasets || !data.datasets[0]) {
+            return <div className="h-64 flex items-center justify-center text-gray-500">No data available</div>;
+        }
+
+        const dataset = data.datasets[0];
+        const allValues = dataset.data;
+        const maxValue = Math.max(...allValues);
+        const minValue = Math.min(...allValues);
+        const range = maxValue - minValue;
+
+        return (
+            <div className="h-64 flex items-end justify-between px-4 pb-4">
+                {data.labels.map((label, index) => {
+                    const value = dataset.data[index];
+                    const height = range > 0 ? ((value - minValue) / range) * 200 + 20 : 120;
+                    const color = dataset.backgroundColor[index] || '#3B82F6';
+                    
+                    return (
+                        <div key={index} className="flex flex-col items-center space-y-2">
+                            <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                {value.toLocaleString()}
+                            </div>
+                            <div
+                                className="w-8 rounded-t-sm transition-all duration-300 hover:opacity-80"
+                                style={{ 
+                                    height: `${height}px`,
+                                    backgroundColor: color
+                                }}
+                            />
+                            <div className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                                {label}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderChart = () => {
+        switch (type) {
+            case 'line':
+                return renderLineChart();
+            case 'pie':
+            case 'doughnut':
+                return renderPieChart();
+            case 'bar':
+                return renderBarChart();
+            default:
+                return <div className="h-64 flex items-center justify-center text-gray-500">Unsupported chart type</div>;
+        }
+    };
+
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {title}
                     </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                         {subtitle}
                     </p>
                 </div>
-                <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                    <Icon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                </div>
             </div>
-            {type === 'line' ? renderLineChart() : renderPieChart()}
+            {renderChart()}
         </div>
     );
 }

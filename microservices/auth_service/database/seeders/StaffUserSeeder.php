@@ -15,20 +15,6 @@ class StaffUserSeeder extends Seeder
     {
         $staffUsers = [
             [
-                'citizen_id' => 'STAFF-002',
-                'email' => 'peter.santos@scholarship.gov.ph',
-                'password' => Hash::make('password123'),
-                'first_name' => 'Peter',
-                'last_name' => 'Santos',
-                'middle_name' => 'Cruz',
-                'role' => 'staff',
-                'is_active' => true,
-                'email_verified_at' => now(),
-                'mobile' => '+63-912-345-6789',
-                'address' => 'Caloocan City, Metro Manila',
-                'status' => 'active',
-            ],
-            [
                 'citizen_id' => 'STAFF-003',
                 'email' => 'maria.reyes@scholarship.gov.ph',
                 'password' => Hash::make('password123'),
