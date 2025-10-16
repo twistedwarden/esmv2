@@ -11,7 +11,7 @@ function AcademicReview() {
     academic_standing_verified: false,
     program_eligibility: false,
     school_accreditation: false,
-    academic_merit_notes: ''
+    academic_assessment: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
@@ -28,20 +28,23 @@ function AcademicReview() {
       setApplications(response.data || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
-      showError('Failed to load applications');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to load applications';
+      const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+      showError(`Failed to load applications: ${errorMessage}${debugInfo}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const openReviewModal = async (application) => {
+  const openReviewModal = (application) => {
     setSelectedApplication(application);
     setShowReviewModal(true);
+    // Reset form
     setReviewForm({
       academic_standing_verified: false,
       program_eligibility: false,
       school_accreditation: false,
-      academic_merit_notes: ''
+      academic_assessment: ''
     });
   };
 
@@ -53,66 +56,49 @@ function AcademicReview() {
       return;
     }
 
-    setIsSubmitting(true);
+
     try {
       const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
-      await scholarshipApiService.approveStage(
-        selectedApplication.id,
-        'academic_review',
-        reviewForm.academic_merit_notes,
-        {
-          ...reviewForm,
-          academic_standing_verified: reviewForm.academic_standing_verified,
-          program_eligibility: reviewForm.program_eligibility,
-          school_accreditation: reviewForm.school_accreditation
-        }
-      );
+      await scholarshipApiService.sscSubmitAcademicReview(selectedApplication.id, {
+        approved: true,
+        notes: reviewForm.academic_assessment
+      });
 
-      showSuccess('Academic review stage approved successfully');
+      showSuccess('Application approved and moved to final approval');
       setShowReviewModal(false);
       fetchApplications();
     } catch (error) {
       console.error('Error approving application:', error);
-      showError('Failed to approve application');
-    } finally {
-      setIsSubmitting(false);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to approve application';
+      const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+      showError(`Failed to approve application: ${errorMessage}${debugInfo}`);
     }
   };
 
   const handleReject = async () => {
     if (!selectedApplication) return;
 
-    if (!reviewForm.academic_merit_notes) {
+    if (!reviewForm.academic_assessment) {
       showError('Please provide rejection reason');
       return;
     }
 
     if (confirm('Are you sure you want to reject this application based on academic criteria?')) {
-      setIsSubmitting(true);
       try {
-        // For parallel workflow, we mark the stage as not approved but don't change overall status
-        const stageStatus = selectedApplication.ssc_stage_status || {};
-        stageStatus['academic_review'] = {
-          status: 'rejected',
-          reviewed_by: 'current_user', // This would need to be the actual user ID
-          reviewed_at: new Date().toISOString(),
-          notes: reviewForm.academic_merit_notes,
-        };
-        
-        // Update the application with the rejected stage status
         const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
-        await scholarshipApiService.updateApplication(selectedApplication.id, {
-          ssc_stage_status: stageStatus
+        await scholarshipApiService.sscSubmitAcademicReview(selectedApplication.id, {
+          approved: false,
+          notes: reviewForm.academic_assessment
         });
 
-        showSuccess('Academic review stage marked as rejected');
+        showSuccess('Application rejected due to academic criteria');
         setShowReviewModal(false);
         fetchApplications();
       } catch (error) {
         console.error('Error rejecting application:', error);
-        showError('Failed to reject application');
-      } finally {
-        setIsSubmitting(false);
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to reject application';
+        const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+        showError(`Failed to reject application: ${errorMessage}${debugInfo}`);
       }
     }
   };
@@ -400,14 +386,14 @@ function AcademicReview() {
                 </div>
               </div>
 
-              {/* Academic Merit Assessment */}
+              {/* Academic Assessment */}
               <div>
                 <label className="block font-semibold text-gray-900 dark:text-white mb-2">
-                  Academic Merit Assessment
+                  Academic Assessment
                 </label>
                 <textarea
-                  value={reviewForm.academic_merit_notes}
-                  onChange={(e) => setReviewForm(prev => ({ ...prev, academic_merit_notes: e.target.value }))}
+                  value={reviewForm.academic_assessment}
+                  onChange={(e) => setReviewForm(prev => ({ ...prev, academic_assessment: e.target.value }))}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
                   placeholder="Provide academic merit assessment, program alignment, potential for success..."

@@ -208,7 +208,7 @@ function ImportExport() {
                 total: mockData.length,
                 successful: mockData.length - validation.errors.length,
                 failed: validation.errors.length,
-                warnings: validation.warnings.length,
+                warningCount: validation.warnings.length,
                 errors: validation.errors,
                 warnings: validation.warnings,
                 processed: mockData.length,

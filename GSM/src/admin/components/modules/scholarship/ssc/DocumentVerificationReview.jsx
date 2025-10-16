@@ -72,12 +72,14 @@ function DocumentVerificationReview() {
         document_issues: reviewForm.compliance_issues
       });
 
-      showSuccess('Application approved and moved to financial review');
+      showSuccess('Document verification approved successfully');
       setShowReviewModal(false);
       fetchApplications();
     } catch (error) {
       console.error('Error approving application:', error);
-      showError('Failed to approve application');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to approve application';
+      const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+      showError(`Failed to approve document verification: ${errorMessage}${debugInfo}`);
     }
   };
 
@@ -97,12 +99,14 @@ function DocumentVerificationReview() {
         document_issues: reviewForm.compliance_issues
       });
 
-      showSuccess('Application sent for compliance');
+      showSuccess('Document verification marked as needing revision');
       setShowReviewModal(false);
       fetchApplications();
     } catch (error) {
       console.error('Error requesting compliance:', error);
-      showError('Failed to request compliance');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to request compliance';
+      const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+      showError(`Failed to mark document verification for revision: ${errorMessage}${debugInfo}`);
     }
   };
 

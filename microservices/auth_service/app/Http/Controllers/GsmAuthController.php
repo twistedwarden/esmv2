@@ -143,7 +143,7 @@ class GsmAuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
         
-        $otp = \App\Models\OtpVerification::where('user_id', $user->id)
+        $otp = OtpVerification::where('user_id', $user->id)
             ->where('otp_code', $request->otp_code)
             ->where('type', 'login')
             ->where('is_used', false)

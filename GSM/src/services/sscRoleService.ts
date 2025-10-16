@@ -26,11 +26,26 @@ export interface SscRoleData {
   }>;
 }
 
-// Role to Tab mapping - Simplified to one role per stage
+// Role to Tab mapping - Based on SSC stage assignments
 export const ROLE_TAB_MAPPING: Record<string, string[]> = {
+  // Document Verification Stage
   city_council: ['overview', 'my-queue', 'document-verification'],
+  hrd: ['overview', 'my-queue', 'document-verification'],
+  social_services: ['overview', 'my-queue', 'document-verification'],
+  
+  // Financial Review Stage
   budget_dept: ['overview', 'my-queue', 'financial-review'],
+  accounting: ['overview', 'my-queue', 'financial-review'],
+  treasurer: ['overview', 'my-queue', 'financial-review'],
+  
+  // Academic Review Stage
   education_affairs: ['overview', 'my-queue', 'academic-review'],
+  qcydo: ['overview', 'my-queue', 'academic-review'],
+  planning_dept: ['overview', 'my-queue', 'academic-review'],
+  schools_division: ['overview', 'my-queue', 'academic-review'],
+  qcu: ['overview', 'my-queue', 'academic-review'],
+  
+  // Chairperson - has access to all stages
   chairperson: ['overview', 'my-queue', 'final-approval', 'history'],
 };
 

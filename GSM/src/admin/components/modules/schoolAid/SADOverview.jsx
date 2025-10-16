@@ -1,5 +1,5 @@
 import React from 'react';
-import { HandCoins, Users, CheckCircle, Clock, TrendingUp, Calendar, School, DollarSign, CreditCard, BarChart3 } from 'lucide-react';
+import { HandCoins, Users, Clock, TrendingUp, Calendar, DollarSign } from 'lucide-react';
 
 function SADOverview({ onPageChange }) {
     const stats = [
@@ -107,63 +107,25 @@ function SADOverview({ onPageChange }) {
                 ))}
             </div>
 
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Aid Distribution by Type */}
-                <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-6">Aid Distribution by Type</h3>
-                    <div className="space-y-4">
-                        {aidTypes.map((aid, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                                <div className="flex items-center space-x-4">
-                                    <div className={`w-4 h-4 ${aid.color} rounded-full`}></div>
-                                    <div>
-                                        <p className="font-medium text-slate-800 dark:text-white">{aid.name}</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400">{aid.recipients} recipients</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-semibold text-slate-800 dark:text-white">{aid.amount}</p>
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">distributed</p>
+            {/* Aid Distribution by Type */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-6">Aid Distribution by Type</h3>
+                <div className="space-y-4">
+                    {aidTypes.map((aid, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                            <div className="flex items-center space-x-4">
+                                <div className={`w-4 h-4 ${aid.color} rounded-full`}></div>
+                                <div>
+                                    <p className="font-medium text-slate-800 dark:text-white">{aid.name}</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">{aid.recipients} recipients</p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Quick Actions</h3>
-                    <div className="space-y-3">
-                        <button 
-                            onClick={() => handleNavigation('sad-applications')}
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
-                        >
-                            <CheckCircle className="w-5 h-5" />
-                            <span>Review Applications</span>
-                        </button>
-                        <button 
-                            onClick={() => handleNavigation('sad-fund-allocation')}
-                            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
-                        >
-                            <DollarSign className="w-5 h-5" />
-                            <span>Manage Fund Allocation</span>
-                        </button>
-                        <button 
-                            onClick={() => handleNavigation('sad-payment-processing')}
-                            className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
-                        >
-                            <CreditCard className="w-5 h-5" />
-                            <span>Process Payments</span>
-                        </button>
-                        <button 
-                            onClick={() => handleNavigation('sad-analytics')}
-                            className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
-                        >
-                            <BarChart3 className="w-5 h-5" />
-                            <span>View Analytics</span>
-                        </button>
-                    </div>
+                            <div className="text-right">
+                                <p className="font-semibold text-slate-800 dark:text-white">{aid.amount}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">distributed</p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

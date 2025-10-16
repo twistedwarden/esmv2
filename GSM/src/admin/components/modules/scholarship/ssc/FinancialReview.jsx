@@ -143,12 +143,14 @@ function FinancialReview() {
         }
       );
 
-      showSuccess('Financial review stage approved successfully');
+      showSuccess('Financial review approved successfully');
       setShowReviewModal(false);
       fetchApplications();
     } catch (error) {
       console.error('Error approving stage:', error);
-      showError('Failed to approve financial review stage');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to approve financial review stage';
+      const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+      showError(`Failed to approve financial review: ${errorMessage}${debugInfo}`);
     }
   };
 
@@ -169,12 +171,14 @@ function FinancialReview() {
           review_notes: reviewForm.financial_assessment
         });
 
-        showSuccess('Application rejected');
+        showSuccess('Financial review rejected');
         setShowReviewModal(false);
         fetchApplications();
       } catch (error) {
         console.error('Error rejecting application:', error);
-        showError('Failed to reject application');
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to reject application';
+        const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
+        showError(`Failed to reject financial review: ${errorMessage}${debugInfo}`);
       }
     }
   };
