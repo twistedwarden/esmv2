@@ -24,6 +24,7 @@ import { LoadingData } from '../../ui/LoadingSpinner';
 import { settingsService } from '../../../../services/settingsService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import { useAuthStore } from '../../../../store/v1authStore';
+import NotificationTestPanel from '../../NotificationTestPanel';
 
 function SettingsOverview() {
     const { showSuccess, showError } = useToastContext();
@@ -33,6 +34,7 @@ function SettingsOverview() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('profile');
+    const [showNotificationTestPanel, setShowNotificationTestPanel] = useState(false);
     
     // Profile state
     const [profile, setProfile] = useState({
@@ -542,7 +544,37 @@ function SettingsOverview() {
                     {/* Notifications Tab */}
                     {activeTab === 'notifications' && (
                         <div className="space-y-6">
+                            {/* Notification Test Panel Toggle */}
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                            Notification Test Panel
+                                        </h4>
+                                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                                            Show/hide the notification system test panel for debugging and testing purposes
+                                        </p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={showNotificationTestPanel}
+                                            onChange={(e) => setShowNotificationTestPanel(e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Notification Test Panel */}
+                            {showNotificationTestPanel && (
+                                <NotificationTestPanel />
+                            )}
+
+                            {/* Regular Notification Settings */}
                             <div className="space-y-4">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notification Preferences</h3>
                                 {Object.entries(notifications).map(([key, value]) => (
                                     <div key={key} className="flex items-center justify-between py-3 border-b border-slate-200 dark:border-slate-700">
                                         <div>
