@@ -1,7 +1,8 @@
 // API Configuration
 export const API_CONFIG = {
     AUTH_SERVICE: {
-        BASE_URL: 'http://localhost:8000',
+        // Use environment variable, fallback to production API
+        BASE_URL: import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://auth-gsph.up.railway.app',
         ENDPOINTS: {
             LOGIN: '/api/login',
             LOGOUT: '/api/logout',
