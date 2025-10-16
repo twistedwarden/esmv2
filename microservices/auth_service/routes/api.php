@@ -7,6 +7,7 @@ use App\Http\Controllers\GsmAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,4 +73,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin/stats', [AdminController::class, 'getAdminStats']);
     Route::post('/admin/export/{type}', [AdminController::class, 'exportData']);
     Route::post('/admin/clear-cache', [AdminController::class, 'clearCache']);
+    
+    // Dashboard routes
+    Route::get('/dashboard/overview', [DashboardController::class, 'getOverview']);
+    Route::get('/dashboard/trends', [DashboardController::class, 'getTrends']);
+    Route::get('/dashboard/status-distribution', [DashboardController::class, 'getStatusDistribution']);
+    Route::get('/dashboard/ssc-workflow', [DashboardController::class, 'getSSCWorkflow']);
+    Route::get('/dashboard/scholarship-categories', [DashboardController::class, 'getScholarshipCategories']);
+    Route::get('/dashboard/recent-activities', [DashboardController::class, 'getRecentActivities']);
+    Route::get('/dashboard/top-schools', [DashboardController::class, 'getTopSchools']);
+    Route::post('/dashboard/export', [DashboardController::class, 'exportReport']);
 });

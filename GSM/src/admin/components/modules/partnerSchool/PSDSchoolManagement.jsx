@@ -131,13 +131,13 @@ function PSDSchoolManagement() {
         <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
             {/* Header Section */}
             <div className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700">
-                <div className="px-6 py-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">School Management</h1>
+                <div className="px-4 sm:px-6 py-4 sm:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">School Management</h1>
                             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage partner school information, contact details, and accreditation status</p>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                             {/* View Toggle */}
                             <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
                                 <button
@@ -182,21 +182,21 @@ function PSDSchoolManagement() {
                             
                             <button 
                                 onClick={() => setShowAddModal(true)}
-                                className="inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md text-sm sm:text-base w-full sm:w-auto"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
-                                Add New School
+                                <span className="truncate">Add New School</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-6 py-6">
+            <div className="px-4 sm:px-6 py-4 sm:py-6">
                 {/* Search and Filter Section */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-6">
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                        <div className="flex-1 max-w-md">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mb-4 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+                        <div className="flex-1 w-full sm:max-w-md">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
@@ -204,17 +204,17 @@ function PSDSchoolManagement() {
                                     placeholder="Search schools..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white text-sm"
                                 />
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
                             <div className="flex items-center gap-2">
                                 <Filter className="w-4 h-4 text-gray-500" />
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white"
+                                    className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white text-sm"
                                 >
                                     <option value="all">All Status</option>
                                     <option value="active">Active</option>
@@ -249,7 +249,7 @@ function PSDSchoolManagement() {
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                                 <thead className="bg-gray-50 dark:bg-slate-700">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                                             <button
                                                 onClick={handleSelectAll}
                                                 className="flex items-center space-x-2 hover:text-gray-700 dark:hover:text-slate-300"
@@ -262,18 +262,18 @@ function PSDSchoolManagement() {
                                                 <span>School</span>
                                             </button>
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Properties</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Properties</th>
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                                     {schools.map((school) => (
                                         <tr key={school.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center space-x-3">
                                                     <button
                                                         onClick={() => handleSelectSchool(school.id)}
@@ -300,23 +300,23 @@ function PSDSchoolManagement() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900 dark:text-white">{school.classification}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
                                                     <MapPin className="w-3 h-3 mr-1" />
                                                     {[school.address, school.city, school.region].filter(Boolean).join(', ')}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900 dark:text-white">{school.email || 'No email'}</div>
                                                 <div className="text-sm text-gray-500 dark:text-slate-400 flex items-center">
                                                     <Phone className="w-3 h-3 mr-1" />
                                                     {school.contact_number || 'No phone'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                                 <div className="space-y-1">
                                                     {school.is_public && (
                                                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
@@ -330,7 +330,7 @@ function PSDSchoolManagement() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(school.is_active)}`}>
                                                     {getStatusIcon(school.is_active)}
                                                     <span className="ml-1">{getStatusText(school.is_active)}</span>
@@ -374,8 +374,8 @@ function PSDSchoolManagement() {
                         </div>
                     ) : (
                         // Grid View
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="p-4 sm:p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                                 {schools.map((school) => (
                                     <div key={school.id} className="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg p-4 hover:shadow-md transition-shadow">
                                         <div className="flex items-start justify-between mb-3">

@@ -154,25 +154,25 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
   };
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className={`text-2xl font-bold ${color}`}>{value}</p>
-          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">{title}</p>
+          <p className={`text-lg sm:text-2xl font-bold ${color}`}>{value}</p>
+          {subtitle && <p className="text-xs text-gray-500 mt-1 truncate">{subtitle}</p>}
         </div>
-        <div className={`p-3 rounded-full ${color.replace('text-', 'bg-').replace('-600', '-100')}`}>
-          <Icon className={`h-6 w-6 ${color}`} />
+        <div className={`p-2 sm:p-3 rounded-full flex-shrink-0 ${color.replace('text-', 'bg-').replace('-600', '-100')}`}>
+          <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${color}`} />
         </div>
       </div>
       {trend && (
-        <div className="mt-2 flex items-center text-sm">
+        <div className="mt-2 flex items-center text-xs sm:text-sm">
           {trend > 0 ? (
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mr-1 flex-shrink-0" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+            <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 mr-1 flex-shrink-0" />
           )}
-          <span className={trend > 0 ? 'text-green-600' : 'text-red-600'}>
+          <span className={`${trend > 0 ? 'text-green-600' : 'text-red-600'} truncate`}>
             {Math.abs(trend)}% from last period
           </span>
         </div>
@@ -182,31 +182,31 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin text-orange-500" />
-          <span className="ml-2 text-gray-600">Loading security dashboard...</span>
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center h-64 space-y-2 sm:space-y-0">
+          <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-orange-500" />
+          <span className="text-sm sm:text-base text-gray-600 text-center">Loading security dashboard...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-orange-500 rounded-lg">
-            <Shield className="h-6 w-6 text-white" />
+          <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Document Security Dashboard</h1>
-            <p className="text-gray-600">Monitor virus scans and security threats</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">Document Security Dashboard</h1>
+            <p className="text-sm sm:text-base text-gray-600">Monitor virus scans and security threats</p>
           </div>
         </div>
         <button
           onClick={fetchAllData}
-          className="flex items-center space-x-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+          className="flex items-center justify-center space-x-2 bg-orange-500 text-white px-3 py-2 sm:px-4 rounded-lg hover:bg-orange-600 transition-colors text-sm sm:text-base w-full sm:w-auto"
         >
           <RefreshCw className="h-4 w-4" />
           <span>Refresh</span>
@@ -214,14 +214,14 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Period</label>
             <select
               value={filters.days}
               onChange={(e) => setFilters({...filters, days: parseInt(e.target.value)})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-2 py-2 sm:px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -229,11 +229,11 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
               value={filters.status}
               onChange={(e) => setFilters({...filters, status: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-2 py-2 sm:px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
             >
               <option value="all">All Status</option>
               <option value="clean">Clean</option>
@@ -241,31 +241,31 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Threat</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Threat</label>
             <input
               type="text"
               placeholder="Search threat..."
               value={filters.threat}
               onChange={(e) => setFilters({...filters, threat: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-2 py-2 sm:px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">From Date</label>
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-2 py-2 sm:px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">To Date</label>
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-2 py-2 sm:px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
             />
           </div>
         </div>
@@ -273,7 +273,7 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex flex-col sm:flex-row sm:space-x-8 overflow-x-auto">
           {[
             { id: 'overview', name: 'Overview', icon: BarChart3 },
             { id: 'logs', name: 'Scan Logs', icon: FileText },
@@ -285,14 +285,14 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex items-center justify-center sm:justify-start space-x-2 py-3 sm:py-2 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap min-w-0 ${
                   activeTab === tab.id
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <Icon className="h-4 w-4" />
-                <span>{tab.name}</span>
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{tab.name}</span>
               </button>
             );
           })}
@@ -301,9 +301,9 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
 
       {/* Overview Tab */}
       {activeTab === 'overview' && statistics && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatCard
               title="Total Scans"
               value={statistics.overview.total_scans.toLocaleString()}

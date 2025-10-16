@@ -36,6 +36,8 @@ import StatsCard from './components/StatsCard';
 import ChartCard from './components/ChartCard';
 import RecentActivities from './components/RecentActivities';
 import PerformanceMetrics from './components/PerformanceMetrics';
+import { dashboardService } from '../../../../services/dashboardService';
+import { useToastContext } from '../../../../components/providers/ToastProvider';
 
 function DashboardOverview() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -148,11 +150,12 @@ function DashboardOverview() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setDashboardData(mockDashboardData);
+      const data = await dashboardService.getAllDashboardData();
+      setDashboardData(data);
+      console.log('Dashboard data loaded:', data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      showError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -160,49 +163,80 @@ function DashboardOverview() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
+    try {
+      await loadDashboardData();
+      showSuccess('Dashboard data refreshed');
+    } catch (error) {
+      showError('Failed to refresh dashboard data');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleExportReport = async () => {
+    try {
+      const success = await dashboardService.exportDashboardReport('csv');
+      if (success) {
+        showSuccess('Dashboard report exported successfully');
+      } else {
+        showError('Failed to export dashboard report');
+      }
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      showError('Failed to export dashboard report');
+    }
   };
 
   if (loading) {
     return <StandardLoading variant="module" module="dashboard" message="Loading dashboard..." />;
   }
 
-  const { overview, applicationTrends, statusDistribution, sscWorkflow, scholarshipCategories, recentActivities, topSchools } = dashboardData;
+  const { 
+    overview = {}, 
+    applicationTrends = { monthly: [] }, 
+    statusDistribution = {}, 
+    sscWorkflow = {}, 
+    scholarshipCategories = {}, 
+    recentActivities = [], 
+    topSchools = [] 
+  } = dashboardData || {};
 
   return (
     <AnimatedContainer variant="page" className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">ESM Dashboard</h1>
-            <p className="text-blue-100 text-lg">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-4 sm:p-6 lg:p-8 text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 truncate">ESM Dashboard</h1>
+            <p className="text-blue-100 text-sm sm:text-base lg:text-lg leading-tight">
               Education & Scholarship Management System - GoServePH
             </p>
-            <div className="flex items-center space-x-4 mt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
               <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">Last updated: {new Date().toLocaleDateString()}</span>
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm truncate">Last updated: {dashboardData?.lastUpdated ? new Date(dashboardData.lastUpdated).toLocaleString() : new Date().toLocaleString()}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Activity className="w-4 h-4" />
-                <span className="text-sm">System Status: Online</span>
+                <Activity className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm">System Status: Online</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 lg:flex-shrink-0">
             <button 
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 px-3 py-2 sm:px-4 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50 text-sm sm:text-base"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+            <button 
+              onClick={handleExportReport}
+              className="flex items-center justify-center space-x-2 px-3 py-2 sm:px-4 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm sm:text-base"
+            >
               <Download className="w-4 h-4" />
-              <span>Export Report</span>
+              <span className="hidden sm:inline">Export Report</span>
             </button>
           </div>
         </div>
@@ -357,21 +391,68 @@ function DashboardOverview() {
       </AnimatedGrid>
 
       {/* Bottom Section */}
-      <AnimatedGrid columns={3} staggerDelay={0.1}>
-        <RecentActivities activities={recentActivities} />
-        <PerformanceMetrics />
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Partner Schools</h3>
-          <div className="space-y-4">
+      <AnimatedGrid columns={1} className="lg:grid-cols-2 xl:grid-cols-3" staggerDelay={0.1}>
+        {/* <RecentActivities activities={recentActivities} />
+        <PerformanceMetrics /> */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activities</h3>
+          <div className="space-y-3 sm:space-y-4">
+            {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
+              <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex-shrink-0">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">{activity.title}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{activity.description}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{activity.timestamp}</p>
+                </div>
+              </div>
+            )) : (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-4 text-sm">No recent activities</p>
+            )}
+          </div>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Performance Metrics</h3>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2 sm:space-y-0">
+              <div className="flex-1">
+                <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">Application Processing Time</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Average: 3.2 days</p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-sm font-medium text-green-600">-0.5 days</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">vs last month</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2 sm:space-y-0">
+              <div className="flex-1">
+                <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">Approval Rate</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Current: 71.5%</p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-sm font-medium text-blue-600">+2.1%</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">vs last month</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Partner Schools</h3>
+          <div className="space-y-3 sm:space-y-4">
             {topSchools.map((school, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">{school.name}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2 sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">{school.name}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     {school.applications} applications, {school.approved} approved
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {Math.round((school.approved / school.applications) * 100)}%
                   </p>
@@ -384,36 +465,36 @@ function DashboardOverview() {
       </AnimatedGrid>
 
       {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <button 
             onClick={() => window.location.hash = '#scholarship/application'}
-            className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            className="flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm sm:text-base"
           >
-            <FileText className="w-5 h-5" />
-            <span>Review Applications</span>
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="truncate">Review Applications</span>
           </button>
           <button 
             onClick={() => window.location.hash = '#scholarship/ssc'}
-            className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+            className="flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-sm sm:text-base"
           >
-            <Award className="w-5 h-5" />
-            <span>SSC Reviews</span>
+            <Award className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="truncate">SSC Reviews</span>
           </button>
           <button 
             onClick={() => window.location.hash = '#partner-school'}
-            className="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+            className="flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-sm sm:text-base"
           >
-            <School className="w-5 h-5" />
-            <span>Partner Schools</span>
+            <School className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="truncate">Partner Schools</span>
           </button>
           <button 
             onClick={() => window.location.hash = '#user-management'}
-            className="flex items-center space-x-3 p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+            className="flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-sm sm:text-base"
           >
-            <Users className="w-5 h-5" />
-            <span>User Management</span>
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="truncate">User Management</span>
           </button>
         </div>
       </div>
