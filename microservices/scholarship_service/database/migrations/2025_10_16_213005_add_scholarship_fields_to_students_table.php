@@ -12,14 +12,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->string('scholarship_status')->nullable()->after('preferred_mobile_number');
-            $table->unsignedBigInteger('current_scholarship_id')->nullable()->after('scholarship_status');
-            $table->decimal('approved_amount', 10, 2)->nullable()->after('current_scholarship_id');
-            $table->date('scholarship_start_date')->nullable()->after('approved_amount');
-            
-            // Add foreign key constraint
-            $table->foreign('current_scholarship_id')->references('id')->on('scholarship_applications')->onDelete('set null');
+            if (!Schema::hasColumn('students', 'scholarship_status')) {
+                $table->string('scholarship_status')->nullable()->after('preferred_mobile_number');
+            }
+            if (!Schema::hasColumn('students', 'current_scholarship_id')) {
+                $table->unsignedBigInteger('current_scholarship_id')->nullable()->after('scholarship_status');
+            }
+            if (!Schema::hasColumn('students', 'approved_amount')) {
+                $table->decimal('approved_amount', 10, 2)->nullable()->after('current_scholarship_id');
+            }
+            if (!Schema::hasColumn('students', 'scholarship_start_date')) {
+                $table->date('scholarship_start_date')->nullable()->after('approved_amount');
+            }
         });
+
+        // Add foreign key constraint separately to avoid duplicate key error
+        if (!Schema::hasColumn('students', 'current_scholarship_id')) {
+            Schema::table('students', function (Blueprint $table) {
+                $table->foreign('current_scholarship_id')->references('id')->on('scholarship_applications')->onDelete('set null');
+            });
+        }
     }
 
     /**
