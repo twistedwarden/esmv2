@@ -79,6 +79,11 @@ Route::prefix('students')->middleware(['auth.auth_service'])->group(function () 
     Route::get('/{student}', [StudentController::class, 'show']);
     Route::put('/{student}', [StudentController::class, 'update']);
     Route::delete('/{student}', [StudentController::class, 'destroy']);
+    
+    // Auto-registration from SSC approval
+    Route::post('/register-from-scholarship', [StudentController::class, 'registerFromScholarship']);
+    Route::get('/check-by-application/{applicationId}', [StudentController::class, 'checkByApplication']);
+    Route::get('/by-application/{applicationId}', [StudentController::class, 'getByApplication']);
 });
 
 // Scholarship Application routes (protected by authentication)

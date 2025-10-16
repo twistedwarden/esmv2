@@ -508,4 +508,305 @@ class StudentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Register student from approved scholarship application
+     */
+    public function registerFromScholarship(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'application_id' => 'required|integer|exists:scholarship_applications,id',
+            'student_data' => 'required|array',
+            'scholarship_data' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $applicationId = $request->application_id;
+            $studentData = $request->student_data;
+            $scholarshipData = $request->scholarship_data;
+
+            // Get the scholarship application with all related data
+            $application = \App\Models\ScholarshipApplication::with([
+                'student',
+                'school',
+                'category',
+                'subcategory'
+            ])->findOrFail($applicationId);
+
+            // Check if student already exists for this application
+            $existingStudent = Student::where('citizen_id', $application->student->citizen_id)->first();
+            
+            if ($existingStudent) {
+                // Update existing student with scholarship information
+                $existingStudent->update([
+                    'is_currently_enrolled' => true,
+                    'scholarship_status' => 'scholar',
+                    'current_scholarship_id' => $applicationId,
+                    'approved_amount' => $scholarshipData['approved_amount'] ?? 0,
+                    'scholarship_start_date' => $scholarshipData['approved_at'] ?? now(),
+                ]);
+
+                // Create academic record if not exists
+                $academicRecord = \App\Models\AcademicRecord::firstOrCreate([
+                    'student_id' => $existingStudent->id,
+                    'school_id' => $application->school_id,
+                    'is_current' => true,
+                ], [
+                    'program' => $studentData['program'] ?? $application->student->program ?? '',
+                    'year_level' => $studentData['year_level'] ?? $application->student->year_level ?? '',
+                    'enrollment_date' => $studentData['enrollment_date'] ?? now(),
+                    'gpa' => $studentData['gpa'] ?? 0,
+                    'academic_status' => 'enrolled',
+                ]);
+
+                $student = $existingStudent;
+            } else {
+                // Create new student record
+                $student = Student::create([
+                    'citizen_id' => $application->student->citizen_id,
+                    'user_id' => $application->student->user_id,
+                    'student_id_number' => $this->generateStudentNumber(),
+                    'first_name' => $studentData['first_name'] ?? $application->student->first_name,
+                    'middle_name' => $studentData['middle_name'] ?? $application->student->middle_name,
+                    'last_name' => $studentData['last_name'] ?? $application->student->last_name,
+                    'extension_name' => $application->student->extension_name,
+                    'sex' => $application->student->sex,
+                    'civil_status' => $application->student->civil_status,
+                    'nationality' => $application->student->nationality,
+                    'birth_place' => $application->student->birth_place,
+                    'birth_date' => $application->student->birth_date,
+                    'is_pwd' => $application->student->is_pwd,
+                    'pwd_specification' => $application->student->pwd_specification,
+                    'religion' => $application->student->religion,
+                    'height_cm' => $application->student->height_cm,
+                    'weight_kg' => $application->student->weight_kg,
+                    'contact_number' => $studentData['contact_number'] ?? $application->student->contact_number,
+                    'email_address' => $studentData['email'] ?? $application->student->email_address,
+                    'is_employed' => $application->student->is_employed,
+                    'is_job_seeking' => $application->student->is_job_seeking,
+                    'is_currently_enrolled' => true,
+                    'is_graduating' => $application->student->is_graduating,
+                    'is_solo_parent' => $application->student->is_solo_parent,
+                    'is_indigenous_group' => $application->student->is_indigenous_group,
+                    'is_registered_voter' => $application->student->is_registered_voter,
+                    'voter_nationality' => $application->student->voter_nationality,
+                    'has_paymaya_account' => $application->student->has_paymaya_account,
+                    'preferred_mobile_number' => $application->student->preferred_mobile_number,
+                    'scholarship_status' => 'scholar',
+                    'current_scholarship_id' => $applicationId,
+                    'approved_amount' => $scholarshipData['approved_amount'] ?? 0,
+                    'scholarship_start_date' => $scholarshipData['approved_at'] ?? now(),
+                ]);
+
+                // Create academic record
+                \App\Models\AcademicRecord::create([
+                    'student_id' => $student->id,
+                    'school_id' => $application->school_id,
+                    'program' => $studentData['program'] ?? $application->student->program ?? '',
+                    'year_level' => $studentData['year_level'] ?? $application->student->year_level ?? '',
+                    'enrollment_date' => $studentData['enrollment_date'] ?? now(),
+                    'gpa' => $studentData['gpa'] ?? 0,
+                    'academic_status' => 'enrolled',
+                    'is_current' => true,
+                ]);
+
+                // Copy addresses from application student
+                if ($application->student->addresses) {
+                    foreach ($application->student->addresses as $address) {
+                        \App\Models\Address::create([
+                            'student_id' => $student->id,
+                            'type' => $address->type,
+                            'address_line_1' => $address->address_line_1,
+                            'address_line_2' => $address->address_line_2,
+                            'barangay' => $address->barangay,
+                            'district' => $address->district,
+                            'city' => $address->city,
+                            'province' => $address->province,
+                            'region' => $address->region,
+                            'zip_code' => $address->zip_code,
+                        ]);
+                    }
+                }
+
+                // Copy family members from application student
+                if ($application->student->familyMembers) {
+                    foreach ($application->student->familyMembers as $familyMember) {
+                        \App\Models\FamilyMember::create([
+                            'student_id' => $student->id,
+                            'relationship' => $familyMember->relationship,
+                            'first_name' => $familyMember->first_name,
+                            'last_name' => $familyMember->last_name,
+                            'middle_name' => $familyMember->middle_name,
+                            'extension_name' => $familyMember->extension_name,
+                            'contact_number' => $familyMember->contact_number,
+                            'occupation' => $familyMember->occupation,
+                            'monthly_income' => $familyMember->monthly_income,
+                            'is_alive' => $familyMember->is_alive,
+                            'is_employed' => $familyMember->is_employed,
+                            'is_ofw' => $familyMember->is_ofw,
+                            'is_pwd' => $familyMember->is_pwd,
+                            'pwd_specification' => $familyMember->pwd_specification,
+                        ]);
+                    }
+                }
+
+                // Copy financial information from application student
+                if ($application->student->financialInformation) {
+                    $financialInfo = $application->student->financialInformation;
+                    \App\Models\FinancialInformation::create([
+                        'student_id' => $student->id,
+                        'family_monthly_income_range' => $financialInfo->family_monthly_income_range,
+                        'monthly_income' => $financialInfo->monthly_income,
+                        'number_of_children' => $financialInfo->number_of_children,
+                        'number_of_siblings' => $financialInfo->number_of_siblings,
+                        'siblings_currently_enrolled' => $financialInfo->siblings_currently_enrolled,
+                        'home_ownership_status' => $financialInfo->home_ownership_status,
+                        'is_4ps_beneficiary' => $financialInfo->is_4ps_beneficiary,
+                    ]);
+                }
+
+                // Copy emergency contacts from application student
+                if ($application->student->emergencyContacts) {
+                    foreach ($application->student->emergencyContacts as $emergencyContact) {
+                        \App\Models\EmergencyContact::create([
+                            'student_id' => $student->id,
+                            'full_name' => $emergencyContact->full_name,
+                            'contact_number' => $emergencyContact->contact_number,
+                            'relationship' => $emergencyContact->relationship,
+                            'address' => $emergencyContact->address,
+                            'email' => $emergencyContact->email,
+                            'notes' => $emergencyContact->notes,
+                            'is_primary' => $emergencyContact->is_primary,
+                        ]);
+                    }
+                }
+            }
+
+            // Create scholarship record
+            \App\Models\ScholarshipRecord::create([
+                'student_id' => $student->id,
+                'application_id' => $applicationId,
+                'scholarship_type' => $application->category->name ?? 'Scholarship',
+                'subcategory' => $application->subcategory->name ?? '',
+                'approved_amount' => $scholarshipData['approved_amount'] ?? 0,
+                'start_date' => $scholarshipData['approved_at'] ?? now(),
+                'status' => 'active',
+                'approved_by' => $scholarshipData['approved_by'] ?? null,
+            ]);
+
+            DB::commit();
+
+            // Load relationships
+            $student->load([
+                'addresses',
+                'familyMembers',
+                'financialInformation',
+                'emergencyContacts',
+                'academicRecords.school',
+                'currentAcademicRecord.school',
+                'scholarshipRecords'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Student registered successfully from scholarship approval',
+                'data' => $student
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to register student from scholarship', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'application_id' => $request->application_id,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to register student from scholarship',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if student exists for application
+     */
+    public function checkByApplication($applicationId): JsonResponse
+    {
+        try {
+            $application = \App\Models\ScholarshipApplication::findOrFail($applicationId);
+            $student = Student::where('citizen_id', $application->student->citizen_id)->first();
+            
+            return response()->json([
+                'success' => true,
+                'exists' => $student !== null,
+                'student_id' => $student ? $student->id : null
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check student existence',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get student by application ID
+     */
+    public function getByApplication($applicationId): JsonResponse
+    {
+        try {
+            $application = \App\Models\ScholarshipApplication::findOrFail($applicationId);
+            $student = Student::where('citizen_id', $application->student->citizen_id)
+                ->with([
+                    'addresses',
+                    'familyMembers',
+                    'financialInformation',
+                    'emergencyContacts',
+                    'academicRecords.school',
+                    'currentAcademicRecord.school',
+                    'scholarshipRecords'
+                ])
+                ->first();
+            
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student not found for this application'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $student
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get student by application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate student number
+     */
+    private function generateStudentNumber(): string
+    {
+        $year = date('Y');
+        $random = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
+        return "GSM{$year}{$random}";
+    }
 }
