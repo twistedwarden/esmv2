@@ -66,7 +66,7 @@ export const PortalNavbar: React.FC = () => {
             <GraduationCap className="h-8 w-8 text-orange-500" />
             <div>
               <span className="text-lg font-bold text-gray-900">
-                Caloocan City
+                GoServePH
               </span>
               <br />
               <span className="text-sm text-orange-500 -mt-1 block">
