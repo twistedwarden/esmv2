@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GsmAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +66,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // System settings (admin only)
     Route::get('/admin/settings', [SettingsController::class, 'getSystemSettings']);
     Route::put('/admin/settings', [SettingsController::class, 'updateSystemSettings']);
-    Route::get('/admin/health', [SettingsController::class, 'getSystemHealth']);
-    Route::get('/admin/stats', [SettingsController::class, 'getAdminStats']);
+    
+    // Admin dashboard routes
+    Route::get('/admin/health', [AdminController::class, 'getSystemHealth']);
+    Route::get('/admin/stats', [AdminController::class, 'getAdminStats']);
+    Route::post('/admin/export/{type}', [AdminController::class, 'exportData']);
+    Route::post('/admin/clear-cache', [AdminController::class, 'clearCache']);
 });

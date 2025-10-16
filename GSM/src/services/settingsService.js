@@ -35,36 +35,76 @@ class SettingsService {
 
   /**
    * Update user profile information
-   * Note: This endpoint may not exist yet, so we'll simulate the update
    */
   async updateUserProfile(profileData) {
     try {
-      // Update localStorage directly since API endpoint doesn't exist
+      const token = localStorage.getItem('auth_token');
       const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+      const userId = userData.id;
       
-      // Map profile fields to user data structure
-      const updatedUserData = { 
-        ...userData, 
-        ...profileData,
-        // Ensure name is properly constructed
-        name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || userData.name,
-        // Map mobile to phone if needed
-        phone: profileData.mobile || profileData.phone || userData.phone
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+
+      // Prepare the data for the API
+      const updateData = {
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        middle_name: profileData.middle_name,
+        mobile: profileData.mobile,
+        address: profileData.address
       };
+
+      // Remove undefined/null values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined || updateData[key] === null || updateData[key] === '') {
+          delete updateData[key];
+        }
+      });
+
+      const response = await fetch(`${AUTH_API_BASE_URL}/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       
-      localStorage.setItem('user_data', JSON.stringify(updatedUserData));
-      
-      // Also update the cache
-      this.cache.set('userProfile', updatedUserData);
-      
-      // Simulate successful response
-      return { 
-        success: true,
-        message: 'Profile updated successfully', 
-        data: updatedUserData 
-      };
+      if (result.success) {
+        // Update localStorage with the new data from the API response
+        const updatedUserData = {
+          ...userData,
+          ...result.data,
+          // Ensure name is properly constructed
+          name: `${result.data.first_name || ''} ${result.data.last_name || ''}`.trim() || userData.name,
+          // Map mobile to phone if needed
+          phone: result.data.mobile || userData.phone
+        };
+        
+        localStorage.setItem('user_data', JSON.stringify(updatedUserData));
+        
+        // Also update the cache
+        this.cache.set('userProfile', updatedUserData);
+        
+        return { 
+          success: true,
+          message: 'Profile updated successfully', 
+          data: updatedUserData 
+        };
+      } else {
+        throw new Error(result.message || 'Failed to update profile');
+      }
     } catch (error) {
-      console.warn('Error updating user profile:', error);
+      console.error('Error updating user profile:', error);
       throw error;
     }
   }
@@ -271,7 +311,28 @@ class SettingsService {
    * Get admin dashboard statistics
    */
   async getAdminStats() {
-    // Return mock admin stats directly instead of making API calls
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${AUTH_API_BASE_URL}/api/admin/stats`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          return data.data;
+        }
+      }
+    } catch (error) {
+      console.warn('Admin stats API not available, using fallback data');
+    }
+
+    // Fallback: Return mock data if API is not available
     return {
       total_users: 1247,
       active_sessions: 23,
@@ -284,7 +345,40 @@ class SettingsService {
    * Export system data
    */
   async exportSystemData(exportType, filters = {}) {
-    // Create and export mock data directly instead of making API calls
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${AUTH_API_BASE_URL}/api/admin/export/${exportType}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filters),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Use real data from API
+          const csvContent = this.convertToCSV(data.data);
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `export_${exportType}_${new Date().toISOString().split('T')[0]}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.warn(`Export ${exportType} API not available, using fallback data`);
+    }
+
+    // Fallback: Use mock data if API is not available
     const mockData = this.generateMockExportData(exportType);
     const csvContent = this.convertToCSV(mockData);
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -356,7 +450,28 @@ class SettingsService {
    * Get system health status
    */
   async getSystemHealth() {
-    // Return mock system health directly instead of making API calls
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${AUTH_API_BASE_URL}/api/admin/health`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          return data.data;
+        }
+      }
+    } catch (error) {
+      console.warn('System health API not available, using fallback data');
+    }
+
+    // Fallback: Return mock data if API is not available
     return {
       uptime: '99.9%',
       memory_usage: '45%',

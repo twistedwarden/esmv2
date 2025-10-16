@@ -6,6 +6,7 @@ import { useAuthStore } from '../../../store/v1authStore'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNotifications } from '../../contexts/NotificationContext'
 import NotificationDot from '../ui/NotificationDot'
+import { useLanguage } from '../../../contexts/LanguageContext'
 
 type SidebarProps = {
 	collapsed: boolean
@@ -20,9 +21,10 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 	const navigate = useNavigate()
 	const { logout, isLoggingOut, currentUser } = useAuthStore()
 	const { notificationCounts, markAsRead } = useNotifications()
+	const { t } = useLanguage()
 	
 	// Get sidebar items based on user role and system role
-	const sidebarItems = getSidebarItems(currentUser?.role, currentUser?.system_role)
+	const sidebarItems = getSidebarItems(currentUser?.role, currentUser?.system_role, t)
 
 	// Function to get notification count for a module
 	const getNotificationCount = (itemId: string) => {
@@ -454,7 +456,7 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 										ease: "easeInOut"
 									}}
 								>
-									{isLoggingOut ? 'Logging out...' : 'Logout'}
+									{isLoggingOut ? t('Logging out...') : t('Logout')}
 								</motion.span>
 							)}
 						</AnimatePresence>
