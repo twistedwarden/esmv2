@@ -2625,6 +2625,51 @@ class ScholarshipApplicationController extends Controller
                 'changed_at' => now(),
             ]);
 
+            // Auto-register student in Student Registry
+            try {
+                $studentController = new \App\Http\Controllers\StudentController();
+                $studentData = $this->extractStudentDataForRegistration($application);
+                $scholarshipData = [
+                    'application_number' => $application->application_number,
+                    'category_id' => $application->category_id,
+                    'subcategory_id' => $application->subcategory_id,
+                    'approved_amount' => $request->approved_amount,
+                    'approved_at' => now()->toISOString(),
+                    'approved_by' => $reviewerId
+                ];
+
+                // Create a mock request for the student controller
+                $studentRequest = new \Illuminate\Http\Request();
+                $studentRequest->merge([
+                    'application_id' => $application->id,
+                    'student_data' => $studentData,
+                    'scholarship_data' => $scholarshipData,
+                    'auth_user' => $request->get('auth_user')
+                ]);
+
+                $studentResponse = $studentController->registerFromScholarship($studentRequest);
+                $studentResult = json_decode($studentResponse->getContent(), true);
+                
+                if ($studentResult['success']) {
+                    Log::info('Student auto-registered successfully', [
+                        'application_id' => $application->id,
+                        'student_id' => $studentResult['data']['id'] ?? 'unknown'
+                    ]);
+                } else {
+                    Log::warning('Student auto-registration failed', [
+                        'application_id' => $application->id,
+                        'error' => $studentResult['message'] ?? 'Unknown error'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Student auto-registration failed with exception', [
+                    'application_id' => $application->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Don't fail the approval if student registration fails
+            }
+
             DB::commit();
 
             return response()->json([
@@ -3147,5 +3192,29 @@ class ScholarshipApplicationController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Extract student data for registration from application
+     */
+    private function extractStudentDataForRegistration($application)
+    {
+        $student = $application->student;
+        $school = $application->school;
+        
+        return [
+            'first_name' => $student->first_name,
+            'middle_name' => $student->middle_name,
+            'last_name' => $student->last_name,
+            'email' => $student->email_address,
+            'contact_number' => $student->contact_number,
+            'citizen_id' => $student->citizen_id,
+            'current_school_id' => $school->id ?? $application->school_id,
+            'year_level' => $student->year_level ?? '',
+            'program' => $student->program ?? '',
+            'enrollment_date' => now()->toISOString(),
+            'academic_status' => 'enrolled',
+            'gpa' => $student->gpa ?? 0,
+        ];
     }
 }
