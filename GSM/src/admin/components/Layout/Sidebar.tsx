@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { getSidebarItems } from './sidebarItems'
 import { useAuthStore } from '../../../store/v1authStore'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNotifications } from '../../contexts/NotificationContext'
+import NotificationDot from '../ui/NotificationDot'
 
 type SidebarProps = {
 	collapsed: boolean
@@ -17,9 +19,55 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 	const [isMobile, setIsMobile] = React.useState(false)
 	const navigate = useNavigate()
 	const { logout, isLoggingOut, currentUser } = useAuthStore()
+	const { notificationCounts, markAsRead } = useNotifications()
 	
 	// Get sidebar items based on user role and system role
 	const sidebarItems = getSidebarItems(currentUser?.role, currentUser?.system_role)
+
+	// Function to get notification count for a module
+	const getNotificationCount = (itemId: string) => {
+		switch (itemId) {
+			case 'scholarship':
+				return notificationCounts.scholarship.total
+			case 'sad':
+				return notificationCounts.schoolAid.total
+			case 'studentRegistry':
+				return notificationCounts.studentRegistry.total
+			case 'audit-logs':
+				return notificationCounts.auditLogs.total
+			case 'security':
+				return notificationCounts.security.total
+			default:
+				return 0
+		}
+	}
+
+	// Function to get notification count for a sub-item
+	const getSubItemNotificationCount = (itemId: string, subItemId: string) => {
+		switch (itemId) {
+			case 'scholarship':
+				if (subItemId === 'scholarship-applications') {
+					return notificationCounts.scholarship.applications
+				}
+				break
+			case 'sad':
+				if (subItemId === 'sad-applications') {
+					return notificationCounts.schoolAid.applications
+				}
+				break
+			case 'studentRegistry':
+				if (subItemId === 'studentRegistry-overview') {
+					return notificationCounts.studentRegistry.newStudents
+				}
+				break
+			case 'security':
+				if (subItemId === 'security-threats') {
+					return notificationCounts.security.threats
+				}
+				break
+		}
+		return 0
+	}
 
 	// Handle responsive behavior
 	React.useEffect(() => {
@@ -143,17 +191,28 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 									} else {
 										setActiveSubItem(null)
 										if (onPageChange) onPageChange(item.id)
+										// Mark as read when clicked
+										markAsRead(item.id as any)
 									}
 								}}
 								whileHover={{ scale: 1.02 }}
 								whileTap={{ scale: 0.98 }}
 							>
 								<div className='flex items-center space-x-3 min-w-0'>
-									<item.icon className='w-5 h-5 flex-shrink-0' />
+									<div className='relative'>
+										<item.icon className='w-5 h-5 flex-shrink-0' />
+										{getNotificationCount(item.id) > 0 && (
+											<NotificationDot 
+												count={getNotificationCount(item.id)} 
+												size="sm"
+												className="-top-1 -right-1"
+											/>
+										)}
+									</div>
 									<AnimatePresence>
 										{!shouldCollapse && (
-											<motion.span 
-												className='text-sm font-medium truncate'
+											<motion.div 
+												className='flex items-center space-x-2 min-w-0 flex-1'
 												initial={{ opacity: 0, width: 0 }}
 												animate={{ opacity: 1, width: "auto" }}
 												exit={{ opacity: 0, width: 0 }}
@@ -162,8 +221,10 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 													ease: "easeInOut"
 												}}
 											>
-												{item.label}
-											</motion.span>
+												<span className='text-sm font-medium truncate'>
+													{item.label}
+												</span>
+											</motion.div>
 										)}
 									</AnimatePresence>
 								</div>
@@ -195,27 +256,41 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 											ease: "easeInOut"
 										}}
 									>
-										{(item as any).subItems.map((subitem: any, subIndex: number) => (
-											<motion.button
-												key={subitem.id}
-												className={`w-full text-sm text-left p-2 rounded-lg transition-colors duration-200 ${activeSubItem === subitem.id ? 'bg-orange-100 text-orange-700 font-semibold' : 'text-slate-700 dark:text-slate-500 hover:bg-slate-200 dark:hover:text-slate-600 dark:hover:bg-slate-100'}`}
-												onClick={() => {
-													setActiveSubItem(subitem.id)
-													if (onPageChange) onPageChange(subitem.id)
-												}}
-												initial={{ opacity: 0, x: -10 }}
-												animate={{ opacity: 1, x: 0 }}
-												transition={{ 
-													delay: subIndex * 0.05,
-													duration: 0.2,
-													ease: "easeOut"
-												}}
-												whileHover={{ scale: 1.02 }}
-												whileTap={{ scale: 0.98 }}
-											>
-												<span className="truncate block">{subitem.label}</span>
-											</motion.button>
-										))}
+										{(item as any).subItems.map((subitem: any, subIndex: number) => {
+											const subItemNotificationCount = getSubItemNotificationCount(item.id, subitem.id)
+											return (
+												<motion.button
+													key={subitem.id}
+													className={`w-full text-sm text-left p-2 rounded-lg transition-colors duration-200 ${activeSubItem === subitem.id ? 'bg-orange-100 text-orange-700 font-semibold' : 'text-slate-700 dark:text-slate-500 hover:bg-slate-200 dark:hover:text-slate-600 dark:hover:bg-slate-100'}`}
+													onClick={() => {
+														setActiveSubItem(subitem.id)
+														if (onPageChange) onPageChange(subitem.id)
+														// Mark sub-item as read when clicked
+														markAsRead(item.id as any, subitem.id)
+													}}
+													initial={{ opacity: 0, x: -10 }}
+													animate={{ opacity: 1, x: 0 }}
+													transition={{ 
+														delay: subIndex * 0.05,
+														duration: 0.2,
+														ease: "easeOut"
+													}}
+													whileHover={{ scale: 1.02 }}
+													whileTap={{ scale: 0.98 }}
+												>
+													<div className="relative flex items-center">
+														<span className="truncate block flex-1">{subitem.label}</span>
+														{subItemNotificationCount > 0 && (
+															<NotificationDot 
+																count={subItemNotificationCount} 
+																size="sm"
+																className="-top-1 -right-1"
+															/>
+														)}
+													</div>
+												</motion.button>
+											)
+										})}
 									</motion.div>
 								)}
 							</AnimatePresence>

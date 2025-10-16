@@ -274,6 +274,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 			if (data.success) {
 				set({ error: null })
+				
+				// Trigger notification for new user registration
+				// This will be handled by the notification context
+				window.dispatchEvent(new CustomEvent('userRegistered'));
+				
 				return true
 			} else {
 				set({ error: data.message || 'Registration failed' })
