@@ -1,4 +1,0 @@
-MZ
-This is a fake executable file that should trigger security warnings.
-The file has executable-like content but is actually just text.
-This should be detected by the FileSecurityService as suspicious content.

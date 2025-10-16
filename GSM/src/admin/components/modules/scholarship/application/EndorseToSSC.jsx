@@ -75,12 +75,20 @@ function EndorseToSSC() {
       setLoading(true);
       setError('');
       
-      // Fetch applications that are either ready for endorsement or already endorsed
-      const [interviewSchedules, readyApplications, endorsedApplications] = await Promise.all([
+      // Fetch all required data
+      const [interviewSchedules, readyApplications, endorsedApplications, evaluationsResponse] = await Promise.all([
         scholarshipApiService.getInterviewSchedules().catch(() => []),
         scholarshipApiService.getApplications({ status: 'interview_completed' }).catch(() => ({ data: [] })),
-        scholarshipApiService.getApplications({ status: 'endorsed_to_ssc' }).catch(() => ({ data: [] }))
+        scholarshipApiService.getApplications({ status: 'endorsed_to_ssc' }).catch(() => ({ data: [] })),
+        scholarshipApiService.getInterviewEvaluations().catch(() => [])
       ]);
+
+      // Process interview evaluations
+      let interviewEvaluations = evaluationsResponse || [];
+      if (!Array.isArray(interviewEvaluations)) {
+        console.error('Invalid interview evaluations response format');
+        interviewEvaluations = [];
+      }
 
       // Combine both ready and endorsed applications
       const allApplications = {
@@ -90,10 +98,9 @@ function EndorseToSSC() {
         ]
       };
 
-      // Filter for completed interviews with passed results or conditional recommendations
+      // Filter for completed interviews
       const completedInterviews = (interviewSchedules || []).filter(schedule => 
         schedule.status === 'completed' && 
-        (schedule.interview_result === 'passed' || schedule.interview_result === 'needs_followup') &&
         schedule.application
       );
 
@@ -104,23 +111,13 @@ function EndorseToSSC() {
           return true;
         }
         // Include applications that have completed interviews
-        return app.status === 'interview_completed' &&
-               completedInterviews.some(interview => interview.application_id === app.id);
-      });
-
-      // Fetch interview evaluations from the database
-      let interviewEvaluations = [];
-      try {
-        const evaluationsResponse = await scholarshipApiService.getInterviewEvaluations();
-        interviewEvaluations = evaluationsResponse || [];
-        if (!Array.isArray(interviewEvaluations)) {
-          throw new Error('Invalid response format');
+        if (app.status === 'interview_completed') {
+          const hasCompletedInterview = completedInterviews.some(interview => interview.application_id === app.id);
+          const hasEvaluation = interviewEvaluations.some(evaluation => evaluation.application_id === app.id);
+          return hasCompletedInterview && hasEvaluation;
         }
-      } catch (error) {
-        console.error('Failed to fetch interview evaluations:', error);
-        // If API fails, we'll handle missing evaluations gracefully
-        interviewEvaluations = [];
-      }
+        return false;
+      });
 
       // Combine interview data with application data
       console.log('Processed applications:', processedApplications.length);
@@ -167,7 +164,8 @@ function EndorseToSSC() {
           requestedAmount: app.requested_amount || 0,
           approvedAmount: app.approved_amount || app.requested_amount || 0,
           endorsementStatus: app.status === 'endorsed_to_ssc' ? 'endorsed' : 
-            (finalEvaluation?.overall_recommendation === 'needs_followup' ? 'conditional' : 'ready'),
+            (finalEvaluation?.overall_recommendation === 'needs_followup' ? 'conditional' : 
+             (finalEvaluation?.overall_recommendation === 'recommended' ? 'ready' : 'pending')),
           interviewCompleted: true,
           verificationCompleted: true,
           documentsVerified: true,
@@ -346,7 +344,9 @@ function EndorseToSSC() {
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getEndorsementStatusColor(application.endorsementStatus)}`}>
               {getEndorsementStatusIcon(application.endorsementStatus)}
               <span className="ml-1 capitalize">
-                {application.endorsementStatus === 'conditional' ? 'For Consideration' : application.endorsementStatus}
+                {application.endorsementStatus === 'conditional' ? 'For Consideration' : 
+                 application.endorsementStatus === 'ready' ? 'Ready for SSC Endorsement' :
+                 application.endorsementStatus}
               </span>
             </span>
             {application.priority !== 'normal' && (
@@ -756,7 +756,7 @@ function EndorseToSSC() {
       );
 
       if (considerationApplications.length === 0) {
-        showError('No applications with "needs_followup" status found in your selection.', 'No Consideration Applications');
+        showError('No applications with "needs_followup" status found in your selection.', 'No Applications for Consideration');
         setShowBulkEndorseModal(false);
         return;
       }
@@ -785,7 +785,7 @@ function EndorseToSSC() {
       
       // Show success message with details
       showSuccess(
-        `Successfully endorsed ${result.endorsed_count} consideration application(s) to SSC!`, 
+        `Successfully endorsed ${result.endorsed_count} application(s) for consideration to SSC!`, 
         'Bulk Endorsement Successful'
       );
       
@@ -795,7 +795,7 @@ function EndorseToSSC() {
     } catch (error) {
       console.error('Bulk endorsement failed:', error);
       setShowBulkEndorseModal(false);
-      showError('Failed to bulk endorse consideration applications. Please try again.', 'Bulk Endorsement Failed');
+      showError('Failed to bulk endorse applications for consideration. Please try again.', 'Bulk Endorsement Failed');
     }
   };
 
@@ -1264,7 +1264,7 @@ function EndorseToSSC() {
                             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                           {activeApplication.interview.evaluation?.overallRecommendation === 'recommended' && '✅ Recommended for SSC Review'}
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && '⚠️ Conditional Recommendation'}
+                          {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && '⚠️ For Consideration'}
                           {activeApplication.interview.evaluation?.overallRecommendation === 'not_recommended' && '❌ Not Recommended'}
                         </span>
                       </div>
@@ -1307,7 +1307,7 @@ function EndorseToSSC() {
 
               <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {activeApplication.endorsementStatus === 'conditional'
-                  ? 'This application has completed the interview with a conditional recommendation. The SSC should review the interview evaluation and make a final decision.'
+                  ? 'This application has completed the interview and is marked "For Consideration". The SSC should review the interview evaluation and make a final decision.'
                   : 'This application has completed all required verification steps and is ready for SSC review. Click "Endorse to SSC" to forward this application to the Scholarship Selection Committee.'
                 }
               </p>
@@ -1630,7 +1630,7 @@ function EndorseToSSC() {
                           <X className="w-4 h-4 mr-1" />
                         )}
                         {activeApplication.interview.evaluation?.overallRecommendation === 'recommended' && 'Recommended for SSC Review'}
-                        {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && 'Conditional Recommendation'}
+                        {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && 'For Consideration'}
                         {activeApplication.interview.evaluation?.overallRecommendation === 'not_recommended' && 'Not Recommended'}
                       </div>
                     </div>
@@ -1786,7 +1786,7 @@ function EndorseToSSC() {
                         Endorse All for Consideration
                       </h4>
                       <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                        Endorse applications with "needs_followup" status (conditional recommendations)
+                        Endorse applications with "needs_followup" status (for consideration)
                       </p>
                     </div>
                   </div>

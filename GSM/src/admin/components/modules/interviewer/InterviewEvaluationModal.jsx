@@ -253,9 +253,9 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
                   }`}
                 >
                   <option value="">Select recommendation</option>
-                  <option value="Highly Recommended">Highly Recommended</option>
-                  <option value="Recommended">Recommended</option>
-                  <option value="Not Recommended">Not Recommended</option>
+                  <option value="recommended">Recommended</option>
+                  <option value="needs_followup">For Consideration</option>
+                  <option value="not_recommended">Not Recommended</option>
                 </select>
                 {errors.overall_recommendation && (
                   <p className="text-xs text-red-500">{errors.overall_recommendation}</p>

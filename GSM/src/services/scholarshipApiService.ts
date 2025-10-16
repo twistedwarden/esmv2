@@ -1368,7 +1368,7 @@ class ScholarshipApiService {
     leadership_involvement_score: number;
     financial_need_score: number;
     character_values_score: number;
-    overall_recommendation: 'Highly Recommended' | 'Recommended' | 'Not Recommended';
+    overall_recommendation: 'recommended' | 'not_recommended' | 'needs_followup';
     remarks?: string;
   }): Promise<any> {
     const response = await this.makeRequest<{ data: any }>(
