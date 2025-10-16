@@ -3,12 +3,7 @@ import ScholarshipOverview from './modules/scholarship/ScholarshipOverview'
 import ApplicationManagement from './modules/scholarship/application/ApplicationManagement'
 import ScholarshipPrograms from './modules/scholarship/ScholarshipPrograms'
 import SSCManagement from './modules/scholarship/ssc/SSCManagement'
-import SADOverview from './modules/schoolAid/SADOverview'
-import SADApplications from './modules/schoolAid/SADApplications'
-import SADDistributionLogs from './modules/schoolAid/SADDistributionLogs'
-import FundAllocation from './modules/schoolAid/FundAllocation'
-import PaymentProcessing from './modules/schoolAid/PaymentProcessing'
-import Analytics from './modules/schoolAid/Analytics'
+import SchoolAidDistribution from './modules/schoolAid/SchoolAidDistribution'
 import StudentRegistryOverview from './modules/studentRegistry/StudentRegistryOverview'
 import ActiveStudents from './modules/studentRegistry/ActiveStudents'
 import ArchivedStudents from './modules/studentRegistry/ArchivedStudents'
@@ -99,18 +94,8 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 			return <div><ScholarshipPrograms /></div>
 		case 'scholarship-ssc':
 			return <div><SSCManagement /></div>
-		case 'sad-overview':
-			return <div><SADOverview onPageChange={onPageChange} /></div>
-		case 'sad-applications':
-			return <div><SADApplications onPageChange={onPageChange} /></div>
-		case 'sad-distribution-logs':
-			return <div><SADDistributionLogs onPageChange={onPageChange} /></div>
-		case 'sad-fund-allocation':
-			return <div><FundAllocation onPageChange={onPageChange} /></div>
-		case 'sad-payment-processing':
-			return <div><PaymentProcessing onPageChange={onPageChange} /></div>
-		case 'sad-analytics':
-			return <div><Analytics onPageChange={onPageChange} /></div>
+	case 'sad-overview':
+		return <div><SchoolAidDistribution /></div>
 		case 'studentRegistry-overview':
 			return <div><StudentRegistryOverview /></div>
 		case 'studentRegistry-active-students':

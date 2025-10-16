@@ -2443,11 +2443,8 @@ class ScholarshipApplicationController extends Controller
     public function sscSubmitAcademicReview(Request $request, ScholarshipApplication $application): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'assessment' => 'required|string|in:excellent,good,satisfactory,needs_improvement',
-            'recommended_amount' => 'required|numeric|min:0',
+            'approved' => 'required|boolean',
             'notes' => 'nullable|string|max:1000',
-            'program_alignment_score' => 'nullable|integer|min:1|max:5',
-            'academic_merit_score' => 'nullable|integer|min:1|max:5',
         ]);
 
         if ($validator->fails()) {
@@ -2458,57 +2455,86 @@ class ScholarshipApplicationController extends Controller
             ], 422);
         }
 
-        if ($application->status !== 'ssc_academic_review') {
+        // For parallel workflow, allow applications in endorsed_to_ssc or ssc_final_approval status
+        if (!in_array($application->status, ['endorsed_to_ssc', 'ssc_final_approval'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application is not in academic review stage'
+                'message' => 'Application is not in SSC review stage'
             ], 400);
         }
 
         try {
-            DB::beginTransaction();
-
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
-            $reviewerRole = $authUser['role'] ?? 'unknown';
-
-            // Create review record
-            $review = \App\Models\SscReview::createForApplication(
-                $application,
-                'academic_review',
-                $reviewerId,
-                $reviewerRole
-            );
-
-            // Approve and advance to final approval
-            $review->approve($request->notes, [
-                'assessment' => $request->assessment,
-                'recommended_amount' => $request->recommended_amount,
-                'program_alignment_score' => $request->program_alignment_score,
-                'academic_merit_score' => $request->academic_merit_score,
-                'reviewed_at' => now(),
+            
+            Log::info('Academic review attempt', [
+                'application_id' => $application->id,
+                'auth_user' => $authUser,
+                'reviewer_id' => $reviewerId,
+                'request_data' => $request->all()
             ]);
 
-            $application->advanceToNextSscStage($reviewerId, $request->notes);
+            if ($request->approved) {
+                // Use parallel workflow - approve the academic review stage
+                $success = $application->approveStage(
+                    'academic_review',
+                    $reviewerId,
+                    $request->notes,
+                    [
+                        'reviewed_at' => now(),
+                    ]
+                );
 
-            DB::commit();
+                if ($success) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Academic review stage approved successfully.',
+                        'data' => $application->fresh()
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to approve academic review stage'
+                    ], 500);
+                }
+            } else {
+                // For parallel workflow, we still mark the stage as not approved but don't change overall status
+                // The application remains in SSC review for other stages to continue
+                $stageStatus = $application->ssc_stage_status ?? [];
+                $stageStatus['academic_review'] = [
+                    'status' => 'rejected',
+                    'reviewed_by' => $reviewerId,
+                    'reviewed_at' => now(),
+                    'notes' => $request->notes,
+                ];
+                
+                $application->update([
+                    'ssc_stage_status' => $stageStatus,
+                ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Academic review completed. Application advanced to final approval.',
-                'data' => $application->fresh()
-            ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Academic review stage marked as needing revision.',
+                    'data' => $application->fresh()
+                ]);
+            }
 
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Failed to submit academic review', [
                 'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'application_id' => $application->id,
+                'request_data' => $request->all(),
+                'auth_user' => $request->get('auth_user')
             ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to submit academic review',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'debug' => [
+                    'application_id' => $application->id,
+                    'error_details' => $e->getMessage()
+                ]
             ], 500);
         }
     }

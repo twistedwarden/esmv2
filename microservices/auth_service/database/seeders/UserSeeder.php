@@ -28,79 +28,91 @@ class UserSeeder extends Seeder
         );
 
         // Create staff user
-        User::create([
-            'citizen_id' => 'STAFF-001',
-            'email' => 'staff@caloocan.gov.ph',
-            'password' => Hash::make('staff123'),
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'middle_name' => 'M',
-            'role' => 'staff',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'staff@caloocan.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-001',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'middle_name' => 'M',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Create test citizen users
-        User::create([
-            'citizen_id' => 'CITIZEN-001',
-            'email' => 'citizen@example.com',
-            'password' => Hash::make('citizen123'),
-            'first_name' => 'Maria',
-            'last_name' => 'Santos',
-            'middle_name' => 'Cruz',
-            'role' => 'citizen',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'citizen@example.com'],
+            [
+                'citizen_id' => 'CITIZEN-001',
+                'password' => Hash::make('citizen123'),
+                'first_name' => 'Maria',
+                'last_name' => 'Santos',
+                'middle_name' => 'Cruz',
+                'role' => 'citizen',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        User::create([
-            'citizen_id' => 'CITIZEN-002',
-            'email' => 'juan.delacruz@example.com',
-            'password' => Hash::make('citizen123'),
-            'first_name' => 'Juan',
-            'last_name' => 'Dela Cruz',
-            'middle_name' => 'Santos',
-            'role' => 'citizen',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'juan.delacruz@example.com'],
+            [
+                'citizen_id' => 'CITIZEN-002',
+                'password' => Hash::make('citizen123'),
+                'first_name' => 'Juan',
+                'last_name' => 'Dela Cruz',
+                'middle_name' => 'Santos',
+                'role' => 'citizen',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        User::create([
-            'citizen_id' => 'CITIZEN-003',
-            'email' => 'ana.garcia@example.com',
-            'password' => Hash::make('citizen123'),
-            'first_name' => 'Ana',
-            'last_name' => 'Garcia',
-            'middle_name' => 'Lopez',
-            'role' => 'citizen',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'ana.garcia@example.com'],
+            [
+                'citizen_id' => 'CITIZEN-003',
+                'password' => Hash::make('citizen123'),
+                'first_name' => 'Ana',
+                'last_name' => 'Garcia',
+                'middle_name' => 'Lopez',
+                'role' => 'citizen',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Create additional staff users
-        User::create([
-            'citizen_id' => 'STAFF-002',
-            'email' => 'jane.smith@caloocan.gov.ph',
-            'password' => Hash::make('staff123'),
-            'first_name' => 'Jane',
-            'last_name' => 'Smith',
-            'middle_name' => 'A',
-            'role' => 'staff',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'jane.smith@caloocan.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-007',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'Jane',
+                'last_name' => 'Smith',
+                'middle_name' => 'A',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        User::create([
-            'citizen_id' => 'STAFF-003',
-            'email' => 'mike.johnson@caloocan.gov.ph',
-            'password' => Hash::make('staff123'),
-            'first_name' => 'Mike',
-            'last_name' => 'Johnson',
-            'middle_name' => 'B',
-            'role' => 'staff',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'mike.johnson@caloocan.gov.ph'],
+            [
+                'citizen_id' => 'STAFF-008',
+                'password' => Hash::make('staff123'),
+                'first_name' => 'Mike',
+                'last_name' => 'Johnson',
+                'middle_name' => 'B',
+                'role' => 'staff',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Create partner school representative
         User::firstOrCreate(

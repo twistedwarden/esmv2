@@ -750,9 +750,6 @@ class ScholarshipApplication extends Model
                     'review_notes' => $notes,
                     'review_data' => $reviewData,
                     'reviewed_at' => now(),
-                    'approved_at' => now(),
-                    'approval_notes' => $notes,
-                    'is_required' => true,
                 ]
             );
 
@@ -817,11 +814,19 @@ class ScholarshipApplication extends Model
      */
     private function getReviewerRole(int $userId): string
     {
-        $assignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
-            ->where('is_active', true)
-            ->first();
-        
-        return $assignment ? $assignment->ssc_role : 'unknown';
+        try {
+            $assignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
+                ->where('is_active', true)
+                ->first();
+            
+            return $assignment ? $assignment->ssc_role : 'unknown';
+        } catch (\Exception $e) {
+            Log::warning('Failed to get reviewer role', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return 'unknown';
+        }
     }
 
     /**

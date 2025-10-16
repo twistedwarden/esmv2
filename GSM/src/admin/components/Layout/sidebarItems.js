@@ -15,12 +15,7 @@ const allSidebarItems = [
     {
         id: 'sad', icon: HandCoins, label: 'School Aid Distribution',
         subItems: [
-            { id: 'sad-overview', label: 'Overview' },
-            { id: 'sad-applications', label: 'Applications' },
-            { id: 'sad-payment-processing', label: 'Payment Processing' },
-            { id: 'sad-distribution-logs', label: 'Distribution Logs' },
-            { id: 'sad-fund-allocation', label: 'Fund Allocation' },
-            { id: 'sad-analytics', label: 'Analytics' }
+            { id: 'sad-overview', label: 'Overview' }
         ]
     },
     {

@@ -1215,11 +1215,8 @@ class ScholarshipApiService {
   }
 
   async sscSubmitAcademicReview(applicationId: number, data: {
-    assessment: 'excellent' | 'good' | 'satisfactory' | 'needs_improvement';
-    recommended_amount: number;
+    approved: boolean;
     notes?: string;
-    program_alignment_score?: number;
-    academic_merit_score?: number;
   }): Promise<any> {
     const response = await this.makeRequest<{ data: any }>(
       `/api/applications/${applicationId}/ssc/academic-review`,
