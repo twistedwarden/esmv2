@@ -1,5 +1,6 @@
 // Sidebar items configuration for Sidebar.jsx
 import { LayoutDashboard, GraduationCap, HandCoins, ClipboardList, Library, FileBarChart, Settings, Users, Shield, ShieldCheck, Archive } from 'lucide-react';
+import translationService from '../../../services/translationService';
 
 const allSidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -64,19 +65,35 @@ const allSidebarItems = [
     { id: 'archived', icon: Archive, label: 'Archived Data' }
 ];
 
-// Function to get sidebar items based on user role
-export const getSidebarItems = (userRole, userSystemRole = null) => {
+// Function to get translated sidebar items based on user role
+export const getSidebarItems = (userRole, userSystemRole = null, t = null) => {
+    // If no translation function provided, use the service directly
+    if (!t) {
+        try {
+            // Ensure translations are loaded before using
+            translationService.ensureTranslationsLoaded();
+            t = translationService.t.bind(translationService);
+            
+            // Debug logging
+            const status = translationService.getStatus();
+            console.log('Sidebar translation status:', status);
+        } catch (error) {
+            console.error('Translation service error:', error);
+            // Fallback function that returns the key as-is
+            t = (key) => key;
+        }
+    }
     // SSC members only see Scholarship module and Settings
     if (userRole === 'ssc') {
         return [
-            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
             {
-                id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+                id: 'scholarship', icon: GraduationCap, label: t('Scholarship'),
                 subItems: [
-                    { id: 'scholarship-ssc', label: 'SSC Management' }
+                    { id: 'scholarship-ssc', label: t('SSC Management') }
                 ]
             },
-            { id: 'settings', icon: Settings, label: 'Settings' }
+            { id: 'settings', icon: Settings, label: t('Settings') }
         ];
     }
     
@@ -85,76 +102,83 @@ export const getSidebarItems = (userRole, userSystemRole = null) => {
         // If no system_role, deny all access
         if (!userSystemRole) {
             return [
-                { id: 'access-denied', icon: Shield, label: 'Access Denied' }
+                { id: 'access-denied', icon: Shield, label: t('Access Denied') }
             ];
         }
         
         // Staff with interviewer system role see only interview-related modules
         if (userSystemRole === 'interviewer') {
             return [
-                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
                 {
-                    id: 'interviews', icon: ClipboardList, label: 'My Interviews',
+                    id: 'interviews', icon: ClipboardList, label: t('My Interviews'),
                     subItems: [
-                        { id: 'interviews-pending', label: 'Pending Interviews' },
-                        { id: 'interviews-completed', label: 'Completed' },
-                        { id: 'interviews-all', label: 'All Interviews' }
+                        { id: 'interviews-pending', label: t('Pending Interviews') },
+                        { id: 'interviews-completed', label: t('Completed') },
+                        { id: 'interviews-all', label: t('All Interviews') }
                     ]
                 },
-                { id: 'settings', icon: Settings, label: 'Settings' }
+                { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
         
         // Staff with other system roles see limited modules based on their role
         if (userSystemRole === 'reviewer') {
             return [
-                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
                 {
-                    id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+                    id: 'scholarship', icon: GraduationCap, label: t('Scholarship'),
                     subItems: [
-                        { id: 'scholarship-applications', label: 'Applications' }
+                        { id: 'scholarship-applications', label: t('Applications') }
                     ]
                 },
-                { id: 'settings', icon: Settings, label: 'Settings' }
+                { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
         
         if (userSystemRole === 'coordinator') {
             return [
-                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
                 {
-                    id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+                    id: 'scholarship', icon: GraduationCap, label: t('Scholarship'),
                     subItems: [
-                        { id: 'scholarship-applications', label: 'Applications' },
-                        { id: 'scholarship-programs', label: 'Programs' }
+                        { id: 'scholarship-applications', label: t('Applications') },
+                        { id: 'scholarship-programs', label: t('Programs') }
                     ]
                 },
                 {
-                    id: 'studentRegistry', icon: ClipboardList, label: 'Student Registry',
+                    id: 'studentRegistry', icon: ClipboardList, label: t('Student Registry'),
                     subItems: [
-                        { id: 'studentRegistry-overview', label: 'Overview' },
-                        { id: 'studentRegistry-active-students', label: 'Active Students' }
+                        { id: 'studentRegistry-overview', label: t('Overview') },
+                        { id: 'studentRegistry-active-students', label: t('Active Students') }
                     ]
                 },
-                { id: 'settings', icon: Settings, label: 'Settings' }
+                { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
         
         // For any other system_role, show limited access
         return [
-            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { id: 'settings', icon: Settings, label: 'Settings' }
+            { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
+            { id: 'settings', icon: Settings, label: t('Settings') }
         ];
     }
     
     // Admin users see all modules
     if (userRole === 'admin') {
-        return allSidebarItems;
+        return allSidebarItems.map(item => ({
+            ...item,
+            label: t(item.label),
+            subItems: item.subItems ? item.subItems.map(subItem => ({
+                ...subItem,
+                label: t(subItem.label)
+            })) : undefined
+        }));
     }
     
     // Default: no access
     return [
-        { id: 'access-denied', icon: Shield, label: 'Access Denied' }
+        { id: 'access-denied', icon: Shield, label: t('Access Denied') }
     ];
 };
 

@@ -10,6 +10,7 @@ import { GatewayLogin } from './pages/GatewayLogin';
 import { useAuthStore } from './store/v1authStore';
 import AdminApp from './admin/App';
 import PartnerSchoolApp from './partner-school/PartnerSchoolApp';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 function PortalLayoutWrapper() {
 	return (
@@ -82,41 +83,43 @@ function RequireAdmin() {
 
 function App() {
 	return (
-		<Router basename={import.meta.env.BASE_URL}>
-			<Routes>
-				{/* Login page as entry point */}
-				<Route path="/" element={<GatewayLogin />} />
+		<LanguageProvider>
+			<Router basename={import.meta.env.BASE_URL}>
+				<Routes>
+					{/* Login page as entry point */}
+					<Route path="/" element={<GatewayLogin />} />
 
-				{/* Portal routes - accessible only after login */}
-				<Route element={<ProtectedRoute><PortalLayoutWrapper /></ProtectedRoute>}>
-					<Route path="/portal" element={<Portal />} />
+					{/* Portal routes - accessible only after login */}
+					<Route element={<ProtectedRoute><PortalLayoutWrapper /></ProtectedRoute>}>
+						<Route path="/portal" element={<Portal />} />
 
-					<Route path="/new-application" element={<NewApplicationForm />} />
-					<Route path="/renewal" element={<RenewalForm />} />
-					<Route path="/scholarship-dashboard" element={<ScholarshipDashboard />} />
-				</Route>
+						<Route path="/new-application" element={<NewApplicationForm />} />
+						<Route path="/renewal" element={<RenewalForm />} />
+						<Route path="/scholarship-dashboard" element={<ScholarshipDashboard />} />
+					</Route>
 
-				{/* Admin login and admin routes */}
-				<Route path="/admin-login" element={<Login />} />
-				<Route path="/admin/*" element={<RequireAdmin />} />
+					{/* Admin login and admin routes */}
+					<Route path="/admin-login" element={<Login />} />
+					<Route path="/admin/*" element={<RequireAdmin />} />
 
-				{/* Partner School routes */}
-				<Route path="/partner-school" element={<PartnerSchoolApp />} />
+					{/* Partner School routes */}
+					<Route path="/partner-school" element={<PartnerSchoolApp />} />
 
-				{/* 404 */}
-				<Route path="*" element={
-					<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-						<div className="text-center">
-							<h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-							<p className="text-gray-600 mb-8">Page not found</p>
-							<a href="/" className="text-orange-500 hover:text-orange-600 font-medium">
-								Return to Home
-							</a>
+					{/* 404 */}
+					<Route path="*" element={
+						<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+							<div className="text-center">
+								<h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
+								<p className="text-gray-600 mb-8">Page not found</p>
+								<a href="/" className="text-orange-500 hover:text-orange-600 font-medium">
+									Return to Home
+								</a>
+							</div>
 						</div>
-					</div>
-				} />
-			</Routes>
-		</Router>
+					} />
+				</Routes>
+			</Router>
+		</LanguageProvider>
 	);
 }
 
