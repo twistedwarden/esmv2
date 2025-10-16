@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/v1authStore';
 import { Skeleton } from '../components/ui/Skeleton';
+import { ClickOrderCaptcha } from '../components/ClickOrderCaptcha';
 
 // Google OAuth types
 declare global {
@@ -76,6 +77,10 @@ export const GatewayLogin: React.FC = () => {
 	const navigate = useNavigate()
   const [now, setNow] = useState<string>(new Date().toLocaleString())
   const [googleReady, setGoogleReady] = useState(false)
+  const [showLoginCaptcha, setShowLoginCaptcha] = useState(false)
+  const [showGoogleCaptcha, setShowGoogleCaptcha] = useState(false)
+  const [loginCaptchaVerified, setLoginCaptchaVerified] = useState(false)
+  const [googleCaptchaVerified, setGoogleCaptchaVerified] = useState(false)
 
   useEffect(() => {
     const i = setInterval(() => setNow(new Date().toLocaleString()), 1000)
@@ -94,8 +99,9 @@ export const GatewayLogin: React.FC = () => {
 
 	useEffect(() => {
 		if (!isLoading && currentUser) {
-      if (currentUser.role === 'admin' || currentUser.role === 'staff' || currentUser.role === 'ssc') navigate('/admin', { replace: true })
-      else if (currentUser.role === 'ps_rep') navigate('/partner-school', { replace: true })
+	      const roleStr = String(currentUser.role)
+	      if (roleStr === 'admin' || roleStr === 'staff' || roleStr === 'ssc') navigate('/admin', { replace: true })
+	      else if (roleStr === 'ps_rep') navigate('/partner-school', { replace: true })
       else navigate('/portal', { replace: true })
 		}
 	}, [currentUser, isLoading, navigate])
@@ -168,17 +174,21 @@ export const GatewayLogin: React.FC = () => {
 
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+		if (!loginCaptchaVerified) { 
+      setShowLoginCaptcha(true)
+      return 
+    }
 		setSubmitting(true)
 		clearError()
-    const ok = await login(email, password)
+    const ok = await login(email, password, 'captcha-verified')
 		setSubmitting(false)
 		if (ok) {
 			// Show splash screen before navigation
 			setShowLoginSplash(true)
 			setTimeout(() => {
-				const role = useAuthStore.getState().currentUser?.role
-				if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
-				else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
+          const role = String(useAuthStore.getState().currentUser?.role)
+          if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+          else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
 				else navigate('/portal', { replace: true })
 			}, 1500) // Show splash for 1.5 seconds
 		} else {
@@ -197,6 +207,10 @@ export const GatewayLogin: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     try {
+      if (!googleCaptchaVerified) { 
+        setShowGoogleCaptcha(true)
+        return 
+      }
       // Debug: Log environment variables
       console.log('Environment check:', {
         VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -236,12 +250,12 @@ export const GatewayLogin: React.FC = () => {
   const handleGoogleCallback = async (response: any) => {
     try {
       console.log('Google OAuth response received:', response)
-      const success = await googleLogin(response.code)
+      const success = await googleLogin(response.code, 'captcha-verified')
       if (success) {
         // Show splash screen before navigation
         setShowLoginSplash(true)
         setTimeout(() => {
-          const role = useAuthStore.getState().currentUser?.role
+          const role = String(useAuthStore.getState().currentUser?.role)
           if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
           else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
           else navigate('/portal', { replace: true })
@@ -279,6 +293,7 @@ export const GatewayLogin: React.FC = () => {
 
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!registerCaptcha) { showNotification('Please complete the CAPTCHA', 'error'); return }
     
     // Validate required fields
     const requiredFields = ['firstName', 'lastName', 'birthdate', 'regEmail', 'mobile', 'address', 'houseNumber', 'street', 'barangay', 'regPassword', 'confirmPassword']
@@ -338,7 +353,7 @@ export const GatewayLogin: React.FC = () => {
     })
 
     setSubmitting(true)
-    const success = await register(registrationData)
+    const success = await register(registrationData, registerCaptcha)
     setSubmitting(false)
     
     if (success) {
@@ -397,7 +412,7 @@ export const GatewayLogin: React.FC = () => {
       }
 
       // Get fresh OAuth code
-      const freshCode = await new Promise((resolve, reject) => {
+      const freshCode = await new Promise<string>((resolve, reject) => {
         window.google.accounts.oauth2.initCodeClient({
           client_id: clientId,
           scope: 'email profile',
@@ -419,7 +434,7 @@ export const GatewayLogin: React.FC = () => {
         houseNumber: googleRegistrationData.houseNumber,
         street: googleRegistrationData.street,
         barangay: googleRegistrationData.barangay,
-      })
+      }, 'captcha-verified')
       
       if (success) {
         showNotification('Registration with Google successful!', 'success')
@@ -437,7 +452,7 @@ export const GatewayLogin: React.FC = () => {
         // Show splash screen before navigation
         setShowLoginSplash(true)
         setTimeout(() => {
-          const role = useAuthStore.getState().currentUser?.role
+          const role = String(useAuthStore.getState().currentUser?.role)
           if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
           else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
           else navigate('/portal', { replace: true })
@@ -568,7 +583,7 @@ export const GatewayLogin: React.FC = () => {
         // Show splash screen before navigation
         setShowLoginSplash(true)
         setTimeout(() => {
-          const role = useAuthStore.getState().currentUser?.role
+          const role = String(useAuthStore.getState().currentUser?.role)
           if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
           else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
           else navigate('/portal', { replace: true })
@@ -629,7 +644,7 @@ export const GatewayLogin: React.FC = () => {
           // Show splash screen before navigation
           setShowLoginSplash(true)
           setTimeout(() => {
-            const role = userData.role
+            const role = String(userData.role)
             if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
             else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
             else navigate('/portal', { replace: true })
@@ -1046,8 +1061,9 @@ export const GatewayLogin: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <div className="g-recaptcha" data-sitekey="YOUR_RECAPTCHA_SITE_KEY"></div>
+              {/* Registration CAPTCHA */}
+              <div className="flex justify-center">
+                <CaptchaGate onVerified={setRegisterCaptcha} />
               </div>
 
               <div className="space-y-2">
@@ -1110,7 +1126,7 @@ export const GatewayLogin: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    disabled={!isGoogleOAuthConfigured}
+                    disabled={!isGoogleOAuthConfigured || !googleCaptcha}
                     className="mt-3 w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -1636,6 +1652,34 @@ export const GatewayLogin: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Click-in-Order CAPTCHA Modals */}
+      <ClickOrderCaptcha 
+        isOpen={showLoginCaptcha} 
+        onClose={() => setShowLoginCaptcha(false)}
+        onVerified={() => {
+          setLoginCaptchaVerified(true)
+          setShowLoginCaptcha(false)
+          // Auto-submit the form after CAPTCHA verification
+          setTimeout(() => {
+            const form = document.querySelector('form') as HTMLFormElement
+            if (form) form.requestSubmit()
+          }, 100)
+        }}
+      />
+
+      <ClickOrderCaptcha 
+        isOpen={showGoogleCaptcha} 
+        onClose={() => setShowGoogleCaptcha(false)}
+        onVerified={() => {
+          setGoogleCaptchaVerified(true)
+          setShowGoogleCaptcha(false)
+          // Trigger Google login after CAPTCHA verification
+          setTimeout(() => {
+            handleGoogleLogin()
+          }, 100)
+        }}
+      />
     </div>
   )
 }
