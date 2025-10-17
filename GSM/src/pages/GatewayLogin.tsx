@@ -231,6 +231,7 @@ export const GatewayLogin: React.FC = () => {
           client_id: clientId,
           scope: 'email profile',
           ux_mode: 'popup',
+          redirect_uri: window.location.origin,
           callback: handleGoogleCallback
         }).requestCode()
       } else {
@@ -416,6 +417,7 @@ export const GatewayLogin: React.FC = () => {
           client_id: clientId,
           scope: 'email profile',
           ux_mode: 'popup',
+          redirect_uri: window.location.origin,
           callback: (response: any) => {
             if (response.code) {
               resolve(response.code)
@@ -591,7 +593,7 @@ export const GatewayLogin: React.FC = () => {
     } else {
       // Handle registration OTP verification
       try {
-        const res = await fetch('http://localhost:8000/api/verify-otp', {
+        const res = await fetch('https://auth-gsph.up.railway.app/api/verify-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -661,7 +663,7 @@ export const GatewayLogin: React.FC = () => {
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/send-otp', {
+      const res = await fetch('https://auth-gsph.up.railway.app/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpEmail })

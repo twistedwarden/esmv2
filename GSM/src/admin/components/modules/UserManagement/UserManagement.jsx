@@ -5,7 +5,7 @@ import UserActionModal from './UserActionModal';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import { LoadingUsers } from '../../ui/LoadingSpinner';
 
-const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
+const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api';
 
 const UserManagement = () => {
     const [users, setUsers] = useState({
@@ -182,7 +182,7 @@ const UserManagement = () => {
 
     const fetchSchools = async () => {
         try {
-            const response = await fetch('http://localhost:8001/api/schools?per_page=100', {
+            const response = await fetch('https://scholarship-gsph.up.railway.app/api/schools?per_page=100', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

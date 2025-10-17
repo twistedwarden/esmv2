@@ -17,7 +17,7 @@ import {
 import { LoadingData } from '../../ui/LoadingSpinner';
 import axios from 'axios';
 
-const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
+const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api';
 
 // Mock data generation function
 const generateMockAuditLogs = () => {

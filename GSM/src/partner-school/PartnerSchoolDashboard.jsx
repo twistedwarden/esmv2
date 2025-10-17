@@ -221,7 +221,7 @@ const PartnerSchoolDashboard = () => {
     setIsChangingPassword(true);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/change-password`, {
+      const response = await fetch(`https://auth-gsph.up.railway.app/api/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

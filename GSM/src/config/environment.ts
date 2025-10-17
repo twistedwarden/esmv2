@@ -18,7 +18,7 @@ class EnvironmentConfig {
     this.config = {
       brevoApiKey: import.meta.env.VITE_BREVO_API_KEY || '',
       googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://auth-gsph.up.railway.app/api',
       appName: import.meta.env.VITE_APP_NAME || 'GoServePH',
       appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
       debugMode: import.meta.env.VITE_DEBUG_MODE === 'true',
