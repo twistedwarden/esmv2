@@ -547,14 +547,22 @@ const UserManagement = () => {
             errors.system_role = 'System role is required for staff members';
         }
         
-        // Department validation for staff
-        if (formData.role === 'staff' && formData.department && formData.department.length > 100) {
-            errors.department = 'Department name must be less than 100 characters';
+        // Department validation for staff - required field
+        if (formData.role === 'staff') {
+            if (!formData.department || formData.department.trim() === '') {
+                errors.department = 'Department is required for staff members';
+            } else if (formData.department.length > 100) {
+                errors.department = 'Department name must be less than 100 characters';
+            }
         }
         
-        // Position validation for staff
-        if (formData.role === 'staff' && formData.position && formData.position.length > 100) {
-            errors.position = 'Position must be less than 100 characters';
+        // Position validation for staff - required field
+        if (formData.role === 'staff') {
+            if (!formData.position || formData.position.trim() === '') {
+                errors.position = 'Position is required for staff members';
+            } else if (formData.position.length > 100) {
+                errors.position = 'Position must be less than 100 characters';
+            }
         }
 
         // PS Rep validation - school assignment required
@@ -1429,18 +1437,32 @@ const UserManagement = () => {
                                                         <div>
                                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                                 <Building className="w-4 h-4 inline mr-1" />
-                                                                Department
+                                                                Department *
                                                             </label>
                                                             <div className="relative">
-                                                                <input
-                                                                    type="text"
+                                                                <select
                                                                     value={formData.department}
                                                                     onChange={(e) => setFormData({...formData, department: e.target.value})}
                                                                     className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
                                                                         formErrors.department ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
                                                                     }`}
-                                                                    placeholder="e.g., IT Department"
-                                                                />
+                                                                    required
+                                                                >
+                                                                    <option value="">Select Department</option>
+                                                                    <option value="Information Technology">Information Technology</option>
+                                                                    <option value="Human Resources">Human Resources</option>
+                                                                    <option value="Finance">Finance</option>
+                                                                    <option value="Education Affairs">Education Affairs</option>
+                                                                    <option value="Student Services">Student Services</option>
+                                                                    <option value="Administration">Administration</option>
+                                                                    <option value="Budget Department">Budget Department</option>
+                                                                    <option value="City Council">City Council</option>
+                                                                    <option value="Scholarship Program">Scholarship Program</option>
+                                                                    <option value="Assessment & Evaluation">Assessment & Evaluation</option>
+                                                                    <option value="Community Relations">Community Relations</option>
+                                                                    <option value="Legal Affairs">Legal Affairs</option>
+                                                                    <option value="Planning & Development">Planning & Development</option>
+                                                                </select>
                                                                 <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                                             </div>
                                                             {formErrors.department && (
@@ -1454,18 +1476,39 @@ const UserManagement = () => {
                                                         <div>
                                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                                 <User className="w-4 h-4 inline mr-1" />
-                                                                Position
+                                                                Position *
                                                             </label>
                                                             <div className="relative">
-                                                                <input
-                                                                    type="text"
+                                                                <select
                                                                     value={formData.position}
                                                                     onChange={(e) => setFormData({...formData, position: e.target.value})}
                                                                     className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
                                                                         formErrors.position ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
                                                                     }`}
-                                                                    placeholder="e.g., Senior Developer"
-                                                                />
+                                                                    required
+                                                                >
+                                                                    <option value="">Select Position</option>
+                                                                    <option value="Interviewer">Interviewer</option>
+                                                                    <option value="Assessment Officer">Assessment Officer</option>
+                                                                    <option value="Evaluation Specialist">Evaluation Specialist</option>
+                                                                    <option value="Reviewer">Reviewer</option>
+                                                                    <option value="Assessment Coordinator">Assessment Coordinator</option>
+                                                                    <option value="Evaluation Manager">Evaluation Manager</option>
+                                                                    <option value="Administrator">Administrator</option>
+                                                                    <option value="System Administrator">System Administrator</option>
+                                                                    <option value="IT Administrator">IT Administrator</option>
+                                                                    <option value="Coordinator">Coordinator</option>
+                                                                    <option value="Program Coordinator">Program Coordinator</option>
+                                                                    <option value="Scholarship Coordinator">Scholarship Coordinator</option>
+                                                                    <option value="Department Head">Department Head</option>
+                                                                    <option value="Manager">Manager</option>
+                                                                    <option value="Supervisor">Supervisor</option>
+                                                                    <option value="Officer">Officer</option>
+                                                                    <option value="Specialist">Specialist</option>
+                                                                    <option value="Analyst">Analyst</option>
+                                                                    <option value="Assistant">Assistant</option>
+                                                                    <option value="Clerk">Clerk</option>
+                                                                </select>
                                                                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                                             </div>
                                                             {formErrors.position && (
@@ -1725,26 +1768,63 @@ const UserManagement = () => {
                                             
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Department
+                                                    Department *
                                                 </label>
-                                                <input
-                                                    type="text"
+                                                <select
                                                     value={formData.department}
                                                     onChange={(e) => setFormData({...formData, department: e.target.value})}
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                                />
+                                                    required
+                                                >
+                                                    <option value="">Select Department</option>
+                                                    <option value="Information Technology">Information Technology</option>
+                                                    <option value="Human Resources">Human Resources</option>
+                                                    <option value="Finance">Finance</option>
+                                                    <option value="Education Affairs">Education Affairs</option>
+                                                    <option value="Student Services">Student Services</option>
+                                                    <option value="Administration">Administration</option>
+                                                    <option value="Budget Department">Budget Department</option>
+                                                    <option value="City Council">City Council</option>
+                                                    <option value="Scholarship Program">Scholarship Program</option>
+                                                    <option value="Assessment & Evaluation">Assessment & Evaluation</option>
+                                                    <option value="Community Relations">Community Relations</option>
+                                                    <option value="Legal Affairs">Legal Affairs</option>
+                                                    <option value="Planning & Development">Planning & Development</option>
+                                                </select>
                                             </div>
                                             
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Position
+                                                    Position *
                                                 </label>
-                                                <input
-                                                    type="text"
+                                                <select
                                                     value={formData.position}
                                                     onChange={(e) => setFormData({...formData, position: e.target.value})}
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                                />
+                                                    required
+                                                >
+                                                    <option value="">Select Position</option>
+                                                    <option value="Interviewer">Interviewer</option>
+                                                    <option value="Assessment Officer">Assessment Officer</option>
+                                                    <option value="Evaluation Specialist">Evaluation Specialist</option>
+                                                    <option value="Reviewer">Reviewer</option>
+                                                    <option value="Assessment Coordinator">Assessment Coordinator</option>
+                                                    <option value="Evaluation Manager">Evaluation Manager</option>
+                                                    <option value="Administrator">Administrator</option>
+                                                    <option value="System Administrator">System Administrator</option>
+                                                    <option value="IT Administrator">IT Administrator</option>
+                                                    <option value="Coordinator">Coordinator</option>
+                                                    <option value="Program Coordinator">Program Coordinator</option>
+                                                    <option value="Scholarship Coordinator">Scholarship Coordinator</option>
+                                                    <option value="Department Head">Department Head</option>
+                                                    <option value="Manager">Manager</option>
+                                                    <option value="Supervisor">Supervisor</option>
+                                                    <option value="Officer">Officer</option>
+                                                    <option value="Specialist">Specialist</option>
+                                                    <option value="Analyst">Analyst</option>
+                                                    <option value="Assistant">Assistant</option>
+                                                    <option value="Clerk">Clerk</option>
+                                                </select>
                                             </div>
                                         </>
                                     )}

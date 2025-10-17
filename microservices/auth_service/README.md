@@ -19,14 +19,15 @@ This is a **stubbed version of Central Auth** for development and testing only.
 
 ## Environment Variables
 
-| Name        | Description            |
-| ----------- | ---------------------- |
-| DB_HOST     | 127.0.0.1              |
-| DB_PORT     | 3306                   |
-| DB_USER     | root                   |
-| DB_PASSWORD |                        |
-| DB_NAME     | auth_service           |
-| JWT_SECRET  | Secret for signing JWT |
+| Name                    | Description                                   | Default               |
+| ----------------------- | --------------------------------------------- | --------------------- |
+| DB_HOST                 | Database host                                 | 127.0.0.1             |
+| DB_PORT                 | Database port                                 | 3306                  |
+| DB_USER                 | Database user                                 | root                  |
+| DB_PASSWORD             | Database password                             |                       |
+| DB_NAME                 | Database name                                 | auth_service          |
+| JWT_SECRET              | Secret for signing JWT                        |                       |
+| SCHOLARSHIP_SERVICE_URL | Scholarship service URL for staff integration | http://localhost:8002 |
 
 ## Running Locally
 
