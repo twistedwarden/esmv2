@@ -287,7 +287,7 @@ class UserController extends Controller
             \Log::info('Creating user with data:', $request->all());
             
             $validated = $request->validate([
-                'citizen_id' => 'required|string|unique:users,citizen_id',
+                'citizen_id' => 'nullable|string|unique:users,citizen_id',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8',
                 'first_name' => 'required|string|max:255',
@@ -300,11 +300,17 @@ class UserController extends Controller
                 'house_number' => 'nullable|string|max:50',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
-                'role' => 'required|in:admin,citizen,staff,ps_rep,ssc,ssc_city_council,ssc_budget_dept,ssc_education_affairs',
+                'role' => 'required|in:admin,citizen,staff,ps_rep,ssc,ssc_chairperson,ssc_city_council,ssc_budget_dept,ssc_education_affairs,ssc_hrd,ssc_social_services,ssc_accounting,ssc_treasurer,ssc_qcydo,ssc_planning_dept,ssc_schools_division,ssc_qcu',
                 'assigned_school_id' => 'nullable|integer',
             ]);
 
             \Log::info('Validation passed, creating user');
+
+            // Auto-generate citizen_id if not provided
+            if (empty($validated['citizen_id'])) {
+                $validated['citizen_id'] = $this->generateCitizenId($validated['role']);
+                \Log::info('Generated citizen_id: ' . $validated['citizen_id']);
+            }
 
             $user = User::create([
                 ...$validated,
@@ -407,7 +413,7 @@ class UserController extends Controller
                 'house_number' => 'nullable|string|max:50',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
-                'role' => 'sometimes|in:admin,citizen,staff,ps_rep,ssc,ssc_city_council,ssc_budget_dept,ssc_education_affairs',
+                'role' => 'sometimes|in:admin,citizen,staff,ps_rep,ssc,ssc_chairperson,ssc_city_council,ssc_budget_dept,ssc_education_affairs,ssc_hrd,ssc_social_services,ssc_accounting,ssc_treasurer,ssc_qcydo,ssc_planning_dept,ssc_schools_division,ssc_qcu',
                 'is_active' => 'sometimes|boolean',
                 'status' => 'sometimes|string',
             ]);
@@ -695,5 +701,61 @@ class UserController extends Controller
                 'message' => 'Failed to permanently delete user: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generate a unique citizen ID based on role
+     */
+    private function generateCitizenId(string $role): string
+    {
+        // Map roles to prefixes
+        $rolePrefixes = [
+            'citizen' => 'CITIZEN',
+            'staff' => 'STAFF',
+            'admin' => 'ADMIN',
+            'ps_rep' => 'PSREP',
+            'ssc' => 'SSC',
+            'ssc_chairperson' => 'SSC',
+            'ssc_city_council' => 'SSC',
+            'ssc_budget_dept' => 'SSC',
+            'ssc_education_affairs' => 'SSC',
+            'ssc_hrd' => 'SSC',
+            'ssc_social_services' => 'SSC',
+            'ssc_accounting' => 'SSC',
+            'ssc_treasurer' => 'SSC',
+            'ssc_qcydo' => 'SSC',
+            'ssc_planning_dept' => 'SSC',
+            'ssc_schools_division' => 'SSC',
+            'ssc_qcu' => 'SSC',
+        ];
+
+        $prefix = $rolePrefixes[$role] ?? 'USER';
+
+        // Find the highest number for this prefix
+        $maxNumber = 0;
+        $existingUsers = User::where('citizen_id', 'LIKE', $prefix . '-%')->get();
+        
+        foreach ($existingUsers as $user) {
+            if (preg_match('/' . preg_quote($prefix) . '-(\d+)/', $user->citizen_id, $matches)) {
+                $number = (int)$matches[1];
+                if ($number > $maxNumber) {
+                    $maxNumber = $number;
+                }
+            }
+        }
+
+        // Generate next ID
+        $nextNumber = $maxNumber + 1;
+        $citizenId = $prefix . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+        // Ensure uniqueness (in case of race condition)
+        $attempts = 0;
+        while (User::where('citizen_id', $citizenId)->exists() && $attempts < 10) {
+            $nextNumber++;
+            $citizenId = $prefix . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+            $attempts++;
+        }
+
+        return $citizenId;
     }
 }
