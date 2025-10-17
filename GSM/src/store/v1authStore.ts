@@ -88,6 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 		// Validate token with backend
 		try {
+			console.log('🔍 Fetching user data from:', `${API_BASE_URL}/user`)
 			const response = await fetch(`${API_BASE_URL}/user`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
@@ -96,6 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 			})
 
 			const data = await response.json()
+			console.log('📡 User API response:', data)
 
 			if (data.success) {
 				const userData = {

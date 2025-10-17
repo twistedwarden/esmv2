@@ -26,18 +26,21 @@ function RequireAdmin() {
 	const currentUser = useAuthStore(s => s.currentUser)
 	const isLoading = useAuthStore(s => s.isLoading)
 
-	// Show loading spinner while checking authentication OR redirect if not authenticated
-	if (isLoading || !currentUser) {
-		if (isLoading) {
-			return (
-				<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-					<div className="text-center">
-						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-						<p className="text-gray-600">Loading...</p>
-					</div>
+	// CRITICAL: Always show loading spinner while isLoading is true
+	// This ensures we wait for initializeAuth() to complete before checking roles
+	if (isLoading) {
+		return (
+			<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+					<p className="text-gray-600">Loading...</p>
 				</div>
-			)
-		}
+			</div>
+		)
+	}
+
+	// After loading completes, check if user is authenticated
+	if (!currentUser) {
 		return <Navigate to="/" replace state={{ from: location }} />
 	}
 
@@ -49,13 +52,13 @@ function RequireAdmin() {
 	// For staff users, they must have a system_role from scholarship service
 	if (currentUser.role === 'staff') {
 		// Log current user data for debugging
-		console.log('Staff user detected:', {
+		console.log('✅ Staff user authorization check:', {
 			user_id: currentUser.id,
 			role: currentUser.role,
 			system_role: currentUser.system_role,
 			department: currentUser.department,
 			position: currentUser.position,
-			full_user: currentUser
+			isLoading: isLoading
 		});
 		
 		if (!currentUser.system_role) {
