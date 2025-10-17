@@ -58,7 +58,7 @@ function SADOverview({ onPageChange }) {
     };
 
     return (
-        <div className="">
+        <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -71,7 +71,7 @@ function SADOverview({ onPageChange }) {
                     </p>
                 </div>
                 <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-                    <Calendar className="w-5 h-5 text-slate-500" />
+                    <Calendar className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                     <span className="text-sm text-slate-600 dark:text-slate-400">
                         {new Date().toLocaleDateString('en-PH', { 
                             year: 'numeric', 
@@ -90,13 +90,13 @@ function SADOverview({ onPageChange }) {
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{stat.title}</p>
                                 <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stat.value}</p>
-                                <div className="flex items.center mt-2">
+                                <div className="flex items-center mt-2">
                                     <span className={`text-sm font-medium ${
-                                        stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'
+                                        stat.change.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                     }`}>
                                         {stat.change}
                                     </span>
-                                    <span className="text-xs text-slate-500 ml-2">{stat.description}</span>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">{stat.description}</span>
                                 </div>
                             </div>
                             <div className={`${stat.color} p-3 rounded-lg shadow-sm`}>
@@ -108,7 +108,7 @@ function SADOverview({ onPageChange }) {
             </div>
 
             {/* Aid Distribution by Type */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 mt-6">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-6">Aid Distribution by Type</h3>
                 <div className="space-y-4">
                     {aidTypes.map((aid, index) => (
@@ -130,7 +130,7 @@ function SADOverview({ onPageChange }) {
             </div>
 
             {/* Recent Distributions */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 mt-6">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-6">Recent Distributions</h3>
                 <div className="overflow-x-auto">
                     <table className="w-full">

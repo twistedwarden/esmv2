@@ -134,9 +134,9 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
     const colors = {
       submitted: 'bg-gray-100 text-gray-800',
       under_review: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-blue-100 text-blue-800',
+      approved: 'bg-blue-100 dark:bg-blue-900 text-blue-800',
       grants_processing: 'bg-purple-100 text-purple-800',
-      grants_disbursed: 'bg-green-100 text-green-800',
+      grants_disbursed: 'bg-green-100 dark:bg-green-900 text-green-800',
       payment_failed: 'bg-red-100 text-red-800',
       rejected: 'bg-red-100 text-red-800'
     };
@@ -145,8 +145,8 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   const getPaymentStatusColor = (status: PaymentRecord['status']) => {
     const colors = {
-      processing: 'bg-blue-100 text-blue-800',
-      completed: 'bg-green-100 text-green-800',
+      processing: 'bg-blue-100 dark:bg-blue-900 text-blue-800',
+      completed: 'bg-green-100 dark:bg-green-900 text-green-800',
       failed: 'bg-red-100 text-red-800'
     };
     return colors[status];
@@ -265,7 +265,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       <button
         key="view"
         onClick={() => handleViewApplication(application)}
-        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 rounded hover:bg-blue-200 transition-colors"
       >
         <Eye className="w-4 h-4" />
         View
@@ -279,7 +279,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <button
             key="complete"
             onClick={() => handleCompletePayment(application)}
-            className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 dark:bg-green-900 text-green-700 rounded hover:bg-green-200 transition-colors"
           >
             <CheckCircle className="w-4 h-4" />
             Complete
@@ -292,7 +292,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
             key="retry"
             onClick={() => handleRetryPayment(application)}
             disabled={processingState?.isProcessing}
-            className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-100 dark:bg-orange-900 text-orange-700 rounded hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {processingState?.isProcessing ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -308,7 +308,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <button
             key="receipt"
             onClick={() => {/* TODO: Implement view receipt */}}
-            className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 dark:bg-green-900 text-green-700 rounded hover:bg-green-200 transition-colors"
           >
             <Eye className="w-4 h-4" />
             Receipt
@@ -328,7 +328,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-blue-800">Processing Payment</span>
-          <span className="text-sm text-blue-600">{Math.round(processingState.progress)}%</span>
+          <span className="text-sm text-blue-600 dark:text-blue-400">{Math.round(processingState.progress)}%</span>
         </div>
         <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
           <div 
@@ -336,7 +336,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
             style={{ width: `${processingState.progress}%` }}
           ></div>
         </div>
-        <p className="text-xs text-blue-600">{processingState.currentStep}</p>
+        <p className="text-xs text-blue-600 dark:text-blue-400">{processingState.currentStep}</p>
       </div>
     );
   };
@@ -354,38 +354,38 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {/* Payment Summary Cards */}
       {activeSubmodule === 'processing' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Activity className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Processing</p>
-                <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Processing</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{applications.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Amount</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatCurrency(applications.reduce((sum, app) => sum + app.amount, 0))}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-orange-600" />
+              <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg Processing Time</p>
-                <p className="text-2xl font-bold text-gray-900">2.5 days</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Avg Processing Time</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">2.5 days</p>
               </div>
             </div>
           </div>
@@ -393,30 +393,30 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       )}
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by student name, ID, school, or payment reference..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
 
           {/* View Toggle */}
-          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+          <div className="flex border border-gray-300 dark:border-slate-600 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('list')}
               className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
                 viewMode === 'list'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
               }`}
               title="List View"
             >
@@ -425,10 +425,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 border-l border-gray-300 ${
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 border-l border-gray-300 dark:border-slate-600 ${
                 viewMode === 'grid'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
               }`}
               title="Grid View"
             >
@@ -439,7 +439,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
           {/* Actions */}
           <div className="flex gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 transition-colors">
               <Download className="w-4 h-4" />
               Export
             </button>
@@ -455,10 +455,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
       {/* Results Summary */}
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-600 dark:text-slate-400">
           Showing {filteredApplications.length} of {applications.length} payments
           {selectedApplications.length > 0 && (
-            <span className="ml-2 font-medium text-blue-600">
+            <span className="ml-2 font-medium text-blue-600 dark:text-blue-400">
               ({selectedApplications.length} selected)
             </span>
           )}
@@ -477,7 +477,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                     type="checkbox"
                     checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
                     onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -513,18 +513,18 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                         type="checkbox"
                         checked={selectedApplications.includes(application.id)}
                         onChange={() => handleSelectApplication(application.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <User className="w-5 h-5 text-blue-600" />
+                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                            <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {application.studentName}
                           </div>
                           <div className="text-sm text-gray-500">
@@ -535,19 +535,19 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <School className="w-4 h-4 text-gray-400 mr-2" />
-                        <div className="text-sm text-gray-900">{application.school}</div>
+                        <School className="w-4 h-4 text-gray-400 dark:text-slate-400 mr-2" />
+                        <div className="text-sm text-gray-900 dark:text-white">{application.school}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
                         {formatCurrency(application.amount)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getPaymentMethodIcon(paymentRecord?.method || 'bank_transfer')}
-                        <span className="ml-2 text-sm text-gray-900 capitalize">
+                        <span className="ml-2 text-sm text-gray-900 dark:text-white capitalize">
                           {paymentRecord?.method?.replace('_', ' ') || 'Bank Transfer'}
                         </span>
                       </div>
@@ -573,7 +573,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                         {formatDate(application.processingDate || application.disbursedDate || application.approvalDate || application.submittedDate)}
                       </div>
                       {paymentRecord?.completedAt && (
-                        <div className="text-xs text-gray-400 mt-1">
+                        <div className="text-xs text-gray-400 dark:text-slate-400 mt-1">
                           Completed: {formatDateTime(paymentRecord.completedAt)}
                         </div>
                       )}
@@ -581,7 +581,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
                         {getActionButtons(application)}
-                        <button className="p-1 text-gray-400 hover:text-gray-600">
+                        <button className="p-1 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300">
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
                       </div>
@@ -603,17 +603,17 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
               <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
                 <div className="text-center">
                   <div className="mb-4">
-                    <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+                    <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing Payment</h3>
-                  <p className="text-sm text-gray-600 mb-4">{application.studentName}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Processing Payment</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{application.studentName}</p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                     <div 
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${state.progress}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-blue-600">{state.currentStep}</p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">{state.currentStep}</p>
                 </div>
               </div>
             </div>
@@ -626,33 +626,33 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           {filteredApplications.map((application) => {
             const paymentRecord = paymentRecords.find(p => p.applicationId === application.id);
             return (
-              <div key={application.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div key={application.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={selectedApplications.includes(application.id)}
                       onChange={() => handleSelectApplication(application.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
+                      className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 mt-1"
                     />
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <User className="w-6 h-6 text-blue-600" />
+                    <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                      <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">{application.studentName}</h3>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{application.studentName}</h3>
                       <p className="text-xs text-gray-500">{application.studentId}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <School className="w-4 h-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
+                    <School className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-400" />
                     <span className="truncate">{application.school}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-gray-900">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">
                       {formatCurrency(application.amount)}
                     </span>
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status)}`}>
@@ -661,7 +661,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                   </div>
 
                   {paymentRecord && (
-                    <div className="flex items-center text-sm text-gray-600 pt-2 border-t">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-400 pt-2 border-t">
                       {getPaymentMethodIcon(paymentRecord.method)}
                       <span className="ml-2 capitalize">{paymentRecord.method.replace('_', ' ')}</span>
                     </div>
@@ -685,10 +685,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {/* Empty State */}
       {filteredApplications.length === 0 && (
         <div className="text-center py-12">
-          <div className="mx-auto h-12 w-12 text-gray-400">
+          <div className="mx-auto h-12 w-12 text-gray-400 dark:text-slate-400">
             <DollarSign className="w-12 h-12" />
           </div>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No disbursements found</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No disbursements found</h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm
               ? 'Try adjusting your search criteria.'

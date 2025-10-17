@@ -146,24 +146,24 @@ const SchoolAidDistribution = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
         <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">School Aid Distribution</h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">School Aid Distribution</h1>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 mt-1">
               Manage and track scholarship fund disbursements to students
             </p>
           </div>
           {selectedApplications.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">
                 {selectedApplications.length} selected
               </span>
               <button 
                 onClick={() => setSelectedApplications([])}
-                className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
+                className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
               >
                 Clear
               </button>
@@ -173,7 +173,7 @@ const SchoolAidDistribution = () => {
       </div>
 
       {/* Main Tabs */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
         <div className="px-3 sm:px-4 lg:px-6">
           <nav className="flex space-x-2 sm:space-x-4 lg:space-x-8 overflow-x-auto" aria-label="Tabs">
             {tabs.map((tab) => {
@@ -188,8 +188,8 @@ const SchoolAidDistribution = () => {
                     transition-colors duration-200 relative whitespace-nowrap flex-shrink-0
                     ${
                       isActive
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600'
                     }
                   `}
                 >
@@ -209,7 +209,7 @@ const SchoolAidDistribution = () => {
 
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-gray-50 dark:bg-slate-900">
         <div className="p-4 sm:p-6">
           {renderTabContent()}
         </div>

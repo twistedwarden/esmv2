@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/v1authStore';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -47,6 +47,9 @@ export const GatewayLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info')
+  const [isToastVisible, setIsToastVisible] = useState(false)
   const [registrationData, setRegistrationData] = useState({
     firstName: '',
     lastName: '',
@@ -70,6 +73,16 @@ export const GatewayLogin: React.FC = () => {
     number: false,
     special: false
   })
+
+  // Toast function
+  const displayToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message)
+    setToastType(type)
+    setIsToastVisible(true)
+    setTimeout(() => {
+      setIsToastVisible(false)
+    }, 4000)
+  }
 	const { login, loginWithOtp, register, googleLogin, googleRegister, error, clearError } = useAuthStore()
 	const currentUser = useAuthStore(s => s.currentUser)
 	const isLoading = useAuthStore(s => s.isLoading)
@@ -164,11 +177,11 @@ export const GatewayLogin: React.FC = () => {
                 <Skeleton variant="text" height={14} width={150} className="bg-primary-500" />
               </div>
             </div>
-          </div>
-        </footer>
-			</div>
-		)
-	}
+        </div>
+      </footer>
+    </div>
+  )
+}
 
   if (currentUser) return null
 
@@ -697,123 +710,166 @@ export const GatewayLogin: React.FC = () => {
   // Check if Google OAuth is properly configured
   const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
+  // Handle password-related errors as toast
+  useEffect(() => {
+    if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
+      displayToast(error, 'error')
+      clearError() // Clear the error from store since we're showing it as toast
+    }
+  }, [error, clearError])
+
 	return (
-    <div className="min-h-screen bg-app flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">
 				{/* Header */}
-      <header className="py-2 bg-white/90 backdrop-blur sticky top-0 z-20 border-b border-gray-100">
+      <header className="py-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm sticky top-0 z-20 border-b border-gray-200 dark:border-slate-700">
         <div className="mx-auto px-6 max-w-7xl">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <img src="/GSM_logo.png" alt="Logo" className="h-12 w-auto" />
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                <img src="/GSM_logo.png" alt="Logo" className="h-6 w-auto" />
               </div>
-              <h1 className="text-3xl lg:text-4xl font-bold leading-none">
-                <span className="text-secondary-600">Go</span>
-                <span className="text-primary-600">Serve</span>
-                <span className="text-secondary-600">PH</span>
-							</h1>
+              <h1 className="text-2xl font-bold">
+                <span className="text-secondary-600 dark:text-secondary-400">Go</span>
+                <span className="text-primary-600 dark:text-primary-400">Serve</span>
+                <span className="text-secondary-600 dark:text-secondary-400">PH</span>
+              </h1>
             </div>
-            <div className="text-right">
-              <div className="text-sm">
-                <div className="font-semibold">{now}</div>
-              </div>
+            <div className="text-sm text-gray-600 dark:text-slate-400">
+              {now}
             </div>
-						</div>
-					</div>
+          </div>
+        </div>
       </header>
 
       {/* Main */}
-      <main className="mx-auto px-6 pt-4 pb-12 flex-1 max-w-7xl flex items-center justify-center">
-        <div className="grid lg:grid-cols-2 gap-12 place-items-center text-center lg:text-left w-full">
+      <main className="mx-auto px-6 pt-4 pb-4 flex-1 max-w-7xl flex items-center justify-center min-h-0">
+        <div className="grid lg:grid-cols-2 gap-8 place-items-center text-center lg:text-left w-full">
           {/* Left headline */}
-          <div className="py-12 px-4">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-8 brand-gradient-text leading-tight">
-              Abot-Kamay mo ang Serbisyong Publiko!
-            </h2>
+          <div className="py-8 px-4">
+            <div className="space-y-4">
+              <h2 className="text-3xl lg:text-4xl font-bold leading-tight">
+                <span className="text-primary-600 dark:text-primary-400">Abot-Kamay mo ang</span>
+                <br />
+                <span className="text-secondary-600 dark:text-secondary-400">Serbisyong Publiko!</span>
+              </h2>
+              <p className="text-gray-600 dark:text-slate-400 max-w-lg text-base">
+                Access government services with ease. Your gateway to efficient and transparent public service delivery.
+              </p>
+            </div>
           </div>
 
           {/* Right Login Card */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm mx-auto w-full">
-            <form onSubmit={handleSubmit} className="space-y-5">
-						<div className="relative">
-								<input
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 max-w-sm mx-auto w-full border border-gray-100 dark:border-slate-700">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {/* Email Input */}
+              <div>
+                <input
                   type="email"
                   id="email"
                   name="email"
-                  placeholder="Enter e-mail address"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all duration-200"
-									required
+                  placeholder="Email address"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-								/>
-							</div>
-						<div className="relative">
-								<input
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative">
+                <input
                   type={showPassword ? "text" : "password"}
-									id="password"
-									name="password"
-                  placeholder="Enter password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all duration-200"
-									required
+                  id="password"
+                  name="password"
+                  placeholder="Password"
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-								/>
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
-							</div>
-						{error && (
-							<div className="bg-red-50 border border-red-200 rounded-lg p-3">
-								<p className="text-sm text-red-600">{error}</p>
-							</div>
-						)}
-              <button type="submit" className="w-full bg-secondary-500 hover:bg-secondary-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors" disabled={submitting}>
-                {submitting ? 'Signing In…' : 'Login'}
-              </button>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">OR</span>
-                </div>
               </div>
-              <div>
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="ml-2 text-gray-600 dark:text-slate-400">Remember me</span>
+                </label>
                 <button
                   type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={!googleReady || !isGoogleOAuthConfigured}
-                  className={`w-full py-3 px-6 rounded-lg font-semibold flex items-center justify-center transition-colors ${
-                    googleReady && isGoogleOAuthConfigured
-                      ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
+                  className="text-primary-600 dark:text-primary-400 hover:underline"
                 >
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  <span>
-                    {isGoogleOAuthConfigured 
-                      ? 'Continue with Google' 
-                      : 'Google OAuth Not Configured'
-                    }
-                  </span>
+                  Forgot password?
                 </button>
-                {!isGoogleOAuthConfigured && (
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    Google OAuth is not configured. Please contact support.
-                  </p>
-                )}
               </div>
-              <div className="text-center">
-                <p className="text-gray-600 text-sm">No account yet? <button type="button" onClick={() => setShowRegister(true)} className="text-secondary-600 hover:underline font-semibold">Register here</button></p>
+              {/* Error Display - Only for non-password errors */}
+              {error && !error.toLowerCase().includes('password') && !error.toLowerCase().includes('invalid credentials') && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+              )}
+
+              {/* Login Button */}
+              <button 
+                type="submit" 
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                disabled={submitting}
+              >
+                {submitting ? 'Signing In...' : 'Sign In'}
+              </button>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-slate-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">OR</span>
+                </div>
+              </div>
+
+              {/* Google OAuth Button */}
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={!googleReady || !isGoogleOAuthConfigured}
+                className={`w-full py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-colors ${
+                  googleReady && isGoogleOAuthConfigured
+                    ? 'bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                    : 'bg-gray-100 dark:bg-slate-600 border border-gray-200 dark:border-slate-500 text-gray-400 dark:text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continue with Google
+              </button>
+
+              {/* Registration Link */}
+              <div className="text-center pt-2">
+                <p className="text-gray-600 dark:text-slate-400 text-sm">
+                  No account?{' '}
+                  <button 
+                    type="button" 
+                    onClick={() => setShowRegister(true)} 
+                    className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                  >
+                    Register here
+                  </button>
+                </p>
               </div>
 					</form>
 					</div>
@@ -821,18 +877,28 @@ export const GatewayLogin: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-primary-600 text-white py-4 mt-8">
+      <footer className="bg-primary-600 text-white py-3 mt-4">
         <div className="mx-auto px-6 max-w-7xl">
           <div className="flex flex-col lg:flex-row justify-between items-center">
-            <div className="text-center lg:text-left mb-2 lg:mb-0">
-              <h3 className="text-lg font-bold mb-1">Government Services Management System</h3>
+            <div className="text-center lg:text-left mb-1 lg:mb-0">
+              <h3 className="text-sm font-bold mb-1">Government Services Management System</h3>
               <p className="text-xs opacity-90">For any inquiries, please call 122 or email helpdesk@gov.ph</p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex space-x-3 text-xs">
-                <Link to="#" className="hover:underline">TERMS OF SERVICE</Link>
+                <button 
+                  onClick={() => setShowTerms(true)} 
+                  className="hover:underline cursor-pointer"
+                >
+                  TERMS OF SERVICE
+                </button>
                 <span>|</span>
-                <Link to="#" className="hover:underline">PRIVACY POLICY</Link>
+                <button 
+                  onClick={() => setShowPrivacy(true)} 
+                  className="hover:underline cursor-pointer"
+                >
+                  PRIVACY POLICY
+                </button>
 					</div>
 				</div>
 			</div>
@@ -841,333 +907,457 @@ export const GatewayLogin: React.FC = () => {
 
       {/* Registration Modal */}
       {showRegister && (
-        <div className="fixed inset-0 z-30 flex items-start justify-center pt-20 px-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="bg-white border-b border-gray-200 px-6 py-4 text-center flex-shrink-0">
-              <h2 className="text-xl md:text-2xl font-semibold text-secondary-600">Create your GoServePH account</h2>
+        <div className="fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in-0 zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create Account</h2>
+                <button
+                  onClick={() => setShowRegister(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
+            
             <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={handleRegistration} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">First Name<span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="firstName" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.firstName}
-                    onChange={(e) => setRegistrationData({...registrationData, firstName: e.target.value})}
-                  />
+              <form onSubmit={handleRegistration} className="space-y-6">
+              {/* Personal Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="firstName" 
+                      required 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      placeholder="Enter your first name"
+                      value={registrationData.firstName}
+                      onChange={(e) => setRegistrationData({...registrationData, firstName: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="lastName" 
+                      required 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      placeholder="Enter your last name"
+                      value={registrationData.lastName}
+                      onChange={(e) => setRegistrationData({...registrationData, lastName: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Middle Name
+                      <span className="text-red-500" style={{display: registrationData.noMiddleName ? 'none' : 'inline'}}>*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="middleName" 
+                      required={!registrationData.noMiddleName}
+                      disabled={registrationData.noMiddleName}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 disabled:bg-gray-100 dark:disabled:bg-slate-600 disabled:text-gray-500"
+                      placeholder="Enter your middle name"
+                      value={registrationData.middleName}
+                      onChange={(e) => setRegistrationData({...registrationData, middleName: e.target.value})}
+                    />
+                    <label className="inline-flex items-center text-sm text-gray-600 dark:text-slate-400">
+                      <input 
+                        type="checkbox" 
+                        className="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        checked={registrationData.noMiddleName}
+                        onChange={(e) => setRegistrationData({...registrationData, noMiddleName: e.target.checked, middleName: e.target.checked ? '' : registrationData.middleName})}
+                      /> 
+                      I don't have a middle name
+                    </label>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">Suffix</label>
+                    <input 
+                      type="text" 
+                      name="suffix" 
+                      placeholder="Jr., Sr., III (optional)" 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      value={registrationData.suffix}
+                      onChange={(e) => setRegistrationData({...registrationData, suffix: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Birthdate <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="date" 
+                      name="birthdate" 
+                      required 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      value={registrationData.birthdate}
+                      onChange={(e) => setRegistrationData({...registrationData, birthdate: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="email" 
+                      name="regEmail" 
+                      required 
+                      pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                      title="Please enter a valid email address (e.g., user@example.com)"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      placeholder="your.email@example.com"
+                      value={registrationData.regEmail}
+                      onChange={(e) => setRegistrationData({...registrationData, regEmail: e.target.value})}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-slate-400">
+                      ✓ Accepts all email providers (Gmail, Yahoo, Outlook, etc.)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="tel" 
+                      name="mobile" 
+                      required 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400" 
+                      placeholder="09XXXXXXXXX"
+                      value={registrationData.mobile}
+                      onChange={(e) => setRegistrationData({...registrationData, mobile: e.target.value})}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-slate-400">
+                      Format: 09XXXXXXXXX (11 digits starting with 09)
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">Last Name<span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="lastName" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.lastName}
-                    onChange={(e) => setRegistrationData({...registrationData, lastName: e.target.value})}
-                  />
+              </div>
+              
+              {/* Address Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Address Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Complete Address <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="address" 
+                      required 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400" 
+                      placeholder="Lot/Unit, Building, Subdivision"
+                      value={registrationData.address}
+                      onChange={(e) => setRegistrationData({...registrationData, address: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      House Number <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="houseNumber" 
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      placeholder="123"
+                      value={registrationData.houseNumber}
+                      onChange={(e) => setRegistrationData({...registrationData, houseNumber: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Street <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="street" 
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      placeholder="Main Street"
+                      value={registrationData.street}
+                      onChange={(e) => setRegistrationData({...registrationData, street: e.target.value})}
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Barangay <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="barangay" 
+                      required 
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                      placeholder="Barangay Name"
+                      value={registrationData.barangay}
+                      onChange={(e) => setRegistrationData({...registrationData, barangay: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">
-                    Middle Name
-                    <span className="text-red-500" style={{display: registrationData.noMiddleName ? 'none' : 'inline'}}>*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    name="middleName" 
-                    required={!registrationData.noMiddleName}
-                    disabled={registrationData.noMiddleName}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.middleName}
-                    onChange={(e) => setRegistrationData({...registrationData, middleName: e.target.value})}
-                  />
-                  <label className="inline-flex items-center mt-2 text-sm">
+              </div>
+              
+              {/* Security Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Security Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type={showRegPassword ? "text" : "password"} 
+                        name="regPassword" 
+                        minLength={10} 
+                        required 
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl pr-12 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                        placeholder="Create a strong password"
+                        value={registrationData.regPassword}
+                        onChange={(e) => {
+                          setRegistrationData({...registrationData, regPassword: e.target.value})
+                          updatePasswordRequirements(e.target.value)
+                        }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        className="absolute inset-y-0 right-0 px-3 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {showRegPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                    
+                    {/* Password Strength Indicator */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1 bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              Object.values(passwordRequirements).filter(Boolean).length === 0 ? 'w-0' :
+                              Object.values(passwordRequirements).filter(Boolean).length === 1 ? 'w-1/4 bg-red-500' :
+                              Object.values(passwordRequirements).filter(Boolean).length === 2 ? 'w-2/4 bg-orange-500' :
+                              Object.values(passwordRequirements).filter(Boolean).length === 3 ? 'w-3/4 bg-yellow-500' :
+                              Object.values(passwordRequirements).filter(Boolean).length === 4 ? 'w-4/5 bg-blue-500' :
+                              'w-full bg-green-500'
+                            }`}
+                          ></div>
+                        </div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-slate-400">
+                          {Object.values(passwordRequirements).filter(Boolean).length === 0 ? 'Very Weak' :
+                           Object.values(passwordRequirements).filter(Boolean).length === 1 ? 'Weak' :
+                           Object.values(passwordRequirements).filter(Boolean).length === 2 ? 'Fair' :
+                           Object.values(passwordRequirements).filter(Boolean).length === 3 ? 'Good' :
+                           Object.values(passwordRequirements).filter(Boolean).length === 4 ? 'Strong' :
+                           'Very Strong'}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className={`flex items-center text-xs transition-colors ${passwordRequirements.length ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                          {passwordRequirements.length ? <CheckCircle size={14} className="mr-2" /> : <XCircle size={14} className="mr-2" />}
+                          At least 10 characters
+                        </div>
+                        <div className={`flex items-center text-xs transition-colors ${passwordRequirements.upper ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                          {passwordRequirements.upper ? <CheckCircle size={14} className="mr-2" /> : <XCircle size={14} className="mr-2" />}
+                          Has uppercase letter
+                        </div>
+                        <div className={`flex items-center text-xs transition-colors ${passwordRequirements.lower ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                          {passwordRequirements.lower ? <CheckCircle size={14} className="mr-2" /> : <XCircle size={14} className="mr-2" />}
+                          Has lowercase letter
+                        </div>
+                        <div className={`flex items-center text-xs transition-colors ${passwordRequirements.number ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                          {passwordRequirements.number ? <CheckCircle size={14} className="mr-2" /> : <XCircle size={14} className="mr-2" />}
+                          Has a number
+                        </div>
+                        <div className={`flex items-center text-xs transition-colors ${passwordRequirements.special ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                          {passwordRequirements.special ? <CheckCircle size={14} className="mr-2" /> : <XCircle size={14} className="mr-2" />}
+                          Has a special character
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type={showConfirmPassword ? "text" : "password"} 
+                        name="confirmPassword" 
+                        minLength={10} 
+                        required 
+                        className={`w-full px-4 py-3 border rounded-xl pr-12 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 ${
+                          registrationData.confirmPassword && registrationData.regPassword !== registrationData.confirmPassword 
+                            ? 'border-red-500 dark:border-red-400' 
+                            : registrationData.confirmPassword && registrationData.regPassword === registrationData.confirmPassword
+                            ? 'border-green-500 dark:border-green-400'
+                            : 'border-gray-300 dark:border-slate-600'
+                        }`}
+                        placeholder="Confirm your password"
+                        value={registrationData.confirmPassword}
+                        onChange={(e) => setRegistrationData({...registrationData, confirmPassword: e.target.value})}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 px-3 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                    {registrationData.confirmPassword && (
+                      <div className="flex items-center text-xs">
+                        {registrationData.regPassword === registrationData.confirmPassword ? (
+                          <div className="flex items-center text-green-600 dark:text-green-400">
+                            <CheckCircle size={14} className="mr-2" />
+                            Passwords match
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-red-500 dark:text-red-400">
+                            <XCircle size={14} className="mr-2" />
+                            Passwords do not match
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms and Privacy Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Terms & Privacy</h3>
+                
+                <div className="space-y-3">
+                  <label className="flex items-start space-x-3">
                     <input 
                       type="checkbox" 
-                      className="mr-2"
-                      checked={registrationData.noMiddleName}
-                      onChange={(e) => setRegistrationData({...registrationData, noMiddleName: e.target.checked, middleName: e.target.checked ? '' : registrationData.middleName})}
-                    /> 
-                    No middle name
-                  </label>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Suffix</label>
-                  <input 
-                    type="text" 
-                    name="suffix" 
-                    placeholder="Jr., Sr., III (optional)" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.suffix}
-                    onChange={(e) => setRegistrationData({...registrationData, suffix: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Birthdate<span className="text-red-500">*</span></label>
-                  <input 
-                    type="date" 
-                    name="birthdate" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.birthdate}
-                    onChange={(e) => setRegistrationData({...registrationData, birthdate: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Email Address<span className="text-red-500">*</span></label>
-                  <input 
-                    type="email" 
-                    name="regEmail" 
-                    required 
-                    pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-                    title="Please enter a valid email address (e.g., user@example.com)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.regEmail}
-                    onChange={(e) => setRegistrationData({...registrationData, regEmail: e.target.value})}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Accepts all email providers (Gmail, Yahoo, Outlook, etc.)
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Mobile Number<span className="text-red-500">*</span></label>
-                  <input 
-                    type="tel" 
-                    name="mobile" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
-                    placeholder="09XXXXXXXXX"
-                    value={registrationData.mobile}
-                    onChange={(e) => setRegistrationData({...registrationData, mobile: e.target.value})}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm mb-1">Address<span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="address" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
-                    placeholder="Lot/Unit, Building, Subdivision"
-                    value={registrationData.address}
-                    onChange={(e) => setRegistrationData({...registrationData, address: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">House #<span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="houseNumber" 
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.houseNumber}
-                    onChange={(e) => setRegistrationData({...registrationData, houseNumber: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Street<span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="street" 
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.street}
-                    onChange={(e) => setRegistrationData({...registrationData, street: e.target.value})}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm mb-1">Barangay<span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="barangay" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    value={registrationData.barangay}
-                    onChange={(e) => setRegistrationData({...registrationData, barangay: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Password<span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <input 
-                      type={showRegPassword ? "text" : "password"} 
-                      name="regPassword" 
-                      minLength={10} 
+                      className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500" 
                       required 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10"
-                      value={registrationData.regPassword}
+                      checked={hasReadTerms && hasReadPrivacy}
                       onChange={(e) => {
-                        setRegistrationData({...registrationData, regPassword: e.target.value})
-                        updatePasswordRequirements(e.target.value)
+                        setHasReadTerms(e.target.checked)
+                        setHasReadPrivacy(e.target.checked)
                       }}
                     />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowRegPassword(!showRegPassword)}
-                      className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
-                    >
-                      {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                    <li className={`flex items-center ${passwordRequirements.length ? 'text-green-600' : ''}`}>
-                      {passwordRequirements.length ? <CheckCircle size={12} className="mr-2" /> : <XCircle size={12} className="mr-2" />}
-                      At least 10 characters
-                    </li>
-                    <li className={`flex items-center ${passwordRequirements.upper ? 'text-green-600' : ''}`}>
-                      {passwordRequirements.upper ? <CheckCircle size={12} className="mr-2" /> : <XCircle size={12} className="mr-2" />}
-                      Has uppercase letter
-                    </li>
-                    <li className={`flex items-center ${passwordRequirements.lower ? 'text-green-600' : ''}`}>
-                      {passwordRequirements.lower ? <CheckCircle size={12} className="mr-2" /> : <XCircle size={12} className="mr-2" />}
-                      Has lowercase letter
-                    </li>
-                    <li className={`flex items-center ${passwordRequirements.number ? 'text-green-600' : ''}`}>
-                      {passwordRequirements.number ? <CheckCircle size={12} className="mr-2" /> : <XCircle size={12} className="mr-2" />}
-                      Has a number
-                    </li>
-                    <li className={`flex items-center ${passwordRequirements.special ? 'text-green-600' : ''}`}>
-                      {passwordRequirements.special ? <CheckCircle size={12} className="mr-2" /> : <XCircle size={12} className="mr-2" />}
-                      Has a special character
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Confirm Password<span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <input 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      name="confirmPassword" 
-                      minLength={10} 
-                      required 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10"
-                      value={registrationData.confirmPassword}
-                      onChange={(e) => setRegistrationData({...registrationData, confirmPassword: e.target.value})}
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
-                    >
-                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {registrationData.confirmPassword && registrationData.regPassword !== registrationData.confirmPassword && (
-                    <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
-                  )}
+                    <span className="text-sm text-gray-700 dark:text-slate-300">
+                      I agree to the{' '}
+                      <button 
+                        type="button" 
+                        onClick={() => setShowTerms(true)} 
+                        className="text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        Terms of Use
+                      </button>
+                      {' '}and{' '}
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPrivacy(true)} 
+                        className="text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        Privacy Policy
+                      </button>
+                    </span>
+                  </label>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center text-sm">
-                  <label className="inline-flex items-center">
-                    <input 
-                      type="checkbox" 
-                      className="mr-2" 
-                      required 
-                      checked={hasReadTerms}
-                      onChange={(e) => setHasReadTerms(e.target.checked)}
-                      disabled={!hasReadTerms}
-                    />
-                    <span>I have read, understood, and agreed to the</span>
-                  </label>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowTerms(true)} 
-                    className="ml-2 text-secondary-600 hover:underline font-semibold"
-                  >
-                    Terms of Use
-                  </button>
-                  {!hasReadTerms && <span className="ml-2 text-red-500 text-xs">(Must read first)</span>}
-                </div>
-                <div className="flex items-center text-sm">
-                  <label className="inline-flex items-center">
-                    <input 
-                      type="checkbox" 
-                      className="mr-2" 
-                      required 
-                      checked={hasReadPrivacy}
-                      onChange={(e) => setHasReadPrivacy(e.target.checked)}
-                      disabled={!hasReadPrivacy}
-                    />
-                    <span>I have read, understood, and agreed to the</span>
-                  </label>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowPrivacy(true)} 
-                    className="ml-2 text-secondary-600 hover:underline font-semibold"
-                  >
-                    Data Privacy Policy
-                  </button>
-                  {!hasReadPrivacy && <span className="ml-2 text-red-500 text-xs">(Must read first)</span>}
-                </div>
-                <p className="text-xs text-gray-600">By clicking on the register button below, I hereby agree to both the Terms of Use and Data Privacy Policy</p>
-              </div>
-
-              <div className="flex flex-col space-y-3 pt-2">
-                {/* Google Registration Option */}
-                <div className="text-center">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">Or register with</span>
-                    </div>
+              {/* Alternative Registration Options */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-slate-600" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={!isGoogleOAuthConfigured}
-                    className="mt-3 w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Register with Google
-                  </button>
-                  {!isGoogleOAuthConfigured && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      Google OAuth is not configured. Please contact support.
-                    </p>
-                  )}
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-3 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">OR</span>
+                  </div>
                 </div>
-
-                {/* Regular Registration Buttons */}
-                <div className="flex justify-end space-x-3">
-                <button type="button" onClick={() => setShowRegister(false)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Cancel</button>
-                <button 
-                  type="submit" 
-                  disabled={submitting || !hasReadTerms || !hasReadPrivacy} 
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    submitting || !hasReadTerms || !hasReadPrivacy
-                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                      : 'bg-secondary-500 hover:bg-secondary-600 text-white'
-                  }`}
-                  title={
-                    !hasReadTerms || !hasReadPrivacy 
-                      ? 'Please read and accept Terms of Use and Data Privacy Policy first'
-                      : 'Click to register'
-                  }
+                
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={!isGoogleOAuthConfigured}
+                  className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {submitting ? 'Registering...' : 'Register'}
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Register with Google
                 </button>
+                  
+                  {!isGoogleOAuthConfigured && (
+                    <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                        ⚠️ Google OAuth is not configured. Please contact support or use the form above.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-              {(!hasReadTerms || !hasReadPrivacy) && (
-                <div className="text-center mt-2">
-                  <p className="text-red-500 text-sm">
-                    You must read and accept both Terms of Use and Data Privacy Policy to register
-                  </p>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowRegister(false)} 
+                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={submitting || !hasReadTerms || !hasReadPrivacy} 
+                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                      submitting || !hasReadTerms || !hasReadPrivacy
+                        ? 'bg-gray-300 dark:bg-slate-600 text-gray-500 dark:text-slate-400 cursor-not-allowed'
+                        : 'bg-primary-600 hover:bg-primary-700 text-white'
+                    }`}
+                  >
+                    {submitting ? (
+                      <div className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating Account...
+                      </div>
+                    ) : (
+                      'Create Account'
+                    )}
+                  </button>
                 </div>
-              )}
+                
+                {(!hasReadTerms || !hasReadPrivacy) && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-500 dark:text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <p className="text-red-700 dark:text-red-300 text-sm font-medium">
+                        You must read and accept both Terms of Use and Data Privacy Policy to register
+                      </p>
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
           </div>
@@ -1638,6 +1828,111 @@ export const GatewayLogin: React.FC = () => {
         </div>
       )}
 
+      {/* Terms of Service Modal */}
+      {showTerms && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">GoServePH Terms of Service</h3>
+              <button type="button" onClick={() => setShowTerms(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4 text-sm leading-6">
+              <p><strong>Welcome to GoServePH!</strong> These Terms of Service ("Terms") govern your use of the Government Services Management System and all related services provided by GoServePH.</p>
+              
+              <h4 className="font-semibold">1. Acceptance of Terms</h4>
+              <p>By accessing or using GoServePH, you agree to be bound by these Terms and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.</p>
+              
+              <h4 className="font-semibold">2. Description of Service</h4>
+              <p>GoServePH is a comprehensive government services management platform that provides:</p>
+              <ul className="list-disc pl-5">
+                <li>Student registration and scholarship management</li>
+                <li>Document processing and verification</li>
+                <li>Payment processing for government services</li>
+                <li>Administrative dashboard for government personnel</li>
+                <li>Secure data management and reporting</li>
+              </ul>
+              
+              <h4 className="font-semibold">3. User Accounts and Registration</h4>
+              <p><strong>Account Creation:</strong> To access certain features, you must create an account by providing accurate, current, and complete information.</p>
+              <p><strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+              <p><strong>Account Types:</strong> GoServePH supports different user types including students, government personnel, and administrators, each with specific access levels and permissions.</p>
+              
+              <h4 className="font-semibold">4. Acceptable Use Policy</h4>
+              <p>You agree to use GoServePH only for lawful purposes and in accordance with these Terms. You agree NOT to:</p>
+              <ul className="list-disc pl-5">
+                <li>Use the service for any illegal or unauthorized purpose</li>
+                <li>Attempt to gain unauthorized access to any part of the system</li>
+                <li>Interfere with or disrupt the service or servers</li>
+                <li>Submit false, misleading, or fraudulent information</li>
+                <li>Violate any applicable local, national, or international law</li>
+                <li>Harass, abuse, or harm other users</li>
+              </ul>
+              
+              <h4 className="font-semibold">5. Privacy and Data Protection</h4>
+              <p>Your privacy is important to us. Our collection and use of personal information is governed by our Data Privacy Policy, which is incorporated into these Terms by reference. By using GoServePH, you consent to the collection and use of information as described in our Privacy Policy.</p>
+              
+              <h4 className="font-semibold">6. Intellectual Property Rights</h4>
+              <p><strong>Our Rights:</strong> GoServePH and its original content, features, and functionality are owned by the Government of the Philippines and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.</p>
+              <p><strong>Your Content:</strong> You retain ownership of any content you submit to GoServePH, but grant us a license to use, modify, and display such content as necessary to provide our services.</p>
+              
+              <h4 className="font-semibold">7. Service Availability and Modifications</h4>
+              <p>We strive to maintain high service availability but cannot guarantee uninterrupted access. We reserve the right to:</p>
+              <ul className="list-disc pl-5">
+                <li>Modify or discontinue the service with reasonable notice</li>
+                <li>Perform maintenance that may temporarily affect service availability</li>
+                <li>Update features and functionality to improve user experience</li>
+              </ul>
+              
+              <h4 className="font-semibold">8. Payment Terms</h4>
+              <p>Certain services may require payment of fees. All fees are non-refundable unless otherwise specified. Payment processing is handled securely through authorized payment gateways.</p>
+              
+              <h4 className="font-semibold">9. Limitation of Liability</h4>
+              <p>To the maximum extent permitted by law, GoServePH shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses resulting from your use of the service.</p>
+              
+              <h4 className="font-semibold">10. Indemnification</h4>
+              <p>You agree to defend, indemnify, and hold harmless GoServePH and its officers, directors, employees, and agents from and against any claims, damages, obligations, losses, liabilities, costs, or debt arising from your use of the service or violation of these Terms.</p>
+              
+              <h4 className="font-semibold">11. Termination</h4>
+              <p>We may terminate or suspend your account and access to the service immediately, without prior notice, for any reason, including breach of these Terms. Upon termination, your right to use the service will cease immediately.</p>
+              
+              <h4 className="font-semibold">12. Governing Law and Dispute Resolution</h4>
+              <p>These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines. Any disputes arising from these Terms or your use of GoServePH shall be resolved through the appropriate Philippine courts.</p>
+              
+              <h4 className="font-semibold">13. Changes to Terms</h4>
+              <p>We reserve the right to modify these Terms at any time. We will notify users of any material changes through the service or via email. Your continued use of GoServePH after such modifications constitutes acceptance of the updated Terms.</p>
+              
+              <h4 className="font-semibold">14. Contact Information</h4>
+              <p>For questions about these Terms of Service, please contact us at:</p>
+              <ul className="list-disc pl-5">
+                <li>Email: helpdesk@gov.ph</li>
+                <li>Phone: 122</li>
+                <li>Address: Government Services Management System, Philippines</li>
+              </ul>
+              
+              <p><strong>Last Updated:</strong> {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
+            <div className="border-t px-6 py-3 flex justify-between items-center">
+              <label className="inline-flex items-center text-sm">
+                <input 
+                  type="checkbox" 
+                  className="mr-2" 
+                  checked={hasReadTerms}
+                  onChange={(e) => setHasReadTerms(e.target.checked)}
+                />
+                <span>I have read and understood the Terms of Service</span>
+              </label>
+              <button 
+                type="button" 
+                onClick={() => setShowTerms(false)} 
+                className="px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+              >
+                {hasReadTerms ? 'Accept & Close' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Login Success Splash Screen */}
       {showLoginSplash && (
         <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
@@ -1681,6 +1976,29 @@ export const GatewayLogin: React.FC = () => {
           }, 100)
         }}
       />
+
+      {/* Toast Notification */}
+      {isToastVisible && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+          <div className={`rounded-lg shadow-lg p-4 max-w-sm ${
+            toastType === 'error' ? 'bg-red-500 text-white' :
+            toastType === 'success' ? 'bg-green-500 text-white' :
+            'bg-blue-500 text-white'
+          }`}>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{toastMessage}</p>
+              <button
+                onClick={() => setIsToastVisible(false)}
+                className="ml-3 text-white/80 hover:text-white"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
