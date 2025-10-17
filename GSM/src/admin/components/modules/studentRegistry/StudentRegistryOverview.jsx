@@ -53,23 +53,25 @@ function StudentRegistryOverview() {
             ]);
 
             setStatistics(statsData.data);
-            setRecentStudents(studentsData.data || []);
+            // Handle paginated response - data is in studentsData.data.data
+            setRecentStudents(studentsData.data?.data || []);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
-            // Fallback to mock data
+            showError('Failed to load student statistics');
+            // Set empty statistics instead of mock data
             setStatistics({
-                total_students: 1250,
-                active_scholars: 340,
-                applicants: 89,
-                alumni: 156,
+                total_students: 0,
+                active_scholars: 0,
+                applicants: 0,
+                alumni: 0,
                 students_by_status: {
-                    enrolled: 1100,
-                    graduated: 120,
-                    dropped: 25,
-                    transferred: 5
+                    enrolled: 0,
+                    graduated: 0,
+                    dropped: 0,
+                    transferred: 0
                 },
-                recent_registrations: 23,
-                average_gpa: 3.2
+                recent_registrations: 0,
+                average_gpa: 0
             });
             setRecentStudents([]);
         } finally {
@@ -118,38 +120,40 @@ function StudentRegistryOverview() {
     }
 
     return (
-        <AnimatedContainer variant="page" className="space-y-6">
+        <AnimatedContainer variant="page" className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <Users className="w-8 h-8 text-orange-500" />
-                        Student Registry
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+                        <Users className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 flex-shrink-0" />
+                        <span className="truncate">Student Registry</span>
                     </h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
                         Manage and track all registered students in the system
                     </p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                     <button
                         onClick={fetchDashboardData}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base"
                     >
                         <RefreshCw className="w-4 h-4" />
-                        <span>Refresh</span>
+                        <span className="hidden sm:inline">Refresh</span>
+                        <span className="sm:hidden">Refresh</span>
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm sm:text-base"
                     >
                         <UserPlus className="w-4 h-4" />
-                        <span>Add Student</span>
+                        <span className="hidden sm:inline">Add Student</span>
+                        <span className="sm:hidden">Add Student</span>
                     </button>
                 </div>
             </div>
 
             {/* Statistics Cards */}
-            <AnimatedGrid columns={4} staggerDelay={0.1}>
+            <AnimatedGrid columns={2} sm:columns={4} staggerDelay={0.1}>
                 <StatsCard
                     title="Total Students"
                     value={statistics?.total_students?.toLocaleString() || 0}
@@ -183,7 +187,7 @@ function StudentRegistryOverview() {
             {/* Quick Filters and Search */}
             <AnimatedSection index={1}>
                 <AnimatedCard>
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:gap-4">
                     {/* Quick Filters */}
                     <div className="flex flex-wrap gap-2">
                         {[
@@ -195,13 +199,14 @@ function StudentRegistryOverview() {
                             <button
                                 key={filter.id}
                                 onClick={() => setQuickFilter(filter.id)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                                     quickFilter === filter.id
                                         ? 'bg-orange-500 text-white'
                                         : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                                 }`}
                             >
-                                {filter.label} ({filter.count})
+                                <span className="hidden sm:inline">{filter.label} ({filter.count})</span>
+                                <span className="sm:hidden">{filter.label}</span>
                             </button>
                         ))}
                     </div>
@@ -215,7 +220,7 @@ function StudentRegistryOverview() {
                                 placeholder="Search students by name, student number, or email..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white text-sm sm:text-base"
                             />
                         </div>
                     </div>
@@ -225,28 +230,28 @@ function StudentRegistryOverview() {
 
             {/* Charts Section */}
             <AnimatedSection index={2}>
-                <AnimatedGrid columns={2} staggerDelay={0.1}>
+                <AnimatedGrid columns={1} sm:columns={2} staggerDelay={0.1}>
                     {/* Students by Status Chart */}
                     <AnimatedCard index={0}>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Students by Status</h3>
-                        <PieChart className="w-5 h-5 text-gray-400" />
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Students by Status</h3>
+                        <PieChart className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                         {statistics?.students_by_status && Object.entries(statistics.students_by_status).map(([status, count]) => (
                             <div key={status} className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div className={`w-3 h-3 rounded-full ${
+                                <div className="flex items-center space-x-2 sm:space-x-3">
+                                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                                         status === 'enrolled' ? 'bg-green-500' :
                                         status === 'graduated' ? 'bg-blue-500' :
                                         status === 'dropped' ? 'bg-red-500' :
                                         'bg-yellow-500'
                                     }`} />
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                                    <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 capitalize truncate">
                                         {status}
                                     </span>
                                 </div>
-                                <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
                                     {count.toLocaleString()}
                                 </span>
                             </div>
@@ -256,44 +261,45 @@ function StudentRegistryOverview() {
 
                     {/* Recent Registrations */}
                     <AnimatedCard index={1}>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Registrations</h3>
-                        <Calendar className="w-5 h-5 text-gray-400" />
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Recent Registrations</h3>
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                         {recentStudents.length > 0 ? (
                             recentStudents.map((student, index) => (
-                                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                                            <UserCheck className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                <div key={index} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <UserCheck className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                                                 {student.first_name} {student.last_name}
                                             </p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                                                 {student.student_number}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getScholarshipStatusColor(student.scholarship_status)}`}>
-                                            {student.scholarship_status}
+                                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                                        <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getScholarshipStatusColor(student.scholarship_status)}`}>
+                                            <span className="hidden sm:inline">{student.scholarship_status}</span>
+                                            <span className="sm:hidden">{student.scholarship_status?.charAt(0)?.toUpperCase()}</span>
                                         </span>
                                         <button
                                             onClick={() => handleViewStudent(student.student_uuid)}
                                             className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                         >
-                                            <Eye className="w-4 h-4" />
+                                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                                         </button>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-8">
-                                <UserX className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-500 dark:text-gray-400">No recent registrations</p>
+                            <div className="text-center py-6 sm:py-8">
+                                <UserX className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No recent registrations</p>
                             </div>
                         )}
                     </div>
@@ -304,27 +310,27 @@ function StudentRegistryOverview() {
             {/* Quick Actions */}
             <AnimatedSection index={3}>
                 <AnimatedCard>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                        <Upload className="w-5 h-5 text-blue-600" />
-                        <div className="text-left">
-                            <p className="font-medium text-blue-900 dark:text-blue-100">Import Students</p>
-                            <p className="text-sm text-blue-700 dark:text-blue-300">Bulk import from Excel</p>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <button className="flex items-center space-x-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                        <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                        <div className="text-left min-w-0">
+                            <p className="font-medium text-blue-900 dark:text-blue-100 text-sm sm:text-base">Import Students</p>
+                            <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">Bulk import from Excel</p>
                         </div>
                     </button>
-                    <button className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                        <Download className="w-5 h-5 text-green-600" />
-                        <div className="text-left">
-                            <p className="font-medium text-green-900 dark:text-green-100">Export Data</p>
-                            <p className="text-sm text-green-700 dark:text-green-300">Download student records</p>
+                    <button className="flex items-center space-x-3 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+                        <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                        <div className="text-left min-w-0">
+                            <p className="font-medium text-green-900 dark:text-green-100 text-sm sm:text-base">Export Data</p>
+                            <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">Download student records</p>
                         </div>
                     </button>
-                    <button className="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
-                        <BarChart3 className="w-5 h-5 text-purple-600" />
-                        <div className="text-left">
-                            <p className="font-medium text-purple-900 dark:text-purple-100">Generate Reports</p>
-                            <p className="text-sm text-purple-700 dark:text-purple-300">Create analytics reports</p>
+                    <button className="flex items-center space-x-3 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+                        <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+                        <div className="text-left min-w-0">
+                            <p className="font-medium text-purple-900 dark:text-purple-100 text-sm sm:text-base">Generate Reports</p>
+                            <p className="text-xs sm:text-sm text-purple-700 dark:text-purple-300">Create analytics reports</p>
                         </div>
                     </button>
                 </div>

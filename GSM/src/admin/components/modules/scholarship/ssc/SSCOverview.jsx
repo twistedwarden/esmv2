@@ -295,29 +295,29 @@ function SSCOverview() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">SSC Dashboard</h1>
-        <p className="text-gray-600">Student Services Committee - Application Review & Decision Management</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">SSC Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-600">Student Services Committee - Application Review & Decision Management</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <div key={index} className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+            <div key={index} className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <p className={`text-sm ${getChangeColor(card.changeType)}`}>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">{card.title}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className={`text-xs sm:text-sm ${getChangeColor(card.changeType)}`}>
                     {card.change} from last month
                   </p>
                 </div>
-                <div className={`p-3 rounded-full ${getColorClasses(card.color)}`}>
-                  <Icon className="h-6 w-6" />
+                <div className={`p-2 sm:p-3 rounded-full ${getColorClasses(card.color)}`}>
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
               </div>
             </div>
@@ -326,72 +326,72 @@ function SSCOverview() {
       </div>
 
       {/* Stage Pipeline Visualization */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 mb-8">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mb-6 sm:mb-8">
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-4">
           SSC Review Pipeline
         </h3>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-2">
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {stats.documentVerification}
               </span>
             </div>
-            <div className="text-sm font-medium text-gray-900 dark:text-white">Document</div>
+            <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Document</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Verification</div>
           </div>
           
-          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-4 relative">
+          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-2 sm:mx-4 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-yellow-500 rounded-full"></div>
           </div>
           
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mb-2">
-              <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                 {stats.financialReview}
               </span>
             </div>
-            <div className="text-sm font-medium text-gray-900 dark:text-white">Financial</div>
+            <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Financial</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Review</div>
           </div>
           
-          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-4 relative">
+          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-2 sm:mx-4 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-purple-500 rounded-full"></div>
           </div>
           
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-2">
-              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {stats.academicReview}
               </span>
             </div>
-            <div className="text-sm font-medium text-gray-900 dark:text-white">Academic</div>
+            <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Academic</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Review</div>
           </div>
           
-          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-4 relative">
+          <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-2 sm:mx-4 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-green-500 rounded-full"></div>
           </div>
           
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-2">
-              <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-2">
+              <span className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
                 {stats.finalApproval}
               </span>
             </div>
-            <div className="text-sm font-medium text-gray-900 dark:text-white">Final</div>
+            <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Final</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Approval</div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Pending Applications */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Applications</h3>
-            <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-sm font-medium px-2.5 py-0.5 rounded-full">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Pending Applications</h3>
+            <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full">
               {stats.pendingReview} pending
             </span>
           </div>

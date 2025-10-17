@@ -298,7 +298,7 @@ class UserController extends Controller
                 'house_number' => 'nullable|string|max:50',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
-                'role' => 'required|in:admin,citizen,staff,ps_rep',
+                'role' => 'required|in:admin,citizen,staff,ps_rep,ssc,ssc_city_council,ssc_budget_dept,ssc_education_affairs',
                 'assigned_school_id' => 'nullable|integer',
             ]);
 
@@ -361,7 +361,7 @@ class UserController extends Controller
                 'house_number' => 'nullable|string|max:50',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
-                'role' => 'sometimes|in:admin,citizen,staff,ps_rep',
+                'role' => 'sometimes|in:admin,citizen,staff,ps_rep,ssc,ssc_city_council,ssc_budget_dept,ssc_education_affairs',
                 'is_active' => 'sometimes|boolean',
                 'status' => 'sometimes|string',
             ]);

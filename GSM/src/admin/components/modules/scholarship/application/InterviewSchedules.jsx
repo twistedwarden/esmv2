@@ -1524,14 +1524,14 @@ Please check your internet connection and try again. If the problem persists, co
   };
 
   return (
-    <div className="">
+    <div className="space-y-4 sm:space-y-6 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white truncate">
             Interview Schedules
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
             Manage and schedule scholarship interviews
             {pendingApplications.length > 0 && (
               <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 rounded-full text-xs font-medium">
@@ -1541,17 +1541,18 @@ Please check your internet connection and try again. If the problem persists, co
           </p>
           {eligibleApplications.length === 0 && (
             <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200">
                 <strong>Note:</strong> No applications with "Documents Reviewed" status found. 
                 Interviews can only be scheduled for applications that have passed document review.
               </p>
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-          <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 lg:mt-0">
+          <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-sm sm:text-base">
             <Download className="w-4 h-4 mr-2" />
-            Export
+            <span className="hidden sm:inline">Export</span>
+            <span className="sm:hidden">Export</span>
           </button>
           <button 
             onClick={() => {
@@ -1559,7 +1560,7 @@ Please check your internet connection and try again. If the problem persists, co
               setIsCreateModalOpen(true);
             }}
             disabled={eligibleApplications.length === 0}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
+            className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center text-sm sm:text-base ${
               eligibleApplications.length === 0 
                 ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
                 : 'bg-orange-500 hover:bg-orange-600 text-white'
@@ -1567,31 +1568,32 @@ Please check your internet connection and try again. If the problem persists, co
             title={eligibleApplications.length === 0 ? 'No eligible applications available' : 'Schedule new interview'}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Schedule Interview
+            <span className="hidden sm:inline">Schedule Interview</span>
+            <span className="sm:hidden">Schedule</span>
           </button>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           {/* Search and Basic Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <div className="relative flex-1 min-w-64">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+            <div className="relative flex-1 min-w-0">
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search schedules..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
               />
             </div>
 
             <select
               value={filters.status}
               onChange={(e) => updateFilter('status', e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -1603,63 +1605,72 @@ Please check your internet connection and try again. If the problem persists, co
           </div>
 
           {/* Controls */}
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
-                showAdvancedFilters 
-                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
-                  : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              <span>Advanced</span>
-            </button>
-            
-            <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'} rounded-l-lg transition-colors`}
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm sm:text-base ${
+                  showAdvancedFilters 
+                    ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
+                    : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                }`}
               >
-                <Grid3X3 className="w-4 h-4" />
+                <Filter className="w-4 h-4" />
+                <span className="hidden sm:inline">Advanced</span>
+                <span className="sm:hidden">Filter</span>
               </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'} transition-colors`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`p-2 ${viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'} rounded-r-lg transition-colors`}
-              >
-                <Calendar className="w-4 h-4" />
-              </button>
+              
+              <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'} rounded-l-lg transition-colors`}
+                  title="Grid view"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'} transition-colors`}
+                  title="List view"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('calendar')}
+                  className={`p-2 ${viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'} rounded-r-lg transition-colors`}
+                  title="Calendar view"
+                >
+                  <Calendar className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="date">Sort by Date</option>
-              <option value="student">Sort by Student</option>
-              <option value="interviewer">Sort by Interviewer</option>
-            </select>
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="student">Sort by Student</option>
+                <option value="interviewer">Sort by Interviewer</option>
+              </select>
 
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
-            >
-              {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-            </button>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+                title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+              >
+                {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Advanced Filters */}
         {showAdvancedFilters && (
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-slate-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Interviewer</label>
                 <select
@@ -1759,27 +1770,27 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* Schedules Grid/List */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-8 sm:py-12">
           <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Loading schedules...</p>
+            <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 animate-spin mx-auto mb-3 sm:mb-4" />
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Loading schedules...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
-          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-700 dark:text-red-300">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6 text-center">
+          <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500 mx-auto mb-3 sm:mb-4" />
+          <p className="text-sm sm:text-base text-red-700 dark:text-red-300">{error}</p>
         </div>
       ) : sortedSchedules.length === 0 ? (
-        <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-12 text-center">
-          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No schedules found</h3>
-          <p className="text-gray-600 dark:text-gray-400">Try adjusting your filters or create a new schedule.</p>
+        <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 sm:p-12 text-center">
+          <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-2">No schedules found</h3>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Try adjusting your filters or create a new schedule.</p>
         </div>
       ) : viewMode === 'calendar' ? (
         <CalendarView schedules={sortedSchedules} />
       ) : (
-        <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-3'}>
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6' : 'space-y-3'}>
           {sortedSchedules.map((schedule) => (
             <ScheduleCard key={schedule.id} schedule={schedule} />
           ))}
@@ -1788,9 +1799,9 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* Create Schedule Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule New Interview'}
@@ -2016,9 +2027,9 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* View Details Modal */}
       {isViewModalOpen && activeSchedule && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsViewModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interview Details</h3>
               <button 
@@ -2176,9 +2187,9 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* Join Meeting & Interview Output Modal */}
       {isJoinMeetingModalOpen && activeSchedule && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsJoinMeetingModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Join Meeting & Interview Output</h3>
               <button 
@@ -2518,9 +2529,9 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && activeSchedule && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsDeleteModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8">
+          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Interview Schedule</h3>
               <button 
@@ -2574,9 +2585,9 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* Bulk Schedule Modal */}
       {isBulkScheduleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsBulkScheduleModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bulk Schedule Interviews</h3>
               <button 

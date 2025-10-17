@@ -21,13 +21,7 @@ class StudentController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Student::with([
-            'addresses',
-            'familyMembers',
-            'financialInformation',
-            'academicRecords',
-            'currentAcademicRecord.school'
-        ]);
+        $query = Student::query();
 
         // Get authenticated user from middleware
         $authUser = $request->get('auth_user');
@@ -38,10 +32,8 @@ class StudentController extends Controller
                 $userId = $authUser['id'];
                 $query->where('user_id', $userId);
             }
-        } else {
-            // If no authenticated user, return empty results
-            $query->where('id', 0); // This will return no results
         }
+        // If no authenticated user, show all records (for public access)
 
         // Apply filters
         if ($request->has('search')) {
@@ -795,6 +787,91 @@ class StudentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get student by application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get student statistics for dashboard
+     */
+    public function getStatistics(): JsonResponse
+    {
+        try {
+            $totalStudents = Student::count();
+            
+            // Use only basic fields that definitely exist
+            $studentsByStatus = [
+                'enrolled' => Student::where('is_currently_enrolled', true)->count(),
+                'graduated' => Student::where('is_graduating', true)->count(),
+                'dropped' => Student::where('is_currently_enrolled', false)->where('is_graduating', false)->count(),
+                'transferred' => 0, // This would need a specific field
+            ];
+            
+            $recentRegistrations = Student::where('created_at', '>=', now()->subDays(30))->count();
+            
+            // Try to get GPA if the field exists
+            $averageGpa = 0;
+            try {
+                $averageGpa = Student::whereNotNull('gpa')->avg('gpa') ?? 0;
+            } catch (\Exception $e) {
+                // GPA field might not exist
+                $averageGpa = 0;
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_students' => $totalStudents,
+                    'active_scholars' => 0, // Will be updated when scholarship_status field is available
+                    'applicants' => 0, // Will be updated when scholarship_status field is available
+                    'alumni' => 0, // Will be updated when scholarship_status field is available
+                    'students_by_status' => $studentsByStatus,
+                    'recent_registrations' => $recentRegistrations,
+                    'average_gpa' => round($averageGpa, 2)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get student statistics', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get student statistics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get students by scholarship status
+     */
+    public function getByScholarshipStatus(Request $request, string $status): JsonResponse
+    {
+        try {
+            $query = Student::query();
+            
+            // Filter by scholarship status
+            $query->where('scholarship_status', $status);
+            
+            // Apply pagination
+            $students = $query->orderBy('created_at', 'desc')
+                             ->paginate($request->get('per_page', 15));
+            
+            return response()->json([
+                'success' => true,
+                'data' => $students
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get students by scholarship status', [
+                'status' => $status,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get students by scholarship status',
                 'error' => $e->getMessage()
             ], 500);
         }

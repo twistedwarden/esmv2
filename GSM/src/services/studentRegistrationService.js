@@ -2,7 +2,7 @@ import { scholarshipApiService } from './scholarshipApiService';
 
 class StudentRegistrationService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
+    this.baseURL = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
   }
 
   /**

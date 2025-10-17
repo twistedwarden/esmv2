@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
+const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
 
 class ArchivedDataService {
   constructor() {

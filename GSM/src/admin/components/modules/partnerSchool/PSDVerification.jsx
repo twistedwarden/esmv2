@@ -116,7 +116,10 @@ function PSDVerification() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Avg. Score</p>
                                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {Math.round(schools.reduce((sum, s) => sum + s.verification_score, 0) / schools.length)}
+                                    {schools.length > 0 
+                                        ? Math.round(schools.reduce((sum, s) => sum + (s.verification_score || 0), 0) / schools.length)
+                                        : 0
+                                    }
                                 </p>
                             </div>
                         </div>
@@ -197,27 +200,27 @@ function PSDVerification() {
                                                 </div>
                                                 <div className="ml-4">
                                                     <div className="text-sm font-medium text-gray-900 dark:text-white">{school.school_name}</div>
-                                                    <div className="text-sm text-gray-500 dark:text-slate-400">Last inspection: {new Date(school.last_inspection).toLocaleDateString()}</div>
+                                                    <div className="text-sm text-gray-500 dark:text-slate-400">Last inspection: {school.last_inspection ? new Date(school.last_inspection).toLocaleDateString() : 'N/A'}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900 dark:text-white">{school.accreditation_type}</div>
                                             <div className="text-sm text-gray-500 dark:text-slate-400">
-                                                Since: {new Date(school.accreditation_date).toLocaleDateString()}
+                                                Since: {school.accreditation_date ? new Date(school.accreditation_date).toLocaleDateString() : 'N/A'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className={`text-sm font-bold ${getScoreColor(school.verification_score)}`}>
-                                                {school.verification_score}%
+                                            <div className={`text-sm font-bold ${getScoreColor(school.verification_score || 0)}`}>
+                                                {school.verification_score || 0}%
                                             </div>
                                             <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-1">
                                                 <div 
                                                     className={`h-2 rounded-full ${
-                                                        school.verification_score >= 90 ? 'bg-green-500' : 
-                                                        school.verification_score >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                                                        (school.verification_score || 0) >= 90 ? 'bg-green-500' : 
+                                                        (school.verification_score || 0) >= 70 ? 'bg-yellow-500' : 'bg-red-500'
                                                     }`}
-                                                    style={{ width: `${school.verification_score}%` }}
+                                                    style={{ width: `${school.verification_score || 0}%` }}
                                                 ></div>
                                             </div>
                                         </td>
@@ -231,10 +234,10 @@ function PSDVerification() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900 dark:text-white">
-                                                {new Date(school.expiry_date).toLocaleDateString()}
+                                                {school.expiry_date ? new Date(school.expiry_date).toLocaleDateString() : 'N/A'}
                                             </div>
                                             <div className="text-sm text-gray-500 dark:text-slate-400">
-                                                {new Date(school.expiry_date) > new Date() ? 'Valid' : 'Expired'}
+                                                {school.expiry_date ? (new Date(school.expiry_date) > new Date() ? 'Valid' : 'Expired') : 'N/A'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -348,20 +351,20 @@ function PSDVerification() {
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
-                                        <div className={`text-2xl font-bold ${getScoreColor(selectedSchool.verification_score)}`}>
-                                            {selectedSchool.verification_score}%
+                                        <div className={`text-2xl font-bold ${getScoreColor(selectedSchool.verification_score || 0)}`}>
+                                            {selectedSchool.verification_score || 0}%
                                         </div>
                                         <div className="text-sm text-gray-600 dark:text-slate-400">Verification Score</div>
                                     </div>
                                     <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
                                         <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                                            {new Date(selectedSchool.expiry_date).toLocaleDateString()}
+                                            {selectedSchool.expiry_date ? new Date(selectedSchool.expiry_date).toLocaleDateString() : 'N/A'}
                                         </div>
                                         <div className="text-sm text-gray-600 dark:text-slate-400">Expiry Date</div>
                                     </div>
                                     <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                                         <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                            {new Date(selectedSchool.next_inspection).toLocaleDateString()}
+                                            {selectedSchool.next_inspection ? new Date(selectedSchool.next_inspection).toLocaleDateString() : 'N/A'}
                                         </div>
                                         <div className="text-sm text-gray-600 dark:text-slate-400">Next Inspection</div>
                                     </div>
@@ -371,7 +374,7 @@ function PSDVerification() {
                                     <div>
                                         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Documents</h4>
                                         <div className="space-y-2">
-                                            {selectedSchool.documents.map((doc, index) => (
+                                            {selectedSchool.documents && selectedSchool.documents.length > 0 ? selectedSchool.documents.map((doc, index) => (
                                                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-slate-700 rounded-lg">
                                                     <span className="text-sm text-gray-900 dark:text-white">{doc.name}</span>
                                                     <div className="flex items-center space-x-2">
@@ -383,25 +386,29 @@ function PSDVerification() {
                                                             {doc.status}
                                                         </span>
                                                         <span className="text-xs text-gray-500 dark:text-slate-400">
-                                                            {new Date(doc.expiry).toLocaleDateString()}
+                                                            {doc.expiry ? new Date(doc.expiry).toLocaleDateString() : 'N/A'}
                                                         </span>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div className="text-sm text-gray-500 dark:text-slate-400">No documents available</div>
+                                            )}
                                         </div>
                                     </div>
                                     
                                     <div>
                                         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Requirements</h4>
                                         <div className="space-y-2">
-                                            {selectedSchool.requirements.map((req, index) => (
+                                            {selectedSchool.requirements && selectedSchool.requirements.length > 0 ? selectedSchool.requirements.map((req, index) => (
                                                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-slate-700 rounded-lg">
                                                     <span className="text-sm text-gray-900 dark:text-white">{req.name}</span>
                                                     <span className={`text-xs px-2 py-1 rounded-full ${getComplianceColor(req.status)}`}>
                                                         {req.status}
                                                     </span>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div className="text-sm text-gray-500 dark:text-slate-400">No requirements available</div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

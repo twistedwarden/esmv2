@@ -19,7 +19,7 @@ class UserManagementController extends Controller
     public function __construct(AuthServiceClient $authService)
     {
         $this->authService = $authService;
-        $this->authServiceUrl = config('services.auth_service.url', 'http://localhost:8001');
+        $this->authServiceUrl = config('services.auth_service.url', 'http://localhost:8000');
     }
 
     /**
@@ -63,6 +63,7 @@ class UserManagementController extends Controller
                     'staff' => [],
                     'admins' => [],
                     'ps_reps' => [],
+                    'ssc_members' => [],
                 ];
                 
                 foreach ($users as $user) {
@@ -80,6 +81,11 @@ class UserManagementController extends Controller
                         case 'ps_rep':
                             $categorizedUsers['ps_reps'][] = $user;
                             break;
+                        case 'ssc_city_council':
+                        case 'ssc_budget_dept':
+                        case 'ssc_education_affairs':
+                            $categorizedUsers['ssc_members'][] = $user;
+                            break;
                         default:
                             Log::warning('Unknown user role', ['role' => $user['role'], 'user_id' => $user['id']]);
                             break;
@@ -90,7 +96,8 @@ class UserManagementController extends Controller
                     'citizens_count' => count($categorizedUsers['citizens']),
                     'staff_count' => count($categorizedUsers['staff']),
                     'admins_count' => count($categorizedUsers['admins']),
-                    'ps_reps_count' => count($categorizedUsers['ps_reps'])
+                    'ps_reps_count' => count($categorizedUsers['ps_reps']),
+                    'ssc_members_count' => count($categorizedUsers['ssc_members'])
                 ]);
                 
                 return response()->json([
@@ -212,8 +219,8 @@ class UserManagementController extends Controller
     {
         try {
             $validated = $request->validate([
-                'citizen_id' => 'required|string|unique:users,citizen_id',
-                'email' => 'required|email|unique:users,email',
+                'citizen_id' => 'required|string',
+                'email' => 'required|email',
                 'password' => 'required|string|min:8',
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
@@ -225,7 +232,7 @@ class UserManagementController extends Controller
                 'house_number' => 'nullable|string|max:50',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
-                'role' => 'required|in:admin,citizen,staff,ps_rep',
+                'role' => 'required|in:admin,citizen,staff,ps_rep,ssc,ssc_city_council,ssc_budget_dept,ssc_education_affairs',
                 // Staff-specific fields
                 'system_role' => 'required_if:role,staff|in:interviewer,reviewer,administrator,coordinator',
                 'department' => 'nullable|string|max:255',
@@ -246,10 +253,25 @@ class UserManagementController extends Controller
             }
 
             // Create user in auth service
+            \Log::info('Creating user in auth service', [
+                'url' => "{$this->authServiceUrl}/api/users",
+                'data' => $validated
+            ]);
+            
             $response = Http::timeout(10)
                 ->post("{$this->authServiceUrl}/api/users", $validated);
 
+            \Log::info('Auth service response', [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body' => $response->body()
+            ]);
+
             if (!$response->successful()) {
+                \Log::error('Auth service failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to create user in auth service',
@@ -260,7 +282,7 @@ class UserManagementController extends Controller
             $user = $response->json('data');
 
             // Log user creation
-            AuditLogService::logUserCreation($user);
+            // AuditLogService::logUserCreation($user);
 
             // If role is staff, create staff record
             if ($validated['role'] === 'staff' && isset($user['id'])) {
@@ -273,6 +295,7 @@ class UserManagementController extends Controller
                     'is_active' => true,
                 ]);
             }
+
 
             return response()->json([
                 'success' => true,

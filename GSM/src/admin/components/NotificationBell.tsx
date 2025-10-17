@@ -149,14 +149,14 @@ const NotificationBell: React.FC = () => {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+        className="relative p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
       >
-        <Bell className="w-6 h-6" />
+        <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
         {unreadCount > 0 && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+            className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </motion.div>
@@ -171,21 +171,22 @@ const NotificationBell: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+            className="absolute right-0 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-w-[calc(100vw-2rem)]"
           >
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                   Notifications
                 </h3>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllAsRead}
                       className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
-                      Mark all read
+                      <span className="hidden sm:inline">Mark all read</span>
+                      <span className="sm:hidden">Read</span>
                     </button>
                   )}
                   <button
@@ -199,11 +200,11 @@ const NotificationBell: React.FC = () => {
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-80 sm:max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No notifications yet</p>
+                <div className="p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
+                  <Bell className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm sm:text-base">No notifications yet</p>
                 </div>
               ) : (
                 notifications.map((notification) => (
@@ -211,11 +212,11 @@ const NotificationBell: React.FC = () => {
                     key={notification.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`p-4 border-l-4 ${getPriorityColor(notification.priority)} ${
+                    className={`p-3 sm:p-4 border-l-4 ${getPriorityColor(notification.priority)} ${
                       !notification.read ? 'bg-opacity-100' : 'bg-opacity-50'
                     } hover:bg-opacity-75 transition-all duration-200`}
                   >
-                    <div className="flex items-start space-x-3">
+                    <div className="flex items-start space-x-2 sm:space-x-3">
                       <div className="flex-shrink-0 mt-0.5">
                         {getNotificationIcon(notification.type, notification.priority)}
                       </div>
@@ -254,10 +255,10 @@ const NotificationBell: React.FC = () => {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-full text-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="w-full text-center text-xs sm:text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   View all notifications
                 </button>

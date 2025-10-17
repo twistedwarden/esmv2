@@ -314,9 +314,9 @@ function EndorseToSSC() {
     <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group ${
       viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
     }`}>
-      <div className={viewMode === 'list' ? 'p-4' : 'p-6'}>
+      <div className={viewMode === 'list' ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}>
         {/* Header */}
-        <div className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`}>
+        <div className={`flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`}>
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className="relative flex-shrink-0">
               <input
@@ -326,21 +326,21 @@ function EndorseToSSC() {
                 className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
               />
             </div>
-            <div className={`flex-shrink-0 ${viewMode === 'list' ? 'h-8 w-8' : 'h-12 w-12'}`}>
-              <div className={`${viewMode === 'list' ? 'h-8 w-8' : 'h-12 w-12'} rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center`}>
-                <Award className={`${viewMode === 'list' ? 'h-4 w-4' : 'h-6 w-6'} text-orange-600 dark:text-orange-400`} />
+            <div className={`flex-shrink-0 ${viewMode === 'list' ? 'h-8 w-8' : 'h-10 w-10 sm:h-12 sm:w-12'}`}>
+              <div className={`${viewMode === 'list' ? 'h-8 w-8' : 'h-10 w-10 sm:h-12 sm:w-12'} rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center`}>
+                <Award className={`${viewMode === 'list' ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} text-orange-600 dark:text-orange-400`} />
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className={`${viewMode === 'list' ? 'text-base font-semibold' : 'text-lg font-semibold'} text-gray-900 dark:text-white truncate`}>
+              <h3 className={`${viewMode === 'list' ? 'text-sm sm:text-base font-semibold' : 'text-base sm:text-lg font-semibold'} text-gray-900 dark:text-white truncate`}>
                 {application.name}
               </h3>
-              <p className={`${viewMode === 'list' ? 'text-xs' : 'text-sm'} text-gray-500 dark:text-gray-400 truncate`}>
+              <p className={`${viewMode === 'list' ? 'text-xs' : 'text-xs sm:text-sm'} text-gray-500 dark:text-gray-400 truncate`}>
                 {application.studentId}
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2 flex-shrink-0">
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getEndorsementStatusColor(application.endorsementStatus)}`}>
               {getEndorsementStatusIcon(application.endorsementStatus)}
               <span className="ml-1 capitalize">
@@ -366,7 +366,7 @@ function EndorseToSSC() {
           </div>
 
           {/* Academic Info */}
-          <div className={`grid gap-3 ${
+          <div className={`grid gap-2 sm:gap-3 ${
             viewMode === 'list' 
               ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' 
               : 'grid-cols-1 sm:grid-cols-2'
@@ -565,25 +565,28 @@ function EndorseToSSC() {
         </div>
 
         {/* Actions */}
-        <div className={`${viewMode === 'list' ? 'mt-3 pt-3' : 'mt-6 pt-4'} border-t border-gray-200 dark:border-slate-700`}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className={`${viewMode === 'list' ? 'mt-3 pt-3' : 'mt-4 sm:mt-6 pt-3 sm:pt-4'} border-t border-gray-200 dark:border-slate-700`}>
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
               <button
                 onClick={() => openEndorseModal(application)}
-                className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} ${
+                className={`flex items-center justify-center space-x-2 ${viewMode === 'list' ? 'px-3 sm:px-4 py-2 text-sm font-semibold' : 'px-3 py-2 text-sm'} ${
                   application.endorsementStatus === 'conditional'
                     ? 'bg-yellow-500 hover:bg-yellow-600'
                     : 'bg-orange-500 hover:bg-orange-600'
                 } text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
               >
                 <Send className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
-                <span>
+                <span className="hidden sm:inline">
                   Endorse to SSC
+                </span>
+                <span className="sm:hidden">
+                  Endorse
                 </span>
               </button>
               <button
                 onClick={() => openRejectModal(application)}
-                className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
+                className={`flex items-center justify-center space-x-2 ${viewMode === 'list' ? 'px-3 sm:px-4 py-2 text-sm font-semibold' : 'px-3 py-2 text-sm'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
               >
                 <XCircle className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
                 <span>
@@ -591,10 +594,10 @@ function EndorseToSSC() {
                 </span>
               </button>
             </div>
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center justify-center space-x-2 flex-shrink-0">
               <button 
                 onClick={() => openViewModal(application)}
-                className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                className={`${viewMode === 'list' ? 'p-2' : 'p-2'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
                 title="View Details"
               >
                 <Eye className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
@@ -862,51 +865,53 @@ function EndorseToSSC() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Endorse to SSC
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
             Forward applications with completed interviews to Scholarship Selection Committee
           </p>
         </div>
-        <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-          <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+          <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-sm sm:text-base">
             <Download className="w-4 h-4 mr-2" />
-            Export
+            <span className="hidden sm:inline">Export</span>
+            <span className="sm:hidden">Export</span>
           </button>
           <button 
             onClick={handleBulkEndorseToSSC}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base"
           >
-            Bulk Endorse
+            <span className="hidden sm:inline">Bulk Endorse</span>
+            <span className="sm:hidden">Bulk Endorse</span>
           </button>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           {/* Search and Basic Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <div className="relative flex-1 min-w-64">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+            <div className="relative flex-1 w-full sm:min-w-64">
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search applications..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
               />
             </div>
 
             <select
               value={filters.endorsementStatus}
               onChange={(e) => updateFilter('endorsementStatus', e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
             >
               <option value="all">All Status</option>
               <option value="ready">Ready for SSC Endorsement</option>
@@ -918,17 +923,18 @@ function EndorseToSSC() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
+              className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm sm:text-base ${
                 showAdvancedFilters 
                   ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
                   : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
               }`}
             >
               <Filter className="w-4 h-4" />
-              <span>Advanced</span>
+              <span className="hidden sm:inline">Advanced</span>
+              <span className="sm:hidden">Filter</span>
             </button>
             
             <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
@@ -949,7 +955,7 @@ function EndorseToSSC() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
             >
               <option value="date">Sort by Date</option>
               <option value="name">Sort by Name</option>
@@ -968,8 +974,8 @@ function EndorseToSSC() {
 
         {/* Advanced Filters */}
         {showAdvancedFilters && (
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-slate-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                 <select
@@ -1065,25 +1071,25 @@ function EndorseToSSC() {
 
       {/* Applications Grid/List */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-8 sm:py-12">
           <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Loading applications...</p>
+            <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 animate-spin mx-auto mb-4" />
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Loading applications...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
-          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-700 dark:text-red-300">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6 text-center">
+          <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500 mx-auto mb-4" />
+          <p className="text-sm sm:text-base text-red-700 dark:text-red-300">{error}</p>
         </div>
       ) : sortedApplications.length === 0 ? (
-        <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-12 text-center">
-          <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No applications found</h3>
-          <p className="text-gray-600 dark:text-gray-400">Try adjusting your filters or search terms.</p>
+        <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 sm:p-12 text-center">
+          <Award className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-2">No applications found</h3>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Try adjusting your filters or search terms.</p>
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-3'}>
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6' : 'space-y-3'}>
           {sortedApplications.map((application) => (
             <ApplicationCard key={application.id} application={application} />
           ))}
@@ -1092,12 +1098,12 @@ function EndorseToSSC() {
 
       {/* Endorse Modal */}
       {isEndorseModalOpen && activeApplication && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsEndorseModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-6xl max-h-[90vh] bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col">
+          <div className="relative z-10 w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col my-4 sm:my-8">
             {/* Modal Header - Fixed */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 {activeApplication.endorsementStatus === 'conditional'
                   ? 'Suggest to SSC'
                   : 'Endorse to SSC'
@@ -1112,7 +1118,7 @@ function EndorseToSSC() {
             </div>
             
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6" style={{ minHeight: 0 }}>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ minHeight: 0 }}>
               <div className="space-y-4">
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                 <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Application Details</h4>
@@ -1340,10 +1346,10 @@ function EndorseToSSC() {
 
       {/* View Details Modal */}
       {isViewModalOpen && activeApplication && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col my-4 sm:my-8">
             {/* Modal Header - Fixed */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   Application Details
@@ -1729,11 +1735,11 @@ function EndorseToSSC() {
 
       {/* Bulk Endorse Modal */}
       {showBulkEndorseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowBulkEndorseModal(false)} />
-          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
+          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl my-4 sm:my-8">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Bulk Endorse to SSC
               </h3>
@@ -1810,11 +1816,11 @@ function EndorseToSSC() {
 
       {/* Reject Modal */}
       {isRejectModalOpen && activeApplication && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsRejectModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
+          <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl my-4 sm:my-8">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Reject Application
               </h3>

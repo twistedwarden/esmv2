@@ -5,14 +5,17 @@ import UserActionModal from './UserActionModal';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import { LoadingUsers } from '../../ui/LoadingSpinner';
 
-const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
+const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
 
 const UserManagement = () => {
     const [users, setUsers] = useState({
         citizens: [],
         staff: [],
         admins: [],
-        ps_reps: []
+        ps_reps: [],
+        ssc_city_council: [],
+        ssc_budget_dept: [],
+        ssc_education_affairs: []
     });
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedRole, setSelectedRole] = useState('all');
@@ -118,7 +121,10 @@ const UserManagement = () => {
                         citizens: userData.filter(user => user.role === 'citizen'),
                         staff: userData.filter(user => user.role === 'staff'),
                         admins: userData.filter(user => user.role === 'admin'),
-                        ps_reps: userData.filter(user => user.role === 'ps_rep')
+                        ps_reps: userData.filter(user => user.role === 'ps_rep'),
+                        ssc_city_council: userData.filter(user => user.role === 'ssc_city_council'),
+                        ssc_budget_dept: userData.filter(user => user.role === 'ssc_budget_dept'),
+                        ssc_education_affairs: userData.filter(user => user.role === 'ssc_education_affairs')
                     };
                 } else {
                     // Data is already categorized, use as is
@@ -126,7 +132,10 @@ const UserManagement = () => {
                         citizens: [],
                         staff: [],
                         admins: [],
-                        ps_reps: []
+                        ps_reps: [],
+                        ssc_city_council: [],
+                        ssc_budget_dept: [],
+                        ssc_education_affairs: []
                     };
                 }
                 
@@ -138,7 +147,10 @@ const UserManagement = () => {
                     citizens: [],
                     staff: [],
                     admins: [],
-                    ps_reps: []
+                    ps_reps: [],
+                    ssc_city_council: [],
+                    ssc_budget_dept: [],
+                    ssc_education_affairs: []
                 });
             }
         } catch (error) {
@@ -147,7 +159,10 @@ const UserManagement = () => {
                 citizens: [],
                 staff: [],
                 admins: [],
-                ps_reps: []
+                ps_reps: [],
+                ssc_city_council: [],
+                ssc_budget_dept: [],
+                ssc_education_affairs: []
             });
         } finally {
             setLoading(false);
@@ -198,7 +213,10 @@ const UserManagement = () => {
                 ...(users.citizens || []).map(u => ({ ...u, roleType: 'Citizen' })),
                 ...(users.staff || []).map(u => ({ ...u, roleType: 'Staff' })),
                 ...(users.admins || []).map(u => ({ ...u, roleType: 'Admin' })),
-                ...(users.ps_reps || []).map(u => ({ ...u, roleType: 'Partner School Rep' }))
+                ...(users.ps_reps || []).map(u => ({ ...u, roleType: 'Partner School Rep' })),
+                ...(users.ssc_city_council || []).map(u => ({ ...u, roleType: 'SSC - City Council' })),
+                ...(users.ssc_budget_dept || []).map(u => ({ ...u, roleType: 'SSC - Budget Department' })),
+                ...(users.ssc_education_affairs || []).map(u => ({ ...u, roleType: 'SSC - Education Affairs' }))
             ];
         } else if (selectedRole === 'citizen') {
             allUsers = (users.citizens || []).map(u => ({ ...u, roleType: 'Citizen' }));
@@ -208,6 +226,12 @@ const UserManagement = () => {
             allUsers = (users.admins || []).map(u => ({ ...u, roleType: 'Admin' }));
         } else if (selectedRole === 'ps_rep') {
             allUsers = (users.ps_reps || []).map(u => ({ ...u, roleType: 'Partner School Rep' }));
+        } else if (selectedRole === 'ssc_city_council') {
+            allUsers = (users.ssc_city_council || []).map(u => ({ ...u, roleType: 'SSC - City Council' }));
+        } else if (selectedRole === 'ssc_budget_dept') {
+            allUsers = (users.ssc_budget_dept || []).map(u => ({ ...u, roleType: 'SSC - Budget Department' }));
+        } else if (selectedRole === 'ssc_education_affairs') {
+            allUsers = (users.ssc_education_affairs || []).map(u => ({ ...u, roleType: 'SSC - Education Affairs' }));
         }
 
         if (searchTerm) {
@@ -233,17 +257,38 @@ const UserManagement = () => {
         try {
             // Sanitize and prepare form data
             const { password_confirmation, ...userData } = formData;
+            // Clean up form data - remove empty strings and convert to appropriate types
             const sanitizedData = {
                 ...userData,
                 email: userData.email.trim().toLowerCase(),
                 first_name: userData.first_name.trim(),
                 last_name: userData.last_name.trim(),
-                middle_name: userData.middle_name?.trim() || '',
-                mobile: userData.mobile?.trim() || '',
-                department: userData.department?.trim() || '',
-                position: userData.position?.trim() || '',
-                assigned_school_id: userData.assigned_school_id || null
+                middle_name: userData.middle_name?.trim() || null,
+                mobile: userData.mobile?.trim() || null,
+                department: userData.department?.trim() || null,
+                position: userData.position?.trim() || null,
+                system_role: userData.system_role || null,
+                assigned_school_id: userData.assigned_school_id && userData.assigned_school_id !== '' ? parseInt(userData.assigned_school_id) : null
             };
+            
+            // Handle system_role for staff users
+            if (sanitizedData.role === 'staff') {
+                if (!sanitizedData.system_role) {
+                    sanitizedData.system_role = 'coordinator'; // Default value
+                }
+            } else {
+                // Remove system_role for non-staff users
+                delete sanitizedData.system_role;
+            }
+
+            // Remove null values to avoid validation issues
+            Object.keys(sanitizedData).forEach(key => {
+                if (sanitizedData[key] === null || sanitizedData[key] === '') {
+                    delete sanitizedData[key];
+                }
+            });
+            
+            console.log('Sending user data:', sanitizedData);
             
             const response = await axios.post(`${SCHOLARSHIP_API}/users`, sanitizedData);
             
@@ -668,6 +713,9 @@ const UserManagement = () => {
             case 'staff': return 'bg-blue-100 text-blue-800';
             case 'ps_rep': return 'bg-purple-100 text-purple-800';
             case 'citizen': return 'bg-green-100 text-green-800';
+            case 'ssc_city_council': return 'bg-orange-100 text-orange-800';
+            case 'ssc_budget_dept': return 'bg-yellow-100 text-yellow-800';
+            case 'ssc_education_affairs': return 'bg-indigo-100 text-indigo-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -676,7 +724,10 @@ const UserManagement = () => {
         return (users.citizens?.length || 0) + 
                (users.staff?.length || 0) + 
                (users.admins?.length || 0) + 
-               (users.ps_reps?.length || 0);
+               (users.ps_reps?.length || 0) +
+               (users.ssc_city_council?.length || 0) +
+               (users.ssc_budget_dept?.length || 0) +
+               (users.ssc_education_affairs?.length || 0);
     };
 
     if (loading) {
@@ -701,54 +752,84 @@ const UserManagement = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 sm:gap-6">
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Total Users</p>
-                            <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{getTotalUsers()}</p>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Total Users</p>
+                            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{getTotalUsers()}</p>
                         </div>
-                        <Users className="text-blue-500 flex-shrink-0" size={24} />
+                        <Users className="text-blue-500 flex-shrink-0" size={28} />
                     </div>
                 </div>
                 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Citizens</p>
-                            <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{users.citizens?.length || 0}</p>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Citizens</p>
+                            <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{users.citizens?.length || 0}</p>
                         </div>
-                        <UserCheck className="text-green-500 flex-shrink-0" size={24} />
+                        <UserCheck className="text-green-500 flex-shrink-0" size={28} />
                     </div>
                 </div>
                 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Staff Members</p>
-                            <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{users.staff?.length || 0}</p>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Staff Members</p>
+                            <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{users.staff?.length || 0}</p>
                         </div>
-                        <Shield className="text-blue-500 flex-shrink-0" size={24} />
+                        <Shield className="text-blue-500 flex-shrink-0" size={28} />
                     </div>
                 </div>
                 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Administrators</p>
-                            <p className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{users.admins?.length || 0}</p>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Administrators</p>
+                            <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{users.admins?.length || 0}</p>
                         </div>
-                        <Shield className="text-red-500 flex-shrink-0" size={24} />
+                        <Shield className="text-red-500 flex-shrink-0" size={28} />
                     </div>
                 </div>
                 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Partner School Reps</p>
-                            <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{users.ps_reps?.length || 0}</p>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Partner School Reps</p>
+                            <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{users.ps_reps?.length || 0}</p>
                         </div>
-                        <Shield className="text-purple-500 flex-shrink-0" size={24} />
+                        <Shield className="text-purple-500 flex-shrink-0" size={28} />
+                    </div>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">SSC - City Council</p>
+                            <p className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{users.ssc_city_council?.length || 0}</p>
+                        </div>
+                        <Shield className="text-orange-500 flex-shrink-0" size={28} />
+                    </div>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">SSC - Budget Dept</p>
+                            <p className="text-xl sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{users.ssc_budget_dept?.length || 0}</p>
+                        </div>
+                        <Shield className="text-yellow-500 flex-shrink-0" size={28} />
+                    </div>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">SSC - Education</p>
+                            <p className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{users.ssc_education_affairs?.length || 0}</p>
+                        </div>
+                        <Shield className="text-indigo-500 flex-shrink-0" size={28} />
                     </div>
                 </div>
             </div>
@@ -779,6 +860,9 @@ const UserManagement = () => {
                             <option value="staff">Staff</option>
                             <option value="admin">Administrators</option>
                             <option value="ps_rep">Partner School Reps</option>
+                            <option value="ssc_city_council">SSC - City Council</option>
+                            <option value="ssc_budget_dept">SSC - Budget Department</option>
+                            <option value="ssc_education_affairs">SSC - Education Affairs</option>
                         </select>
                     </div>
                 </div>
@@ -790,19 +874,21 @@ const UserManagement = () => {
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    User Info
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">User Info</span>
+                                    <span className="sm:hidden">Name</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Citizen ID
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Citizen ID</span>
+                                    <span className="sm:hidden">ID</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Role
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
@@ -823,52 +909,54 @@ const UserManagement = () => {
                             ) : (
                                 filteredUsers.map((user) => (
                                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <div className="font-medium text-gray-900 dark:text-white">
+                                        <td className="px-3 sm:px-6 py-4">
+                                            <div className="min-w-0">
+                                                <div className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
                                                     {user.first_name} {user.middle_name ? user.middle_name + ' ' : ''}{user.last_name} {user.extension_name || ''}
                                                 </div>
-                                                <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                                                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                            {user.citizen_id || 'N/A'}
+                                        <td className="px-3 sm:px-6 py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
+                                            <span className="truncate block">{user.citizen_id || 'N/A'}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 sm:px-6 py-4">
                                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(user.role)}`}>
                                                 {user.roleType}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 sm:px-6 py-4">
                                             {user.is_active ? (
-                                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm">
-                                                    <UserCheck size={16} /> Active
+                                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs sm:text-sm">
+                                                    <UserCheck size={14} className="sm:w-4 sm:h-4" /> 
+                                                    <span className="hidden sm:inline">Active</span>
                                                 </span>
                                             ) : (
-                                                <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm">
-                                                    <UserX size={16} /> Inactive
+                                                <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs sm:text-sm">
+                                                    <UserX size={14} className="sm:w-4 sm:h-4" /> 
+                                                    <span className="hidden sm:inline">Inactive</span>
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
+                                        <td className="px-3 sm:px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-1 sm:gap-2">
                                                 <button
                                                     onClick={() => openEditModal(user)}
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                    className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                                                     title="Edit User"
                                                 >
-                                                    <Edit size={18} />
+                                                    <Edit size={16} className="sm:w-5 sm:h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => openActionModal(user)}
-                                                    className={`p-2 rounded-lg transition-colors ${
+                                                    className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
                                                         user.is_active 
                                                             ? "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20" 
                                                             : "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                     }`}
                                                     title={user.is_active ? "User Actions" : "User Actions"}
                                                 >
-                                                    <MoreVertical size={18} />
+                                                    <MoreVertical size={16} className="sm:w-5 sm:h-5" />
                                                 </button>
                                             </div>
                                         </td>
@@ -882,8 +970,8 @@ const UserManagement = () => {
 
             {/* Create User Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-xl">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -1001,6 +1089,9 @@ const UserManagement = () => {
                                                     <option value="staff">Staff Member</option>
                                                     <option value="admin">Administrator</option>
                                                     <option value="ps_rep">Partner School Representative</option>
+                                                    <option value="ssc_city_council">SSC - City Council</option>
+                                                    <option value="ssc_budget_dept">SSC - Budget Department</option>
+                                                    <option value="ssc_education_affairs">SSC - Education Affairs</option>
                                                 </select>
                                                 <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                             </div>
@@ -1529,6 +1620,9 @@ const UserManagement = () => {
                                             <option value="staff">Staff</option>
                                             <option value="admin">Administrator</option>
                                             <option value="ps_rep">Partner School Rep</option>
+                                            <option value="ssc_city_council">SSC - City Council</option>
+                                            <option value="ssc_budget_dept">SSC - Budget Department</option>
+                                            <option value="ssc_education_affairs">SSC - Education Affairs</option>
                                         </select>
                                     </div>
                                     

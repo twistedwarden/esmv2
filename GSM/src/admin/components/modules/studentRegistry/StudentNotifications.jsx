@@ -132,39 +132,13 @@ function StudentNotifications() {
         setLoading(true);
         try {
             const response = await studentApiService.getStudents({ per_page: 1000 });
-            setStudents(response.data || []);
+            // Handle paginated response - data is in response.data.data
+            setStudents(response.data?.data || []);
         } catch (error) {
             console.error('Error fetching students:', error);
             showError('Failed to fetch students');
-            // Fallback to mock data
-            setStudents([
-                {
-                    student_uuid: '1',
-                    student_number: 'GSM2024001',
-                    first_name: 'John',
-                    last_name: 'Doe',
-                    email: 'john.doe@example.com',
-                    contact_number: '+1234567890',
-                    program: 'Computer Science',
-                    year_level: '3rd Year',
-                    scholarship_status: 'scholar',
-                    academic_status: 'enrolled',
-                    status: 'active'
-                },
-                {
-                    student_uuid: '2',
-                    student_number: 'GSM2024002',
-                    first_name: 'Jane',
-                    last_name: 'Smith',
-                    email: 'jane.smith@example.com',
-                    contact_number: '+0987654321',
-                    program: 'Engineering',
-                    year_level: '2nd Year',
-                    scholarship_status: 'applicant',
-                    academic_status: 'enrolled',
-                    status: 'active'
-                }
-            ]);
+            // Set empty array instead of mock data
+            setStudents([]);
         } finally {
             setLoading(false);
         }
@@ -399,41 +373,44 @@ function StudentNotifications() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Student Notifications</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Send notifications to students via email and SMS</p>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Student Notifications</h1>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Send notifications to students via email and SMS</p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                     <button
                         onClick={() => setShowHistoryModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm sm:text-base"
                     >
                         <Clock className="w-4 h-4" />
-                        <span>History</span>
+                        <span className="hidden sm:inline">History</span>
+                        <span className="sm:hidden">History</span>
                     </button>
                     <button
                         onClick={() => setShowTemplateModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm sm:text-base"
                     >
                         <FileText className="w-4 h-4" />
-                        <span>Templates</span>
+                        <span className="hidden sm:inline">Templates</span>
+                        <span className="sm:hidden">Templates</span>
                     </button>
                     <button
                         onClick={() => setShowComposeModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm sm:text-base"
                     >
                         <Plus className="w-4 h-4" />
-                        <span>Compose</span>
+                        <span className="hidden sm:inline">Compose</span>
+                        <span className="sm:hidden">Compose</span>
                     </button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                             <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -444,7 +421,7 @@ function StudentNotifications() {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
                             <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -455,7 +432,7 @@ function StudentNotifications() {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
                             <Send className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -466,7 +443,7 @@ function StudentNotifications() {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
                             <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -482,8 +459,8 @@ function StudentNotifications() {
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="flex flex-col md:flex-row gap-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+                <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:gap-4">
                     <div className="flex-1">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -492,16 +469,17 @@ function StudentNotifications() {
                                 placeholder="Search students by name, student number, or email..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white text-sm sm:text-base"
                             />
                         </div>
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base"
                     >
                         <Filter className="w-4 h-4" />
-                        <span>Filters</span>
+                        <span className="hidden sm:inline">Filters</span>
+                        <span className="sm:hidden">Filter</span>
                     </button>
                 </div>
 
@@ -514,7 +492,7 @@ function StudentNotifications() {
                             exit={{ opacity: 0, height: 0 }}
                             className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700"
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Status
@@ -603,17 +581,18 @@ function StudentNotifications() {
 
             {/* Students Table */}
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-slate-700">
+                    <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                             {filteredStudents.length} students found
                         </p>
                         <button
                             onClick={handleSelectAll}
-                            className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            className="flex items-center space-x-2 text-xs sm:text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                             <Users className="w-4 h-4" />
-                            <span>Select All</span>
+                            <span className="hidden sm:inline">Select All</span>
+                            <span className="sm:hidden">Select All</span>
                         </button>
                     </div>
                 </div>
@@ -621,7 +600,7 @@ function StudentNotifications() {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     <input
                                         type="checkbox"
                                         checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
@@ -629,18 +608,36 @@ function StudentNotifications() {
                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Student ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Program</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Name</span>
+                                    <span className="sm:hidden">NAME</span>
+                                </th>
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Student ID</span>
+                                    <span className="sm:hidden">ID</span>
+                                </th>
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Email</span>
+                                    <span className="sm:hidden">EMAIL</span>
+                                </th>
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Phone</span>
+                                    <span className="sm:hidden">PHONE</span>
+                                </th>
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Program</span>
+                                    <span className="sm:hidden">PROGRA</span>
+                                </th>
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Status</span>
+                                    <span className="sm:hidden">STATUS</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                             {filteredStudents.map((student, index) => (
                                 <tr key={student.student_uuid || index} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                                         <input
                                             type="checkbox"
                                             checked={selectedStudents.has(student.student_uuid)}
@@ -648,30 +645,31 @@ function StudentNotifications() {
                                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                                             {student.first_name} {student.last_name}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                                         {student.student_number}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                                         {student.email}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                                         {student.contact_number}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                                         {student.program}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                        <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${
                                             (student.status || '').toLowerCase() === 'active' 
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                                                 : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                                         }`}>
-                                            {student.status?.toUpperCase()}
+                                            <span className="hidden sm:inline">{student.status?.toUpperCase()}</span>
+                                            <span className="sm:hidden">{student.status?.charAt(0)?.toUpperCase()}</span>
                                         </span>
                                     </td>
                                 </tr>
