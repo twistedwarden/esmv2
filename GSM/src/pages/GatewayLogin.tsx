@@ -611,7 +611,7 @@ export const GatewayLogin: React.FC = () => {
     } else {
       // Handle registration OTP verification
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api'}/verify-otp`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://auth-gsph.up.railway.app/api'}/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -681,7 +681,7 @@ export const GatewayLogin: React.FC = () => {
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api'}/send-otp`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://auth-gsph.up.railway.app/api'}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpEmail })

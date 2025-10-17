@@ -3,7 +3,7 @@
 
 class SchoolAidService {
     constructor() {
-        this.baseURL = 'http://localhost:8002'; // Placeholder URL
+        this.baseURL = 'https://aid-gsph.up.railway.app'; // Production URL
     }
 
     // Helper method to show service unavailable message

@@ -86,7 +86,7 @@ export const API_CONFIG = {
         }
     },
     AID_SERVICE: {
-        BASE_URL: 'http://localhost:8003',
+        BASE_URL: 'https://monitoring-gsph.up.railway.app',
         ENDPOINTS: {
             HEALTH: '/api/health',
             AID_DISTRIBUTION: '/api/aid-distribution',
