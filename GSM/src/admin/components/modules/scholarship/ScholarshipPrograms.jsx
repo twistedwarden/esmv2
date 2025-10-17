@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { scholarshipApiService } from '../../../../services/scholarshipApiService';
 import { 
   Plus, 
@@ -13,75 +13,66 @@ import {
   Filter,
   MoreVertical
 } from 'lucide-react';
+import CreateProgramModal from './programs/CreateProgramModal';
+import ProgramDetailsModal from './programs/ProgramDetailsModal';
 
 function ScholarshipPrograms() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedProgramId, setSelectedProgramId] = useState(null);
 
-  const [categories, setCategories] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [statistics, setStatistics] = useState({
+    total_programs: 0,
+    active_programs: 0,
+    total_recipients: 0,
+    total_budget: 0,
+    budget_used: 0,
+    budget_utilization_percentage: 0
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const cats = await scholarshipApiService.getScholarshipCategories();
-        setCategories(Array.isArray(cats) ? cats : []);
-      } catch (e) {
-        setError('Failed to load scholarship programs');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    loadPrograms();
+    loadStatistics();
   }, []);
 
-  // Derive program cards from categories/subcategories
-  const programs = useMemo(() => {
-    const list = [];
-    categories.forEach(cat => {
-      const subs = Array.isArray(cat.subcategories) ? cat.subcategories : [];
-      if (subs.length === 0) {
-        list.push({
-          id: cat.id,
-          name: cat.name,
-          description: cat.description || '',
-          type: (cat.type || 'special').replace('_', '-'),
-          amount: 0,
-          maxRecipients: 0,
-          currentRecipients: 0,
-          status: cat.is_active ? 'active' : 'paused',
-          deadline: new Date().toISOString(),
-          requirements: cat.requirements || [],
-          createdDate: cat.created_at || '',
-          budget: 0,
-          budgetUsed: 0,
-        });
-      } else {
-        subs.forEach(sub => {
-          list.push({
-            id: sub.id,
-            name: sub.name,
-            description: sub.description || cat.description || '',
-            type: (sub.type || cat.type || 'special').replace('_', '-'),
-            amount: sub.amount || 0,
-            maxRecipients: 0,
-            currentRecipients: 0,
-            status: (sub.is_active ?? cat.is_active) ? 'active' : 'paused',
-            deadline: new Date().toISOString(),
-            requirements: sub.requirements || cat.requirements || [],
-            createdDate: sub.created_at || cat.created_at || '',
-            budget: 0,
-            budgetUsed: 0,
-          });
-        });
-      }
-    });
-    return list;
-  }, [categories]);
+  const loadPrograms = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await scholarshipApiService.getScholarshipPrograms({
+        search: searchTerm,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        per_page: 50
+      });
+      setPrograms(response.data || []);
+    } catch (e) {
+      setError('Failed to load scholarship programs');
+      console.error('Error loading programs:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStatistics = async () => {
+    try {
+      const stats = await scholarshipApiService.getProgramStatistics();
+      setStatistics(stats);
+    } catch (e) {
+      console.error('Error loading statistics:', e);
+    }
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPrograms();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, statusFilter]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -98,25 +89,53 @@ function ScholarshipPrograms() {
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'Merit-based':
+      case 'merit':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'Need-based':
+      case 'need_based':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'Field-specific':
+      case 'field_specific':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'Service-based':
+      case 'service_based':
         return 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400';
+      case 'special':
+        return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
+      case 'renewal':
+        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
   };
 
-  const filteredPrograms = programs.filter(program => {
-    const matchesSearch = program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         program.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || program.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const formatType = (type) => {
+    return type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const handleViewDetails = (programId) => {
+    setSelectedProgramId(programId);
+    setShowDetailsModal(true);
+  };
+
+  const handleEditProgram = (program) => {
+    // TODO: Implement edit functionality
+    console.log('Edit program:', program);
+  };
+
+  const handleDeleteProgram = (programId) => {
+    // TODO: Implement delete functionality
+    console.log('Delete program:', programId);
+    loadPrograms();
+  };
+
+  const handleStatusToggle = (program) => {
+    // TODO: Implement status toggle functionality
+    console.log('Toggle status for program:', program);
+    loadPrograms();
+  };
+
+  const handleCreateSuccess = () => {
+    loadPrograms();
+    loadStatistics();
+  };
 
   return (
     <div className="">
@@ -146,7 +165,7 @@ function ScholarshipPrograms() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Active Programs</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {programs.filter(p => p.status === 'active').length}
+                {statistics.active_programs || 0}
               </p>
             </div>
             <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
@@ -160,7 +179,7 @@ function ScholarshipPrograms() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Recipients</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {programs.reduce((sum, p) => sum + p.currentRecipients, 0)}
+                {statistics.total_recipients || 0}
               </p>
             </div>
             <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
@@ -174,7 +193,7 @@ function ScholarshipPrograms() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Budget</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                ₱{programs.reduce((sum, p) => sum + p.budget, 0).toLocaleString()}
+                ₱{(statistics.total_budget || 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-lg">
@@ -188,7 +207,7 @@ function ScholarshipPrograms() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Budget Used</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {((programs.reduce((sum, p) => sum + p.budgetUsed, 0) / programs.reduce((sum, p) => sum + p.budget, 0)) * 100).toFixed(1)}%
+                {(statistics.budget_utilization_percentage || 0).toFixed(1)}%
               </p>
             </div>
             <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
@@ -238,7 +257,14 @@ function ScholarshipPrograms() {
         {error && (
           <div className="col-span-2 p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded">{error}</div>
         )}
-        {filteredPrograms.map((program) => (
+        {programs.length === 0 && !loading && (
+          <div className="col-span-2 p-8 text-center text-gray-500 dark:text-gray-400">
+            <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium mb-2">No programs found</p>
+            <p>Create your first scholarship program to get started.</p>
+          </div>
+        )}
+        {programs.map((program) => (
           <div key={program.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
@@ -255,7 +281,7 @@ function ScholarshipPrograms() {
                     {program.description}
                   </p>
                   <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(program.type)}`}>
-                    {program.type}
+                    {formatType(program.type)}
                   </span>
                 </div>
                 <div className="relative">
@@ -269,13 +295,13 @@ function ScholarshipPrograms() {
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Award Amount</p>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    ₱{program.amount.toLocaleString()}
+                    ₱{program.award_amount?.toLocaleString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Recipients</p>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {program.currentRecipients}/{program.maxRecipients}
+                    {program.current_recipients}/{program.max_recipients}
                   </p>
                 </div>
               </div>
@@ -284,13 +310,13 @@ function ScholarshipPrograms() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600 dark:text-gray-400">Budget Utilization</span>
                   <span className="text-gray-900 dark:text-white font-medium">
-                    {((program.budgetUsed / program.budget) * 100).toFixed(1)}%
+                    {program.budget_utilization_percentage?.toFixed(1)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
                   <div 
                     className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(program.budgetUsed / program.budget) * 100}%` }}
+                    style={{ width: `${program.budget_utilization_percentage || 0}%` }}
                   ></div>
                 </div>
               </div>
@@ -298,23 +324,32 @@ function ScholarshipPrograms() {
               <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />
-                  Deadline: {new Date(program.deadline).toLocaleDateString()}
+                  Deadline: {new Date(program.application_deadline).toLocaleDateString()}
                 </div>
                 <div className="flex items-center">
                   <PhilippinePeso className="w-4 h-4 mr-1" />
-                  {program.budget.toLocaleString()} budget
+                  {program.total_budget?.toLocaleString()} budget
                 </div>
               </div>
 
               <div className="flex space-x-2">
-                <button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center">
+                <button 
+                  onClick={() => handleViewDetails(program.id)}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                >
                   <Eye className="w-4 h-4 mr-2" />
                   View Details
                 </button>
-                <button className="bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors">
+                <button 
+                  onClick={() => handleEditProgram(program)}
+                  className="bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors"
+                >
                   <Edit className="w-4 h-4" />
                 </button>
-                <button className="bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors">
+                <button 
+                  onClick={() => handleDeleteProgram(program.id)}
+                  className="bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -323,112 +358,21 @@ function ScholarshipPrograms() {
         ))}
       </div>
 
-      {/* Create Program Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 backdrop-blur bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Create New Scholarship Program
-              </h2>
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                ×
-              </button>
-            </div>
-            
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Program Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Enter program name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Enter program description"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Program Type
-                  </label>
-                  <select className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                    <option>Merit-based</option>
-                    <option>Need-based</option>
-                    <option>Field-specific</option>
-                    <option>Service-based</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Award Amount (₱)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Max Recipients
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text.sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Application Deadline
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
-                >
-                  Create Program
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modals */}
+      <CreateProgramModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+      />
+
+      <ProgramDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        programId={selectedProgramId}
+        onEdit={handleEditProgram}
+        onDelete={handleDeleteProgram}
+        onStatusToggle={handleStatusToggle}
+      />
     </div>
   );
 }

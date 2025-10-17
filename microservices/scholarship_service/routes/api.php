@@ -261,6 +261,18 @@ Route::prefix('scholarship-categories')->group(function () {
     Route::delete('/{category}', [ScholarshipCategoryController::class, 'destroy'])->middleware(['auth.auth_service']);
 });
 
+// Scholarship Program routes
+Route::prefix('scholarship-programs')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'index']);
+    Route::get('/statistics', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'getStatistics']);
+    Route::post('/', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'store'])->middleware(['auth.auth_service']);
+    Route::get('/{program}', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'show']);
+    Route::put('/{program}', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'update'])->middleware(['auth.auth_service']);
+    Route::delete('/{program}', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'destroy'])->middleware(['auth.auth_service']);
+    Route::post('/{program}/toggle-status', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'toggleStatus'])->middleware(['auth.auth_service']);
+    Route::post('/{program}/update-stats', [App\Http\Controllers\Api\ScholarshipProgramController::class, 'updateRecipientsCount'])->middleware(['auth.auth_service']);
+});
+
 
 // Enrollment Verification routes have been removed - automatic verification is disabled
 

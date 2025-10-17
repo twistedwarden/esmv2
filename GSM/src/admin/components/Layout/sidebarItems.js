@@ -43,10 +43,8 @@ const allSidebarItems = [
     {
         id: 'emr', icon: FileBarChart, label: 'Education Monitoring',
         subItems: [
-            { id: 'emr-overview', label: 'Overview' },
-            { id: 'emr-academic-performance', label: 'Academic Performance' },
-            { id: 'emr-enrollment-statistics', label: 'Enrollment Statistics' },
-            { id: 'emr-student-progress', label: 'Student Progress' },
+            { id: 'emr-dashboard', label: 'Dashboard' },
+            { id: 'emr-reports', label: 'Reports' },
             { id: 'emr-analytics', label: 'Analytics' }
         ]
     },

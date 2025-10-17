@@ -48,7 +48,7 @@ function PaymentProcessing({ onPageChange }) {
     };
 
     // API base URL - adjust based on your configuration
-    const API_BASE = 'http://localhost:8002/api';
+    const API_BASE = 'https://aid-gsph.up.railway.app/api';
 
     // Fetch payments and approved applications for processing
     const fetchPayments = async () => {

@@ -30,7 +30,7 @@ type AuthState = {
 	isLoading: boolean
 	isLoggingOut: boolean
 	login: (username: string, password: string, captchaToken?: string | null) => Promise<boolean>
-	loginWithOtp: (email: string, otpCode: string) => Promise<boolean>
+	loginWithOtp: (email: string, otpCode: string, rememberMe?: boolean) => Promise<boolean>
 	register: (userData: any, captchaToken?: string | null) => Promise<boolean>
 	googleLogin: (code: string, captchaToken?: string | null) => Promise<boolean>
 	googleRegister: (code: string, additionalData: any, captchaToken?: string | null) => Promise<boolean>
@@ -69,14 +69,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 	isLoggingOut: false,
 	
 	initializeAuth: async () => {
-		const token = localStorage.getItem('auth_token')
+		// Check both localStorage and sessionStorage for token
+		let token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
 		if (!token) {
 			set({ isLoading: false })
 			return
 		}
 
-		// Try to get user data from localStorage first as fallback
-		const storedUserData = localStorage.getItem('user_data')
+		// Try to get user data from appropriate storage
+		const storedUserData = localStorage.getItem('user_data') || sessionStorage.getItem('user_data')
 		let fallbackUserData = null
 		if (storedUserData) {
 			try {
@@ -167,7 +168,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		}
 	},
 
-	login: async (username, password, captchaToken) => {
+	login: async (username, password, captchaToken, rememberMe = false) => {
 		try {
             // Migrate to GSM-compatible endpoint (email + password)
             const response = await fetch(`${API_BASE_URL}/gsm/login`, {
@@ -176,7 +177,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					'Content-Type': 'application/json',
 					'Accept': 'application/json',
 				},
-					body: JSON.stringify({ email: username, password, captcha_token: captchaToken }),
+					body: JSON.stringify({ email: username, password, captcha_token: captchaToken, remember_me: rememberMe }),
 			})
 
 			const data = await response.json()
@@ -219,16 +220,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     is_active: user.status === 'active',
                 };
                 
-                // Save user data to localStorage for API service
-                localStorage.setItem('user_data', JSON.stringify(userData));
-                
+                // Save user data to appropriate storage based on remember me choice
+                const storage = rememberMe ? localStorage : sessionStorage;
+                storage.setItem('user_data', JSON.stringify(userData));
                 
 				set({ 
                     currentUser: userData, 
 					token, 
 					error: null 
 				})
-				localStorage.setItem('auth_token', token)
+				storage.setItem('auth_token', token)
 				return true
 			} else {
 				set({ error: data.message || 'Login failed' })
@@ -482,7 +483,7 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 		}
 	},
 
-	loginWithOtp: async (email: string, otpCode: string) => {
+	loginWithOtp: async (email: string, otpCode: string, rememberMe = false) => {
 		set({ isLoading: true, error: null })
 		
 		try {
@@ -494,7 +495,8 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 				},
 				body: JSON.stringify({
 					email,
-					otp_code: otpCode
+					otp_code: otpCode,
+					remember_me: rememberMe
 				}),
 			})
 
@@ -528,15 +530,16 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 					is_active: user.is_active,
 				}
 				
-				// Save user data to localStorage for API service
-				localStorage.setItem('user_data', JSON.stringify(userData));
+				// Save user data to appropriate storage based on remember me choice
+				const storage = rememberMe ? localStorage : sessionStorage;
+				storage.setItem('user_data', JSON.stringify(userData));
 				
 				set({ 
 					currentUser: userData, 
 					token, 
 					error: null 
 				})
-				localStorage.setItem('auth_token', token)
+				storage.setItem('auth_token', token)
 				return true
 			} else {
 				set({ error: data.message || 'OTP verification failed' })
@@ -570,8 +573,11 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 			}
 		}
 
+		// Clear both localStorage and sessionStorage
 		localStorage.removeItem('auth_token')
 		localStorage.removeItem('user_data')
+		sessionStorage.removeItem('auth_token')
+		sessionStorage.removeItem('user_data')
 		set({ currentUser: null, token: null, error: null, isLoggingOut: false })
 	},
 
@@ -582,8 +588,9 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 		if (currentUser) {
 			const updatedUser = { ...currentUser, ...userData }
 			set({ currentUser: updatedUser })
-			// Also update localStorage
+			// Update both storages to ensure consistency
 			localStorage.setItem('user_data', JSON.stringify(updatedUser))
+			sessionStorage.setItem('user_data', JSON.stringify(updatedUser))
 		}
 	}
 }))

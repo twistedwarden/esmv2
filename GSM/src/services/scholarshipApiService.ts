@@ -162,6 +162,37 @@ export interface ScholarshipSubcategory {
   is_active?: boolean;
 }
 
+export interface ScholarshipProgram {
+  id?: number;
+  name: string;
+  description?: string;
+  type: 'merit' | 'need_based' | 'special' | 'renewal' | 'field_specific' | 'service_based';
+  award_amount: number;
+  max_recipients: number;
+  current_recipients: number;
+  total_budget: number;
+  budget_used: number;
+  application_deadline: string;
+  start_date: string;
+  end_date?: string;
+  status: 'active' | 'paused' | 'closed' | 'draft';
+  requirements?: string[];
+  benefits?: string[];
+  eligibility_criteria?: any[];
+  application_instructions?: string;
+  is_active: boolean;
+  created_by?: number;
+  updated_by?: number;
+  created_at?: string;
+  updated_at?: string;
+  budget_utilization_percentage?: number;
+  recipients_utilization_percentage?: number;
+  is_accepting_applications?: boolean;
+  creator?: any;
+  updater?: any;
+  applications?: ScholarshipApplication[];
+}
+
 export interface ScholarshipApplication {
   id?: number;
   application_number?: string;
@@ -1309,6 +1340,91 @@ class ScholarshipApiService {
       `/api/applications/ssc/member-assignments`
     );
     return response.data!;
+  }
+
+  // ===== SCHOLARSHIP PROGRAM METHODS =====
+
+  // Get all scholarship programs
+  async getScholarshipPrograms(params?: any): Promise<{ data: ScholarshipProgram[]; meta?: any }> {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = queryParams 
+      ? `${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAMS}?${queryParams}`
+      : API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAMS;
+    
+    const response = await this.makeRequest<{ data: ScholarshipProgram[]; meta?: any }>(endpoint);
+    return response.data!;
+  }
+
+  // Get a specific scholarship program
+  async getScholarshipProgram(id: number): Promise<ScholarshipProgram> {
+    const response = await this.makeRequest<{ data: ScholarshipProgram }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAM(id)
+    );
+    return response.data!.data!;
+  }
+
+  // Create a new scholarship program
+  async createScholarshipProgram(programData: Partial<ScholarshipProgram>): Promise<ScholarshipProgram> {
+    const response = await this.makeRequest<{ data: ScholarshipProgram }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAMS,
+      {
+        method: 'POST',
+        body: JSON.stringify(programData),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  // Update a scholarship program
+  async updateScholarshipProgram(id: number, programData: Partial<ScholarshipProgram>): Promise<ScholarshipProgram> {
+    const response = await this.makeRequest<{ data: ScholarshipProgram }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAM(id),
+      {
+        method: 'PUT',
+        body: JSON.stringify(programData),
+      }
+    );
+    return response.data!.data!;
+  }
+
+  // Delete a scholarship program
+  async deleteScholarshipProgram(id: number): Promise<void> {
+    await this.makeRequest(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAM(id),
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  // Get program statistics
+  async getProgramStatistics(): Promise<any> {
+    const response = await this.makeRequest<{ data: any }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAMS_STATISTICS
+    );
+    return response.data!.data!;
+  }
+
+  // Toggle program status
+  async toggleProgramStatus(id: number): Promise<ScholarshipProgram> {
+    const response = await this.makeRequest<{ data: ScholarshipProgram }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAM_TOGGLE_STATUS(id),
+      {
+        method: 'POST',
+      }
+    );
+    return response.data!.data!;
+  }
+
+  // Update program statistics
+  async updateProgramStatistics(id: number): Promise<ScholarshipProgram> {
+    const response = await this.makeRequest<{ data: ScholarshipProgram }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAM_UPDATE_STATS(id),
+      {
+        method: 'POST',
+      }
+    );
+    return response.data!.data!;
   }
 
   // ===== INTERVIEWER METHODS =====

@@ -86,11 +86,12 @@ export const API_CONFIG = {
         }
     },
     AID_SERVICE: {
-        BASE_URL: 'https://monitoring-gsph.up.railway.app',
+        BASE_URL: 'https://aid-gsph.up.railway.app',
         ENDPOINTS: {
             HEALTH: '/api/health',
-            AID_DISTRIBUTION: '/api/aid-distribution',
-            AID_APPLICATIONS: '/api/aid-applications'
+            APPLICATIONS: '/api/applications',
+            PAYMENTS: '/api/payments',
+            STATS: '/api/stats'
         }
     },
     MONITORING_SERVICE: {

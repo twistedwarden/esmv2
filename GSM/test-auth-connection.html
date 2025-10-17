@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Service Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Auth Service Connection Test</h1>
+    <p>This page tests the connection to the auth service with the new port configuration.</p>
+    
+    <div id="results"></div>
+    
+    <button onclick="testAuthService()">Test Auth Service (Port 8000)</button>
+    <button onclick="testScholarshipService()">Test Scholarship Service (Port 8001)</button>
+    <button onclick="testAidService()">Test Aid Service (Port 8002)</button>
+    <button onclick="testMonitoringService()">Test Monitoring Service (Port 8003)</button>
+    <button onclick="testAllServices()">Test All Services</button>
+    
+    <script>
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function testService(serviceName, url, expectedStatus = 200) {
+            try {
+                addResult(`Testing ${serviceName} at ${url}...`, 'info');
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    addResult(`✅ ${serviceName} is responding (Status: ${response.status})`, 'success');
+                    return true;
+                } else {
+                    addResult(`⚠️ ${serviceName} responded with status ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`❌ ${serviceName} connection failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testAuthService() {
+            await testService('Auth Service', 'http://localhost:8000/api/health');
+        }
+        
+        async function testScholarshipService() {
+            await testService('Scholarship Service', 'http://localhost:8001/api/health');
+        }
+        
+        async function testAidService() {
+            await testService('Aid Service', 'http://localhost:8002/api/health');
+        }
+        
+        async function testMonitoringService() {
+            await testService('Monitoring Service', 'http://localhost:8003/api/health');
+        }
+        
+        async function testAllServices() {
+            addResult('Starting comprehensive service test...', 'info');
+            const results = await Promise.all([
+                testService('Auth Service', 'http://localhost:8000/api/health'),
+                testService('Scholarship Service', 'http://localhost:8001/api/health'),
+                testService('Aid Service', 'http://localhost:8002/api/health'),
+                testService('Monitoring Service', 'http://localhost:8003/api/health')
+            ]);
+            
+            const successCount = results.filter(r => r).length;
+            addResult(`Test completed: ${successCount}/4 services responding`, successCount === 4 ? 'success' : 'error');
+        }
+        
+        // Auto-run test on page load
+        window.onload = function() {
+            addResult('Page loaded. Click buttons above to test services.', 'info');
+        };
+    </script>
+</body>
+</html>

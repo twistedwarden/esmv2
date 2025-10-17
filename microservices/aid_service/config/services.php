@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'auth_service' => [
+        'url' => env('AUTH_SERVICE_URL', 'https://auth-gsph.up.railway.app'),
+        'timeout' => env('AUTH_SERVICE_TIMEOUT', 10),
+        'api_key' => env('AUTH_SERVICE_API_KEY'),
+    ],
+
+    'scholarship_service' => [
+        'url' => env('SCHOLARSHIP_SERVICE_URL', 'https://scholarship-gsph.up.railway.app'),
+        'timeout' => env('SCHOLARSHIP_SERVICE_TIMEOUT', 10),
+        'api_key' => env('SCHOLARSHIP_SERVICE_API_KEY'),
+    ],
+
 ];
