@@ -274,13 +274,50 @@ register: async (userData: any, captchaToken?: string | null) => {
 			}
 
 			if (data.success) {
-				set({ error: null })
-				
-				// Trigger notification for new user registration
-				// This will be handled by the notification context
-				window.dispatchEvent(new CustomEvent('userRegistered'));
-				
-				return true
+				// Check if user is immediately logged in (no OTP required)
+				if (data.data.token && data.data.user) {
+					const { user, token } = data.data
+					const userData = {
+						id: String(user.id),
+						citizen_id: user.citizen_id ?? '',
+						email: user.email,
+						first_name: user.first_name,
+						last_name: user.last_name,
+						middle_name: user.middle_name,
+						extension_name: user.extension_name,
+						mobile: user.mobile,
+						birthdate: user.birthdate,
+						address: user.address,
+						house_number: user.house_number,
+						street: user.street,
+						barangay: user.barangay,
+						role: user.role,
+						is_active: user.status === 'active',
+					};
+					
+					// Save user data to localStorage for API service
+					localStorage.setItem('user_data', JSON.stringify(userData));
+					
+					set({ 
+						currentUser: userData, 
+						token, 
+						error: null 
+					})
+					localStorage.setItem('auth_token', token)
+					
+					// Trigger notification for new user registration
+					window.dispatchEvent(new CustomEvent('userRegistered'));
+					
+					return true
+				} else {
+					// OTP required (legacy flow)
+					set({ error: null })
+					
+					// Trigger notification for new user registration
+					window.dispatchEvent(new CustomEvent('userRegistered'));
+					
+					return true
+				}
 			} else {
 				set({ error: data.message || 'Registration failed' })
 				return false

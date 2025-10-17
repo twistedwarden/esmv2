@@ -17,17 +17,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return () => clearTimeout(t);
   }, []);
 
-  // Show splash while checking authentication
-  if (isLoading || !minSplashDone) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <img src="/splash.svg" alt="Loading" className="splash-logo" />
-      </div>
-    );
-  }
-
-  // Redirect to login if not authenticated
-  if (!currentUser) {
+  // Show splash while checking authentication OR redirect if not authenticated
+  if (isLoading || !minSplashDone || !currentUser) {
+    if (isLoading || !minSplashDone) {
+      return (
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <img src="/splash.svg" alt="Loading" className="splash-logo" />
+        </div>
+      );
+    }
     return <Navigate to="/" replace />;
   }
 

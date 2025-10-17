@@ -1163,49 +1163,49 @@ export const NewApplicationForm: React.FC = () => {
     }
   };
 
-  // Show loading state while checking applications
-  if (isCheckingApplications) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
-              <h1 className="text-2xl font-bold text-white">New Scholarship Application</h1>
-            </div>
-            
-            {/* Navigation */}
-            <div className="px-6 py-3 bg-gray-50 border-b">
-              <button
-                onClick={() => navigate('/portal')}
-                className="text-gray-500 hover:text-orange-600 transition-colors text-sm flex items-center"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Portal
-              </button>
-            </div>
-            
-            <div className="p-8">
-              <div className="space-y-6">
-                <div className="text-center mb-6">
-                  <Skeleton variant="text" height={24} width={300} className="mx-auto mb-2" />
-                  <Skeleton variant="text" height={16} width={200} className="mx-auto" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <SkeletonCard />
-                  <SkeletonCard />
+  // Show loading state while checking applications OR access denied if user has active applications
+  if (isCheckingApplications || accessDenied) {
+    if (isCheckingApplications) {
+      return (
+        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
+                <h1 className="text-2xl font-bold text-white">New Scholarship Application</h1>
+              </div>
+              
+              {/* Navigation */}
+              <div className="px-6 py-3 bg-gray-50 border-b">
+                <button
+                  onClick={() => navigate('/portal')}
+                  className="text-gray-500 hover:text-orange-600 transition-colors text-sm flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Portal
+                </button>
+              </div>
+              
+              <div className="p-8">
+                <div className="space-y-6">
+                  <div className="text-center mb-6">
+                    <Skeleton variant="text" height={24} width={300} className="mx-auto mb-2" />
+                    <Skeleton variant="text" height={16} width={200} className="mx-auto" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Show access denied if user has active applications
-  if (accessDenied) {
+      );
+    }
+    
+    // Show access denied if user has active applications
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

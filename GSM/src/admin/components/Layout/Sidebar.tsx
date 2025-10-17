@@ -135,15 +135,16 @@ function Sidebar({ collapsed, onPageChange, activeItem }: SidebarProps) {
 					}}
 				>
 					<div className='flex items-center space-x-3'>
-						<div className='w-10 h-10 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 bg-orange-500 rounded-lg'>
+						<div className='w-10 h-10 flex items-center justify-center text-white text-xl font-bold flex-shrink-0'>
 							{/* Try to load image, fallback to text if it fails */}
 							<img 
 								src="/GSM_logo.png" 
 								alt="GSM Logo" 
 								className="w-full h-full object-contain"
 								onError={(e) => {
-									e.target.style.display = 'none';
-									const fallback = e.target.parentElement.querySelector('.logo-fallback');
+									const target = e.target as HTMLImageElement;
+									target.style.display = 'none';
+									const fallback = target.parentElement?.querySelector('.logo-fallback') as HTMLElement;
 									if (fallback) fallback.style.display = 'block';
 								}}
 							/>

@@ -119,7 +119,8 @@ export const GatewayLogin: React.FC = () => {
 		}
 	}, [currentUser, isLoading, navigate])
 
-  if (isLoading) {
+  // Show loading state when loading OR when user is authenticated (during navigation)
+  if (isLoading || currentUser) {
 		return (
       <div className="min-h-screen bg-app flex flex-col">
         {/* Header Skeleton */}
@@ -182,8 +183,6 @@ export const GatewayLogin: React.FC = () => {
     </div>
   )
 }
-
-  if (currentUser) return null
 
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -370,12 +369,10 @@ export const GatewayLogin: React.FC = () => {
     setSubmitting(false)
     
     if (success) {
-      showNotification('Registration successful! Please check your email for OTP verification.', 'success')
-      setOtpEmail(registrationData.regEmail)
-      setOtpType('registration')
+      showNotification('Registration successful! You are now logged in.', 'success')
+      // User is automatically logged in, no need for OTP
       setShowRegister(false)
-      setShowOtp(true)
-      startOtpTimer()
+      // The useEffect will handle navigation based on user role
     } else {
       showNotification('Registration failed. Please try again.', 'error')
     }
@@ -725,8 +722,8 @@ export const GatewayLogin: React.FC = () => {
         <div className="mx-auto px-6 max-w-7xl">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                <img src="/GSM_logo.png" alt="Logo" className="h-6 w-auto" />
+              <div className="flex items-center justify-center">
+                <img src="/GSM_logo.png" alt="Logo" className="h-14 w-auto" />
               </div>
               <h1 className="text-2xl font-bold">
                 <span className="text-secondary-600 dark:text-secondary-400">Go</span>

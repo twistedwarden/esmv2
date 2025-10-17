@@ -162,7 +162,7 @@ class AuthController extends Controller
         // Generate citizen ID
         $citizenId = 'CC' . date('Y') . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
 
-        // Create user with email_verified_at = null (unverified)
+        // Create user with email_verified_at = now (verified) and status = active
         $user = User::create([
             'citizen_id' => $citizenId,
             'first_name' => $request->firstName,
@@ -178,40 +178,39 @@ class AuthController extends Controller
             'barangay' => $request->barangay,
             'password' => Hash::make($request->regPassword),
             'role' => 'citizen',
-            'email_verified_at' => null, // Email verification pending
-            'status' => 'pending_verification',
-            'email_verification_token' => Str::random(60),
+            'email_verified_at' => now(), // Email verified immediately
+            'status' => 'active', // Set to active immediately
+            'email_verification_token' => null, // No token needed
         ]);
 
-        // Generate and send OTP via Brevo
-        try {
-            $otp = OtpVerification::generateOtp($user->id, 'email_verification');
-            $userName = trim($user->first_name . ' ' . $user->last_name);
-            
-            $this->brevoService->sendOtpEmail(
-                $user->email,
-                $userName,
-                $otp->otp_code,
-                $otp->expires_at
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to send OTP email: ' . $e->getMessage());
-            // Continue registration even if email fails
-        }
+        // No OTP required - user is immediately active
+
+        // Create authentication token for automatic login
+        $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful. Please check your email for OTP verification code.',
+            'message' => 'Registration successful! You are now logged in.',
             'data' => [
                 'user' => [
                     'id' => $user->id,
                     'citizen_id' => $user->citizen_id,
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'extension_name' => $user->extension_name,
                     'email' => $user->email,
+                    'mobile' => $user->mobile,
+                    'birthdate' => $user->birthdate,
+                    'address' => $user->address,
+                    'house_number' => $user->house_number,
+                    'street' => $user->street,
+                    'barangay' => $user->barangay,
+                    'role' => $user->role,
                     'status' => $user->status,
                 ],
-                'requires_otp' => true
+                'token' => $token,
+                'requires_otp' => false
             ]
         ], 201);
     }
