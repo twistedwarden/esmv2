@@ -17,6 +17,8 @@ export type AuthUser = {
 	barangay?: string
 	role: UserRole
 	system_role?: 'interviewer' | 'reviewer' | 'administrator' | 'coordinator'
+	department?: string
+	position?: string
 	is_active: boolean
 }
 
@@ -113,6 +115,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					role: data.data.user.role,
 					// Use system_role from API if available, otherwise fallback to stored data
 					system_role: data.data.user.system_role || fallbackUserData?.system_role,
+					department: data.data.user.department || fallbackUserData?.department,
+					position: data.data.user.position || fallbackUserData?.position,
 					is_active: data.data.user.is_active,
 				};
 				
@@ -208,6 +212,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     barangay: user.barangay,
                     role: user.role,
                     system_role: user.system_role,
+                    department: user.department,
+                    position: user.position,
                     is_active: user.status === 'active',
                 };
                 
@@ -292,6 +298,9 @@ register: async (userData: any, captchaToken?: string | null) => {
 						street: user.street,
 						barangay: user.barangay,
 						role: user.role,
+						system_role: user.system_role,
+						department: user.department,
+						position: user.position,
 						is_active: user.status === 'active',
 					};
 					
@@ -512,6 +521,8 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 					barangay: user.barangay,
 					role: user.role,
 					system_role: user.system_role,
+					department: user.department,
+					position: user.position,
 					is_active: user.is_active,
 				}
 				

@@ -552,7 +552,7 @@ const UserManagement = () => {
             if (!formData.department || formData.department.trim() === '') {
                 errors.department = 'Department is required for staff members';
             } else if (formData.department.length > 100) {
-                errors.department = 'Department name must be less than 100 characters';
+            errors.department = 'Department name must be less than 100 characters';
             }
         }
         
@@ -561,7 +561,7 @@ const UserManagement = () => {
             if (!formData.position || formData.position.trim() === '') {
                 errors.position = 'Position is required for staff members';
             } else if (formData.position.length > 100) {
-                errors.position = 'Position must be less than 100 characters';
+            errors.position = 'Position must be less than 100 characters';
             }
         }
 
