@@ -175,7 +175,8 @@ function BulkOperations() {
         setLoading(true);
         try {
             const response = await studentApiService.getStudents({ per_page: 1000 });
-            setStudents(response.data || []);
+            // Handle paginated response - data is in response.data.data
+            setStudents(response.data?.data || []);
         } catch (error) {
             console.error('Error fetching students:', error);
             showError('Failed to fetch students');
@@ -509,34 +510,36 @@ function BulkOperations() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Bulk Operations</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Perform bulk actions on student records</p>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Bulk Operations</h1>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Perform bulk actions on student records</p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                     <button
                         onClick={() => setShowImportModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
                     >
                         <Upload className="w-4 h-4" />
-                        <span>Import CSV</span>
+                        <span className="hidden sm:inline">Import CSV</span>
+                        <span className="sm:hidden">Import</span>
                     </button>
                     <button
                         onClick={() => setShowExportModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm sm:text-base"
                     >
                         <Download className="w-4 h-4" />
-                        <span>Export Data</span>
+                        <span className="hidden sm:inline">Export Data</span>
+                        <span className="sm:hidden">Export</span>
                     </button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                             <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -547,7 +550,7 @@ function BulkOperations() {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
                             <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -560,7 +563,7 @@ function BulkOperations() {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
                             <Archive className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -573,7 +576,7 @@ function BulkOperations() {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
                     <div className="flex items-center">
                         <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
                             <Award className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -589,8 +592,8 @@ function BulkOperations() {
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="flex flex-col md:flex-row gap-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+                <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:gap-4">
                     <div className="flex-1">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -599,16 +602,17 @@ function BulkOperations() {
                                 placeholder="Search students by name, student number, or email..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white text-sm sm:text-base"
                             />
                         </div>
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base"
                     >
                         <Filter className="w-4 h-4" />
-                        <span>Filters</span>
+                        <span className="hidden sm:inline">Filters</span>
+                        <span className="sm:hidden">Filter</span>
                     </button>
                 </div>
 
@@ -621,7 +625,7 @@ function BulkOperations() {
                             exit={{ opacity: 0, height: 0 }}
                             className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700"
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Status
@@ -692,9 +696,9 @@ function BulkOperations() {
             </div>
 
             {/* Bulk Actions */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bulk Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Bulk Actions</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {bulkActions.map((action) => (
                         <button
                             key={action.id}

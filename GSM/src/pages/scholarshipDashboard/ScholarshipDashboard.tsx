@@ -987,20 +987,21 @@ export const ScholarshipDashboard: React.FC = () => {
                 {showNotifications && (
                   <div 
                     data-notification-dropdown
-                    className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden"
+                    className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden max-w-[calc(100vw-2rem)]"
                   >
-                    <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
+                    <div className="p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                          <Bell className="w-5 h-5 mr-2 text-orange-500" />
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
+                          <Bell className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-orange-500" />
                           Notifications
                         </h3>
                         {unreadCount > 0 && (
                           <button
                             onClick={markAllAsRead}
-                            className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                            className="text-xs sm:text-sm text-orange-600 hover:text-orange-700 font-medium"
                           >
-                            Mark all as read
+                            <span className="hidden sm:inline">Mark all as read</span>
+                            <span className="sm:hidden">Clear all</span>
                           </button>
                         )}
                       </div>
@@ -1011,8 +1012,8 @@ export const ScholarshipDashboard: React.FC = () => {
                           <NotificationItem key={notification.id} notification={notification} />
                         ))
                       ) : (
-                        <div className="p-8 text-center text-gray-500">
-                          <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <div className="p-6 sm:p-8 text-center text-gray-500">
+                          <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-gray-300" />
                           <p className="text-sm">No notifications yet</p>
                           <p className="text-xs text-gray-400 mt-1">We'll notify you about important updates</p>
                         </div>

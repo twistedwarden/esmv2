@@ -55,10 +55,12 @@ function Scholars() {
         setLoading(true);
         try {
             const response = await studentApiService.getStudentsByScholarshipStatus('scholar');
-            setScholars(response.data || []);
+            // Handle paginated response - data is in response.data.data
+            const scholarsData = response.data?.data || [];
+            setScholars(scholarsData);
             
             // Calculate statistics
-            const stats = calculateStatistics(response.data || []);
+            const stats = calculateStatistics(scholarsData);
             setStatistics(stats);
         } catch (error) {
             console.error('Error fetching scholars:', error);
@@ -114,6 +116,19 @@ function Scholars() {
     };
 
     const calculateStatistics = (scholarsData) => {
+        // Ensure scholarsData is an array
+        if (!Array.isArray(scholarsData)) {
+            return {
+                total: 0,
+                compliant: 0,
+                atRisk: 0,
+                nonCompliant: 0,
+                averageGPA: 0,
+                totalAwarded: 0,
+                averageAward: 0
+            };
+        }
+        
         const total = scholarsData.length;
         const compliant = scholarsData.filter(s => s.compliance_status === 'compliant').length;
         const atRisk = scholarsData.filter(s => s.compliance_status === 'at_risk').length;
@@ -211,37 +226,39 @@ function Scholars() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <Award className="w-8 h-8 text-blue-500" />
-                        Scholars Management
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+                        <Award className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 flex-shrink-0" />
+                        <span className="truncate">Scholars Management</span>
                     </h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
                         Monitor and manage scholarship recipients
                     </p>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+                    <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base">
                         <BarChart3 className="w-4 h-4" />
-                        <span>Generate Report</span>
+                        <span className="hidden sm:inline">Generate Report</span>
+                        <span className="sm:hidden">Report</span>
                     </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                    <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm sm:text-base">
                         <Download className="w-4 h-4" />
-                        <span>Export Data</span>
+                        <span className="hidden sm:inline">Export Data</span>
+                        <span className="sm:hidden">Export</span>
                     </button>
                 </div>
             </div>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6"
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -258,7 +275,7 @@ function Scholars() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6"
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -275,7 +292,7 @@ function Scholars() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6"
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -292,7 +309,7 @@ function Scholars() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6"
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -307,12 +324,12 @@ function Scholars() {
             </div>
 
             {/* Compliance Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6"
                 >
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Compliance Status</h3>
                     <div className="space-y-3">
@@ -350,7 +367,7 @@ function Scholars() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6"
                 >
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Financial Overview</h3>
                     <div className="space-y-3">
@@ -372,33 +389,34 @@ function Scholars() {
 
             {/* Search and Filters */}
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:gap-4">
                     {/* Search */}
                     <div className="flex-1">
                         <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                            type="text"
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                                type="text"
                                 placeholder="Search scholars by name, student number, or email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-slate-700 dark:text-white text-sm sm:text-base"
                         />
                         </div>
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base"
                     >
                         <Filter className="w-4 h-4" />
-                        <span>Filters</span>
+                        <span className="hidden sm:inline">Filters</span>
+                        <span className="sm:hidden">Filter</span>
                     </button>
                 </div>
 
                 {/* Advanced Filters */}
                 {showFilters && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Scholarship Type
@@ -471,26 +489,33 @@ function Scholars() {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Scholar
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Scholar</span>
+                                    <span className="sm:hidden">SCHOLAR</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Program
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Program</span>
+                                    <span className="sm:hidden">PROGRA</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Award Amount
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Award Amount</span>
+                                    <span className="sm:hidden">AMOUNT</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    GPA Status
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">GPA Status</span>
+                                    <span className="sm:hidden">GPA</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Compliance
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Compliance</span>
+                                    <span className="sm:hidden">COMPLY</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Risk Level
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Risk Level</span>
+                                    <span className="sm:hidden">RISK</span>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Actions
+                                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden sm:inline">Actions</span>
+                                    <span className="sm:hidden">ACTIONS</span>
                                 </th>
                             </tr>
                         </thead>
@@ -506,59 +531,61 @@ function Scholars() {
                                         className="hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer"
                                         onClick={() => handleViewScholar(scholar.student_uuid)}
                                     >
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                                                    <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <Award className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                                                 </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                <div className="ml-2 sm:ml-4 min-w-0 flex-1">
+                                                    <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                                                         {scholar.first_name} {scholar.last_name}
                                                     </div>
-                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                                                         {scholar.student_number}
                                                     </div>
-                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate hidden sm:block">
                                                         {scholar.email}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-white">{scholar.program}</div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">{scholar.year_level}</div>
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                            <div className="text-xs sm:text-sm text-gray-900 dark:text-white truncate">{scholar.program}</div>
+                                            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{scholar.year_level}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                            <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
                                                 ₱{scholar.approved_amount?.toLocaleString()}
                                             </div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                                            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
                                                 Since {formatDate(scholar.scholarship_start_date)}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-2">
-                                                <gpaStatus.icon className={`w-4 h-4 ${gpaStatus.color}`} />
-                                                <span className={`text-sm font-medium ${gpaStatus.color}`}>
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                            <div className="flex items-center space-x-1 sm:space-x-2">
+                                                <gpaStatus.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${gpaStatus.color} flex-shrink-0`} />
+                                                <span className={`text-xs sm:text-sm font-medium ${gpaStatus.color}`}>
                                                     {scholar.gpa || 'N/A'}
                                                 </span>
                                             </div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                                                 {gpaStatus.status}
                                             </div>
                                     </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getComplianceColor(scholar.compliance_status)}`}>
-                                                {scholar.compliance_status?.replace('_', ' ').toUpperCase()}
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getComplianceColor(scholar.compliance_status)}`}>
+                                                <span className="hidden sm:inline">{scholar.compliance_status?.replace('_', ' ').toUpperCase()}</span>
+                                                <span className="sm:hidden">{scholar.compliance_status?.charAt(0)?.toUpperCase()}</span>
                                             </span>
                                     </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRiskLevelColor(scholar.risk_level)}`}>
-                                                {scholar.risk_level?.toUpperCase()}
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getRiskLevelColor(scholar.risk_level)}`}>
+                                                <span className="hidden sm:inline">{scholar.risk_level?.toUpperCase()}</span>
+                                                <span className="sm:hidden">{scholar.risk_level?.charAt(0)?.toUpperCase()}</span>
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex items-center space-x-2">
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
+                                            <div className="flex items-center space-x-1 sm:space-x-2">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -566,7 +593,7 @@ function Scholars() {
                                                     }}
                                                     className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                                                 >
-                                                    <Eye className="w-4 h-4" />
+                                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => {
@@ -575,7 +602,7 @@ function Scholars() {
                                                     }}
                                                     className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300"
                                                 >
-                                                    <Edit className="w-4 h-4" />
+                                                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                                                 </button>
                                             </div>
                                         </td>

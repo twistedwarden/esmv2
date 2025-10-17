@@ -13,17 +13,17 @@ const TabNavigation = ({
   const getVariantClasses = () => {
     switch (variant) {
       case 'compact':
-        return 'py-2 px-1 text-sm';
+        return 'py-2 px-2 sm:px-3 text-xs sm:text-sm';
       case 'large':
-        return 'py-4 px-2 text-base';
+        return 'py-3 sm:py-4 px-2 sm:px-3 text-sm sm:text-base';
       default:
-        return 'py-3 px-1 text-sm';
+        return 'py-2 sm:py-3 px-2 sm:px-3 text-xs sm:text-sm';
     }
   };
 
   return (
     <div className={`border-b border-gray-200 dark:border-slate-700 ${className}`}>
-      <nav className="-mb-px flex space-x-8 overflow-x-auto relative">
+      <nav className="-mb-px flex space-x-4 sm:space-x-6 lg:space-x-8 overflow-x-auto relative">
         {tabs.map((tab, index) => (
           <motion.button
             key={tab.id}

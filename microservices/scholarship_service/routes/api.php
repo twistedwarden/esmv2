@@ -60,6 +60,15 @@ Route::get('/health', function () {
     ]);
 });
 
+// SSC Assignment routes
+Route::prefix('ssc-assignments')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\SSCAssignmentController::class, 'index']);
+    Route::get('/user/{userId}', [App\Http\Controllers\Api\SSCAssignmentController::class, 'getUserAssignments']);
+    Route::post('/', [App\Http\Controllers\Api\SSCAssignmentController::class, 'store']);
+    Route::put('/{id}', [App\Http\Controllers\Api\SSCAssignmentController::class, 'update']);
+    Route::delete('/{id}', [App\Http\Controllers\Api\SSCAssignmentController::class, 'destroy']);
+});
+
 // Public routes (no authentication required)
 Route::prefix('public')->group(function () {
     // Get reference data
@@ -70,6 +79,36 @@ Route::prefix('public')->group(function () {
     
     // Staff verification endpoint for auth service
     Route::get('/staff/verify/{userId}', [StaffController::class, 'verifyStaff']);
+});
+
+// Public student routes (must be before protected students group to avoid conflicts)
+Route::get('/students/statistics', [StudentController::class, 'getStatistics']);
+Route::get('/students', [StudentController::class, 'index']);
+Route::get('/students/scholarship-status/{status}', [StudentController::class, 'getByScholarshipStatus']);
+
+// Public application routes for notifications
+Route::get('/applications/counts', [ScholarshipApplicationController::class, 'getApplicationCounts']);
+Route::get('/students/debug', function() {
+    $count = \App\Models\Student::count();
+    $students = \App\Models\Student::select('id', 'first_name', 'last_name', 'user_id', 'created_at')->take(5)->get();
+    $paginated = \App\Models\Student::orderBy('created_at', 'desc')->paginate(15);
+    
+    // Test the exact same query as the index method
+    $query = \App\Models\Student::query();
+    $indexQuery = $query->orderBy('created_at', 'desc')->paginate(15);
+    
+    // Test the index method directly
+    $controller = new \App\Http\Controllers\StudentController();
+    $request = new \Illuminate\Http\Request();
+    $indexResult = $controller->index($request);
+    
+    return response()->json([
+        'count' => $count,
+        'students' => $students,
+        'paginated' => $paginated,
+        'index_query' => $indexQuery,
+        'index_result' => $indexResult->getData()
+    ]);
 });
 
 // Student routes (protected by authentication)
@@ -84,6 +123,7 @@ Route::prefix('students')->middleware(['auth.auth_service'])->group(function () 
     Route::post('/register-from-scholarship', [StudentController::class, 'registerFromScholarship']);
     Route::get('/check-by-application/{applicationId}', [StudentController::class, 'checkByApplication']);
     Route::get('/by-application/{applicationId}', [StudentController::class, 'getByApplication']);
+    
 });
 
 // Scholarship Application routes (protected by authentication)

@@ -62,17 +62,16 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const fetchNotificationCounts = async () => {
     setIsLoading(true);
     try {
-      const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
+      const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
       
       // Fetch scholarship application counts
       let scholarshipApplications = 0;
       try {
-        const scholarshipData = await scholarshipApiService.getApplications({
-          status: 'submitted',
-          page: 1,
-          per_page: 1
-        });
-        scholarshipApplications = scholarshipData?.total || 0;
+        const response = await fetch(`${SCHOLARSHIP_API}/applications/counts`);
+        if (response.ok) {
+          const data = await response.json();
+          scholarshipApplications = data.data?.submitted || 0;
+        }
       } catch (error) {
         console.warn('Scholarship API not available:', error);
       }

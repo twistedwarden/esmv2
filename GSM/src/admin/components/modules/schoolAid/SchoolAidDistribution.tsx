@@ -148,22 +148,22 @@ const SchoolAidDistribution = () => {
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">School Aid Distribution</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">School Aid Distribution</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Manage and track scholarship fund disbursements to students
             </p>
           </div>
           {selectedApplications.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-gray-600">
                 {selectedApplications.length} selected
               </span>
               <button 
                 onClick={() => setSelectedApplications([])}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
               >
                 Clear
               </button>
@@ -174,8 +174,8 @@ const SchoolAidDistribution = () => {
 
       {/* Main Tabs */}
       <div className="bg-white border-b border-gray-200">
-        <div className="px-4 sm:px-6">
-          <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
+        <div className="px-3 sm:px-4 lg:px-6">
+          <nav className="flex space-x-2 sm:space-x-4 lg:space-x-8 overflow-x-auto" aria-label="Tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -184,7 +184,7 @@ const SchoolAidDistribution = () => {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={`
-                    flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm
+                    flex items-center gap-1 sm:gap-2 py-2 sm:py-3 lg:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm
                     transition-colors duration-200 relative whitespace-nowrap flex-shrink-0
                     ${
                       isActive

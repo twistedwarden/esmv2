@@ -78,34 +78,13 @@ function ImportExport() {
         setLoading(true);
         try {
             const response = await studentApiService.getStudents({ per_page: 1000 });
-            setStudents(response.data || []);
+            // Handle paginated response - data is in response.data.data
+            setStudents(response.data?.data || []);
         } catch (error) {
             console.error('Error fetching students:', error);
             showError('Failed to fetch students');
-            // Fallback to mock data
-            setStudents([
-                {
-                    student_uuid: '1',
-                    student_number: 'GSM2024001',
-                    first_name: 'John',
-                    last_name: 'Doe',
-                    email: 'john.doe@example.com',
-                    program: 'Computer Science',
-                    year_level: '3rd Year',
-                    scholarship_status: 'scholar',
-                    academic_status: 'enrolled',
-                    status: 'active',
-                    gpa: 3.5,
-                    approved_amount: 50000,
-                    documents: [
-                        { id: 1, type: 'academic', filename: 'transcript.pdf', uploaded_at: '2024-01-15' },
-                        { id: 2, type: 'financial', filename: 'scholarship_letter.pdf', uploaded_at: '2024-01-10' }
-                    ],
-                    notes: [
-                        { id: 1, note: 'Excellent academic performance', created_by: 'Admin', created_at: '2024-01-15' }
-                    ]
-                }
-            ]);
+            // Set empty array instead of mock data
+            setStudents([]);
         } finally {
             setLoading(false);
         }
@@ -511,41 +490,44 @@ function ImportExport() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Import/Export</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Import student data from CSV/Excel or export to various formats</p>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Import/Export</h1>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Import student data from CSV/Excel or export to various formats</p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                     <button
                         onClick={() => setShowTemplateGenerator(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm sm:text-base"
                     >
                         <FileText className="w-4 h-4" />
-                        <span>Generate Template</span>
+                        <span className="hidden sm:inline">Generate Template</span>
+                        <span className="sm:hidden">Template</span>
                     </button>
                     <button
                         onClick={fetchStudents}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
                     >
                         <RefreshCw className="w-4 h-4" />
-                        <span>Refresh Data</span>
+                        <span className="hidden sm:inline">Refresh Data</span>
+                        <span className="sm:hidden">Refresh</span>
                     </button>
                 </div>
             </div>
 
             {/* Import Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Import Students</h3>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+                <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Import Students</h3>
                     <button
                         onClick={() => setShowImportSettings(!showImportSettings)}
-                        className="flex items-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base"
                     >
                         <Settings className="w-4 h-4" />
-                        <span>Settings</span>
+                        <span className="hidden sm:inline">Settings</span>
+                        <span className="sm:hidden">Settings</span>
                     </button>
                 </div>
                 
@@ -559,7 +541,7 @@ function ImportExport() {
                             className="mb-6 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg"
                         >
                             <h4 className="font-medium text-gray-900 dark:text-white mb-3">Import Settings</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Delimiter
@@ -676,7 +658,7 @@ function ImportExport() {
                     <div className="mb-6">
                         <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
                             <h4 className="font-medium text-gray-900 dark:text-white mb-3">Import Results</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm mb-4">
                                 <div>
                                     <span className="text-gray-600 dark:text-gray-400">Total:</span>
                                     <span className="ml-2 font-medium text-gray-900 dark:text-white">{importResults.total}</span>
@@ -727,35 +709,38 @@ function ImportExport() {
                 )}
 
                 {/* Import Actions */}
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
                     <button
                         onClick={handleImport}
                         disabled={!importFile || importStatus === 'importing'}
-                        className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                        className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors text-sm sm:text-base"
                     >
                         <Upload className="w-4 h-4" />
-                        <span>{importStatus === 'importing' ? 'Importing...' : 'Import Students'}</span>
+                        <span className="hidden sm:inline">{importStatus === 'importing' ? 'Importing...' : 'Import Students'}</span>
+                        <span className="sm:hidden">{importStatus === 'importing' ? 'Importing...' : 'Import'}</span>
                     </button>
                     <button
                         onClick={generateTemplate}
-                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors text-sm sm:text-base"
                     >
                         <FileText className="w-4 h-4" />
-                        <span>Download Template</span>
+                        <span className="hidden sm:inline">Download Template</span>
+                        <span className="sm:hidden">Template</span>
                     </button>
                 </div>
             </div>
 
             {/* Export Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Export Students</h3>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+                <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Export Students</h3>
                     <button
                         onClick={() => setShowExportSettings(!showExportSettings)}
-                        className="flex items-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base"
                     >
                         <Settings className="w-4 h-4" />
-                        <span>Settings</span>
+                        <span className="hidden sm:inline">Settings</span>
+                        <span className="sm:hidden">Settings</span>
                     </button>
                 </div>
                 

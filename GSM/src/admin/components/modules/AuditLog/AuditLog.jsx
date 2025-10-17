@@ -17,7 +17,7 @@ import {
 import { LoadingData } from '../../ui/LoadingSpinner';
 import axios from 'axios';
 
-const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8000/api';
+const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
 
 // Mock data generation function
 const generateMockAuditLogs = () => {
@@ -216,102 +216,104 @@ const AuditLog = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Audit Logs</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Track system activities and user actions</p>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Audit Logs</h2>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Track system activities and user actions</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:gap-2 sm:space-y-0">
                     <button
                         onClick={fetchLogs}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
                     >
-                        <RefreshCw size={20} />
-                        Refresh
+                        <RefreshCw size={18} className="sm:w-5 sm:h-5" />
+                        <span className="hidden sm:inline">Refresh</span>
+                        <span className="sm:hidden">Refresh</span>
                     </button>
                     <button
                         onClick={exportLogs}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
                     >
-                        <Download size={20} />
-                        Export
+                        <Download size={18} className="sm:w-5 sm:h-5" />
+                        <span className="hidden sm:inline">Export</span>
+                        <span className="sm:hidden">Export</span>
                     </button>
                 </div>
             </div>
 
             {/* Statistics Cards */}
             {statistics && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Logs</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Logs</p>
+                                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">
                                     {statistics.total_logs?.toLocaleString() || 0}
                                 </p>
                             </div>
-                            <FileText className="text-blue-500" size={32} />
+                            <FileText className="text-blue-500" size={24} />
                         </div>
                     </div>
                     
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">Success Rate</p>
-                                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Success Rate</p>
+                                <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
                                     {statistics.by_status?.success || 0}
                                 </p>
                             </div>
-                            <CheckCircle className="text-green-500" size={32} />
+                            <CheckCircle className="text-green-500" size={24} />
                         </div>
                     </div>
                     
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">Failed Actions</p>
-                                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+                                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Failed Actions</p>
+                                <p className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
                                     {(statistics.by_status?.failed || 0) + (statistics.by_status?.error || 0)}
                                 </p>
                             </div>
-                            <XCircle className="text-red-500" size={32} />
+                            <XCircle className="text-red-500" size={24} />
                         </div>
                     </div>
                     
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">Active Users</p>
-                                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+                                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Active Users</p>
+                                <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
                                     {Object.keys(statistics.by_user_role || {}).length}
                                 </p>
                             </div>
-                            <User className="text-purple-500" size={32} />
+                            <User className="text-purple-500" size={24} />
                         </div>
                     </div>
                 </div>
             )}
 
             {/* Filters */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <div className="flex flex-col lg:flex-row gap-4">
+            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow">
+                <div className="flex flex-col space-y-3 sm:flex-row sm:gap-4 sm:space-y-0">
                     <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             type="text"
                             placeholder="Search logs..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm sm:text-base"
                         />
                     </div>
                     
                     <select
                         value={filters.action}
                         onChange={(e) => handleFilterChange('action', e.target.value)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm sm:text-base"
                     >
                         <option value="">All Actions</option>
                         {filterOptions.actions?.map(action => (
