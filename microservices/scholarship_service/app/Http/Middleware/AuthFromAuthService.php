@@ -73,10 +73,11 @@ class AuthFromAuthService
 
         try {
             // Verify token with auth service
+            $authServiceUrl = config('services.auth_service.url', 'http://localhost:8000');
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json'
-            ])->get('http://localhost:8000/api/user');
+            ])->get("{$authServiceUrl}/api/user");
 
             if (!$response->successful()) {
                 return response()->json([
