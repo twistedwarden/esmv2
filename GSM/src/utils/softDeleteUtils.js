@@ -11,11 +11,7 @@ import { getScholarshipServiceUrl } from '../config/api';
  */
 export const softDeleteItem = async (category, itemId, reason = 'No reason provided', deletedBy = 'System') => {
   try {
-<<<<<<< HEAD
-    const response = await fetch(`${getScholarshipServiceUrl('/api')}/archived/soft-delete`, {
-=======
     const response = await fetch(`${import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api'}/archived/soft-delete`, {
->>>>>>> 192b51450739ce960e6f01496d1811937860e7e4
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
