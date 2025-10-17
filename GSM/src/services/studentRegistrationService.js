@@ -4,7 +4,11 @@ import { getScholarshipServiceUrl } from '../config/api';
 
 class StudentRegistrationService {
   constructor() {
+<<<<<<< HEAD
     this.baseURL = getScholarshipServiceUrl('/api');
+=======
+    this.baseURL = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api';
+>>>>>>> 192b51450739ce960e6f01496d1811937860e7e4
   }
 
   /**

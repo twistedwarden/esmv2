@@ -263,7 +263,7 @@ class AuthController extends Controller
                     'client_secret' => env('GOOGLE_CLIENT_SECRET'),
                     'code' => $request->code,
                     'grant_type' => 'authorization_code',
-                    'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+                    'redirect_uri' => env('GOOGLE_REDIRECT_URI', 'http://localhost:5173'),
                 ]
             ]);
 
@@ -614,7 +614,7 @@ class AuthController extends Controller
                     'client_secret' => env('GOOGLE_CLIENT_SECRET'),
                     'code' => $request->code,
                     'grant_type' => 'authorization_code',
-                    'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+                    'redirect_uri' => env('GOOGLE_REDIRECT_URI', 'http://localhost:5173'),
                 ]
             ]);
 

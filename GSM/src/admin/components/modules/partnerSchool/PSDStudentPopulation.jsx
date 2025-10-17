@@ -1,7 +1,7 @@
 import React from 'react';
 import { Users, TrendingUp, TrendingDown, Plus, Search, Filter, Download, Eye, BarChart3, PieChart, Activity, UserCheck, UserX, GraduationCap } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:8001/api';
+const API_BASE_URL = 'https://scholarship-gsph.up.railway.app/api';
 
 function PSDStudentPopulation() {
     const [searchTerm, setSearchTerm] = React.useState('');

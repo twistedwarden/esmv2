@@ -36,7 +36,7 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:8001/api/schools?per_page=100', {
+      const response = await fetch('https://scholarship-gsph.up.railway.app/api/schools?per_page=100', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
     setError('');
 
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/assign-school`, {
+      const response = await fetch(`https://auth-gsph.up.railway.app/api/users/${user.id}/assign-school`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
     setError('');
 
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/unassign-school`, {
+      const response = await fetch(`https://auth-gsph.up.railway.app/api/users/${user.id}/unassign-school`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

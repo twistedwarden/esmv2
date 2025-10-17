@@ -36,7 +36,7 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
     if (document.file_path) {
       return document.file_path.startsWith('http') 
         ? document.file_path 
-        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}/storage/${document.file_path}`;
+        : `${import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app'}/storage/${document.file_path}`;
     }
     return null;
   };

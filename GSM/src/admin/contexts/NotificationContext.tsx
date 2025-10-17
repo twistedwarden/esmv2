@@ -63,7 +63,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const fetchNotificationCounts = async () => {
     setIsLoading(true);
     try {
+<<<<<<< HEAD
       const SCHOLARSHIP_API = getScholarshipServiceUrl('/api');
+=======
+      const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api';
+>>>>>>> 192b51450739ce960e6f01496d1811937860e7e4
       
       // Fetch scholarship application counts
       let scholarshipApplications = 0;

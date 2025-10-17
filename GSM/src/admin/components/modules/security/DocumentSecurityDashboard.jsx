@@ -51,9 +51,11 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
   });
 
   // Fetch data
+  const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api';
+
   const fetchStatistics = async () => {
     try {
-      const response = await fetch(`/api/virus-scan/statistics?days=${filters.days}`, {
+      const response = await fetch(`${SCHOLARSHIP_API}/virus-scan/statistics?days=${filters.days}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Accept': 'application/json',
@@ -76,7 +78,7 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
       if (filters.dateFrom) params.append('date_from', filters.dateFrom);
       if (filters.dateTo) params.append('date_to', filters.dateTo);
 
-      const response = await fetch(`/api/virus-scan/logs?${params}`, {
+      const response = await fetch(`${SCHOLARSHIP_API}/virus-scan/logs?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Accept': 'application/json',
@@ -96,7 +98,7 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
       const params = new URLSearchParams();
       if (filters.threat) params.append('threat', filters.threat);
 
-      const response = await fetch(`/api/virus-scan/quarantine?${params}`, {
+      const response = await fetch(`${SCHOLARSHIP_API}/virus-scan/quarantine?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Accept': 'application/json',

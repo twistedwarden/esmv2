@@ -325,18 +325,18 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
         <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:gap-4">
           {/* Search */}
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-400 w-4 h-4 sm:w-5 sm:h-5" />
               <input
                 type="text"
                 placeholder="Search by student name, ID, or school..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400"
               />
             </div>
           </div>
@@ -346,7 +346,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
             >
               <option value="all">All Status</option>
               <option value="submitted">Submitted</option>
@@ -361,7 +361,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')}
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
             >
               <option value="all">All Priority</option>
               <option value="low">Low</option>
@@ -370,13 +370,13 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
               <option value="urgent">Urgent</option>
             </select>
 
-            <div className="flex border border-gray-300 rounded-lg">
+            <div className="flex border border-gray-300 dark:border-slate-600 rounded-lg">
               <button
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-l-lg transition-colors ${
                   viewMode === 'table'
-                    ? 'bg-blue-100 text-blue-700 border-r border-gray-300'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-r border-gray-300 dark:border-slate-600'
+                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
                 }`}
               >
                 Table
@@ -385,8 +385,8 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-r-lg transition-colors ${
                   viewMode === 'grid'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
                 }`}
               >
                 Grid
@@ -398,16 +398,16 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
       {/* Results Summary */}
       <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <div className="text-xs sm:text-sm text-gray-600">
+        <div className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">
           Showing {filteredApplications.length} of {applications.length} applications
           {selectedApplications.length > 0 && (
-            <span className="ml-2 font-medium text-blue-600">
+            <span className="ml-2 font-medium text-blue-600 dark:text-blue-400">
               ({selectedApplications.length} selected)
             </span>
           )}
         </div>
         <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-2">
-          <button className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <button className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors text-gray-700 dark:text-slate-300">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
             <span className="sm:hidden">Export</span>
@@ -427,58 +427,58 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
       {/* Applications Table */}
       {viewMode === 'table' ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+              <thead className="bg-gray-50 dark:bg-slate-700">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
                       onChange={handleSelectAll}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-slate-700"
                     />
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Student</span>
                     <span className="sm:hidden">STUDENT</span>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">School</span>
                     <span className="sm:hidden">SCHOOL</span>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Amount</span>
                     <span className="sm:hidden">AMOUNT</span>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Status</span>
                     <span className="sm:hidden">STATUS</span>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Priority</span>
                     <span className="sm:hidden">PRIORITY</span>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Date</span>
                     <span className="sm:hidden">DATE</span>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Actions</span>
                     <span className="sm:hidden">ACTIONS</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                 {filteredApplications.map((application) => (
-                  <tr key={application.id} className="hover:bg-gray-50">
+                  <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedApplications.includes(application.id)}
                         onChange={() => handleSelectApplication(application.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-slate-700"
                       />
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
