@@ -27,7 +27,7 @@ function SADDistributionLogs({ onPageChange }) {
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
     // API base URL
-    const API_BASE = 'http://localhost:8002/api';
+    const API_BASE = 'https://aid-gsph.up.railway.app/api';
 
     // Fetch distribution logs from API
     const fetchDistributionLogs = async () => {

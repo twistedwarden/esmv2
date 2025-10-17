@@ -84,6 +84,23 @@ export const API_CONFIG = {
             APPLICATION_SCHEDULE_INTERVIEW_AUTO: (id) => `/api/applications/${id}/schedule-interview-auto`,
             APPLICATION_COMPLETE_INTERVIEW: (id) => `/api/applications/${id}/complete-interview`
         }
+    },
+    AID_SERVICE: {
+        BASE_URL: 'https://aid-gsph.up.railway.app',
+        ENDPOINTS: {
+            HEALTH: '/api/health',
+            APPLICATIONS: '/api/applications',
+            PAYMENTS: '/api/payments',
+            STATS: '/api/stats'
+        }
+    },
+    MONITORING_SERVICE: {
+        BASE_URL: 'https://monitoring-gsph.up.railway.app',
+        ENDPOINTS: {
+            HEALTH: '/api/health',
+            METRICS: '/api/metrics',
+            LOGS: '/api/logs'
+        }
     }
 };
 

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/v1authStore';
-import { Skeleton } from '../components/ui/Skeleton';
 import { ClickOrderCaptcha } from '../components/ClickOrderCaptcha';
 
 // Google OAuth types
@@ -47,6 +46,7 @@ export const GatewayLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info')
   const [isToastVisible, setIsToastVisible] = useState(false)
@@ -127,76 +127,20 @@ export const GatewayLogin: React.FC = () => {
     }
   }, [error, clearError])
 
-  // Show loading state when loading OR when user is authenticated (during navigation)
+  // Show splash screen when loading OR when user is authenticated (during navigation)
   if (isLoading || currentUser) {
 		return (
-      <div className="min-h-screen bg-app flex flex-col">
-        {/* Header Skeleton */}
-        <header className="py-2 bg-white/90 backdrop-blur sticky top-0 z-20 border-b border-gray-100">
-          <div className="mx-auto px-6 max-w-7xl">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <Skeleton variant="circular" width={64} height={64} />
-                <Skeleton variant="text" height={36} width={200} />
-              </div>
-              <Skeleton variant="text" height={20} width={150} />
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content Skeleton */}
-        <main className="mx-auto px-6 pt-4 pb-12 flex-1 max-w-7xl flex items-center justify-center">
-          <div className="grid lg:grid-cols-2 gap-12 place-items-center text-center lg:text-left w-full">
-            {/* Left headline skeleton */}
-            <div className="py-12 px-4 w-full">
-              <Skeleton variant="text" height={48} className="mb-4" />
-              <Skeleton variant="text" height={48} width="80%" />
-            </div>
-
-            {/* Right Login Card Skeleton */}
-            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm mx-auto w-full">
-              <div className="space-y-5">
-                <Skeleton variant="rectangular" height={48} />
-                <Skeleton variant="rectangular" height={48} />
-                <Skeleton variant="rectangular" height={48} />
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">OR</span>
-                  </div>
-                </div>
-                <Skeleton variant="rectangular" height={48} />
-                <Skeleton variant="text" height={16} className="text-center" />
-              </div>
-            </div>
-          </div>
-        </main>
-
-        {/* Footer Skeleton */}
-        <footer className="bg-primary-600 text-white py-4 mt-8">
-          <div className="mx-auto px-6 max-w-7xl">
-            <div className="flex flex-col lg:flex-row justify-between items-center">
-              <div className="text-center lg:text-left mb-2 lg:mb-0 space-y-2">
-                <Skeleton variant="text" height={20} width={300} className="bg-primary-500" />
-                <Skeleton variant="text" height={14} width={250} className="bg-primary-500" />
-              </div>
-              <div className="flex space-x-3">
-                <Skeleton variant="text" height={14} width={150} className="bg-primary-500" />
-              </div>
-            </div>
-        </div>
-      </footer>
-    </div>
-  )
-}
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <img src="/splash.svg" alt="Loading" className="splash-logo" />
+      </div>
+    )
+  }
 
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 		setSubmitting(true)
 		clearError()
-    const ok = await login(email, password, null)
+    const ok = await login(email, password, null, rememberMe)
 		setSubmitting(false)
 		if (ok) {
 			// Show splash screen before navigation
@@ -592,7 +536,7 @@ export const GatewayLogin: React.FC = () => {
     
     if (otpType === 'login') {
       // Handle login OTP verification
-      const success = await loginWithOtp(otpEmail, code)
+      const success = await loginWithOtp(otpEmail, code, rememberMe)
       setSubmitting(false)
       
       if (success) {
@@ -798,6 +742,8 @@ export const GatewayLogin: React.FC = () => {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
                   <span className="ml-2 text-gray-600 dark:text-slate-400">Remember me</span>

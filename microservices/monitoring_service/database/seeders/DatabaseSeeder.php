@@ -13,11 +13,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
+        // Create a test user for admin access
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Monitoring Admin',
+            'email' => 'admin@monitoring.local',
+        ]);
+
+        // Seed initial monitoring metrics (optional)
+        $this->call([
+            MonitoringSeeder::class,
         ]);
     }
 }

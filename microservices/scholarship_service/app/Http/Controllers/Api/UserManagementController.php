@@ -292,7 +292,7 @@ class UserManagementController extends Controller
             $user = $response->json('data');
 
             // Log user creation
-            // AuditLogService::logUserCreation($user);
+            AuditLogService::logUserCreation($user);
 
             // If role is staff, create staff record
             if ($validated['role'] === 'staff' && isset($user['id'])) {
@@ -548,6 +548,21 @@ class UserManagementController extends Controller
 
             if ($response->successful()) {
                 Log::info('User activated successfully', ['user_id' => $id]);
+                
+                // Log user activation
+                $user = $response->json('data');
+                if ($user) {
+                    AuditLogService::logAction(
+                        'UPDATE',
+                        'User activated: ' . ($user['email'] ?? 'Unknown'),
+                        'User',
+                        $id,
+                        ['is_active' => false],
+                        ['is_active' => true],
+                        ['activated_via' => 'admin_panel']
+                    );
+                }
+                
                 return response()->json([
                     'success' => true,
                     'message' => 'User activated successfully'
@@ -588,6 +603,18 @@ class UserManagementController extends Controller
 
             if ($response->successful()) {
                 Log::info('User permanently deleted successfully', ['user_id' => $id]);
+                
+                // Log permanent deletion
+                AuditLogService::logAction(
+                    'DELETE',
+                    'User permanently deleted: ID ' . $id,
+                    'User',
+                    $id,
+                    null,
+                    null,
+                    ['deletion_type' => 'permanent', 'deleted_via' => 'admin_panel']
+                );
+                
                 return response()->json([
                     'success' => true,
                     'message' => 'User permanently deleted successfully'

@@ -551,6 +551,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email|exists:users,email',
             'otp_code' => 'required|string|size:6',
+            'remember_me' => 'boolean|nullable',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -571,8 +572,11 @@ class AuthController extends Controller
         // Mark OTP as used
         $otp->markAsUsed();
 
-        // Create token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Create token with expiration based on remember me choice
+        $rememberMe = $request->boolean('remember_me', false);
+        $tokenName = $rememberMe ? 'auth-token-remember' : 'auth-token-session';
+        
+        $token = $user->createToken($tokenName, [], $rememberMe ? now()->addDays(30) : now()->addHours(24))->plainTextToken;
 
         return response()->json([
             'success' => true,

@@ -17,7 +17,7 @@ import PSDAnalytics from './modules/partnerSchool/PSDAnalytics'
 import PSDSettings from './modules/partnerSchool/PSDSettings'
 import UserManagement from './modules/UserManagement/UserManagement'
 import AuditLog from './modules/AuditLog/AuditLog'
-import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgressReport, AnalyticsCharts } from './modules/educationMonitoring'
+import { EducationDashboard, ReportGenerator, PerformanceAnalytics } from './modules/educationMonitoring'
 import SettingsOverview from './modules/settings/SettingsOverview'
 import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
 import MyInterviews from './modules/interviewer/MyInterviews'
@@ -118,16 +118,12 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 			return <div><PSDAnalytics /></div>
 		case 'psd-settings':
 			return <div><PSDSettings /></div>
-		case 'emr-overview':
-			return <div><EMROverview /></div>
-		case 'emr-academic-performance':
-			return <div><AcademicPerformanceReport /></div>
-		case 'emr-enrollment-statistics':
-			return <div><EnrollmentReport /></div>
-		case 'emr-student-progress':
-			return <div><StudentProgressReport /></div>
+		case 'emr-dashboard':
+			return <div><EducationDashboard /></div>
+		case 'emr-reports':
+			return <div><ReportGenerator /></div>
 		case 'emr-analytics':
-			return <div><AnalyticsCharts /></div>
+			return <div><PerformanceAnalytics /></div>
             case 'user-management':
                 return <div><UserManagement /></div>
             case 'audit-logs':

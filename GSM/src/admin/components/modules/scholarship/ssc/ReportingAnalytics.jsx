@@ -14,6 +14,7 @@ import {
   PieChart,
   Activity
 } from 'lucide-react';
+import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
 
 function ReportingAnalytics() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -24,84 +25,73 @@ function ReportingAnalytics() {
   const [chartData, setChartData] = useState({});
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        
-        // Mock data - replace with actual API calls
-        const mockStats = {
-          totalApplications: 1247,
-          approvedApplications: 892,
-          rejectedApplications: 234,
-          pendingApplications: 89,
-          underAppeal: 32,
-          averageProcessingTime: 3.2,
-          committeeMembers: 12,
-          activeMembers: 10,
-          thisMonthDecisions: 156,
-          lastMonthDecisions: 142,
-          approvalRate: 71.5,
-          averageScore: 7.8,
-          topPerformingMember: 'Dr. Maria Santos',
-          mostActiveMember: 'Prof. Juan Cruz'
-        };
-
-        const mockChartData = {
-          applicationsByMonth: [
-            { month: 'Jan', applications: 45, approved: 32, rejected: 8 },
-            { month: 'Feb', applications: 52, approved: 38, rejected: 10 },
-            { month: 'Mar', applications: 48, approved: 35, rejected: 9 },
-            { month: 'Apr', applications: 61, approved: 44, rejected: 12 },
-            { month: 'May', applications: 55, approved: 40, rejected: 11 },
-            { month: 'Jun', applications: 58, approved: 42, rejected: 13 }
-          ],
-          applicationsByCategory: [
-            { category: 'Academic Excellence', count: 456, percentage: 36.6 },
-            { category: 'Financial Need', count: 389, percentage: 31.2 },
-            { category: 'Leadership', count: 234, percentage: 18.8 },
-            { category: 'Special Circumstances', count: 168, percentage: 13.4 }
-          ],
-          applicationsBySchool: [
-            { school: 'University of the Philippines', count: 234, approved: 189 },
-            { school: 'Ateneo de Manila University', count: 189, approved: 156 },
-            { school: 'De La Salle University', count: 167, approved: 134 },
-            { school: 'University of Santo Tomas', count: 145, approved: 112 },
-            { school: 'Polytechnic University', count: 123, approved: 89 }
-          ],
-          memberPerformance: [
-            { member: 'Dr. Maria Santos', decisions: 45, avgScore: 8.2, approvalRate: 78.5 },
-            { member: 'Prof. Juan Cruz', decisions: 52, avgScore: 7.9, approvalRate: 75.0 },
-            { member: 'Dr. Ana Reyes', decisions: 38, avgScore: 8.1, approvalRate: 81.6 },
-            { member: 'Prof. Carlos Lopez', decisions: 41, avgScore: 7.7, approvalRate: 73.2 },
-            { member: 'Dr. Elena Torres', decisions: 35, avgScore: 8.0, approvalRate: 77.1 }
-          ],
-          processingTimeTrends: [
-            { week: 'Week 1', avgTime: 2.8 },
-            { week: 'Week 2', avgTime: 3.1 },
-            { week: 'Week 3', avgTime: 2.9 },
-            { week: 'Week 4', avgTime: 3.5 },
-            { week: 'Week 5', avgTime: 3.2 },
-            { week: 'Week 6', avgTime: 2.7 }
-          ]
-        };
-
-        setStats(mockStats);
-        setChartData(mockChartData);
-      } catch (err) {
-        setError('Failed to load analytics data');
-        console.error('Error loading analytics data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
   }, [dateRange]);
 
   const getPercentageChange = (current, previous) => {
     if (previous === 0) return 0;
     return ((current - previous) / previous * 100).toFixed(1);
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Fetch real data from API endpoints
+      const [sscStats, applicationsByType, applicationsByStatus, sscDecisions] = await Promise.all([
+        scholarshipApiService.getSscStatistics().catch(() => null),
+        scholarshipApiService.getApplicationsByType().catch(() => null),
+        scholarshipApiService.getApplicationsByStatus().catch(() => null),
+        scholarshipApiService.getAllSscDecisions({ per_page: 1000 }).catch(() => null)
+      ]);
+
+      // Process SSC statistics
+      if (sscStats) {
+        setStats({
+          totalApplications: sscStats.totalApplications || 0,
+          approvedApplications: sscStats.approved || 0,
+          rejectedApplications: sscStats.rejected || 0,
+          pendingApplications: sscStats.pendingReview || 0,
+          underAppeal: 0, // This would need a specific API endpoint
+          averageProcessingTime: sscStats.averageProcessingTime || 0,
+          committeeMembers: 0, // This would need a specific API endpoint
+          activeMembers: 0, // This would need a specific API endpoint
+          thisMonthDecisions: sscStats.thisMonthDecisions || 0,
+          lastMonthDecisions: 0, // This would need a specific API endpoint
+          approvalRate: sscStats.totalApplications > 0 ? 
+            ((sscStats.approved / sscStats.totalApplications) * 100).toFixed(1) : 0,
+          averageScore: 0, // This would need a specific API endpoint
+          topPerformingMember: 'N/A', // This would need a specific API endpoint
+          mostActiveMember: 'N/A' // This would need a specific API endpoint
+        });
+      }
+
+      // Process chart data from available API responses
+      const chartData = {
+        applicationsByMonth: [], // This would need a specific API endpoint
+        applicationsByCategory: applicationsByType ? 
+          applicationsByType.map(item => ({
+            category: item.category_name || 'Unknown',
+            count: item.count || 0,
+            percentage: item.percentage || 0
+          })) : [],
+        applicationsBySchool: [], // This would need a specific API endpoint
+        memberPerformance: [], // This would need a specific API endpoint
+        processingTimeTrends: [] // This would need a specific API endpoint
+      };
+
+      setChartData(chartData);
+    } catch (err) {
+      setError('Failed to load analytics data');
+      console.error('Error loading analytics data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    loadData();
   };
 
   const getChangeColor = (change) => {

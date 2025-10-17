@@ -1,14 +1,12 @@
-// Overview module
-export { EMROverview, DashboardHeader, KPICards, ReportCategories, ReportsList } from './overview';
+// Dashboard module
+export { EducationDashboard, MetricsPanel, AcademicInsights, QuickActions } from './dashboard';
 
-// Academic Performance module
-export { AcademicPerformanceReport } from './academicPerformance';
-
-// Enrollment Statistics module
-export { EnrollmentReport } from './enrollmentStatistics';
-
-// Student Progress module
-export { StudentProgressReport } from './studentProgress';
+// Reports module
+export { ReportGenerator, OutcomesReport } from './reports';
 
 // Analytics module
-export { AnalyticsCharts } from './analytics';
+export { PerformanceAnalytics, TrendAnalysis, ProgramEffectiveness } from './analytics';
+
+// Shared utilities
+export { educationDataService } from './shared/DataAggregator';
+export { BarChart, LineChart, PieChart } from './shared/ChartComponents';

@@ -20,6 +20,15 @@ use App\Http\Controllers\DashboardController;
 |
 */
 
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'service' => 'auth-service',
+        'timestamp' => now()->toISOString()
+    ]);
+});
+
 // Public authentication routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);

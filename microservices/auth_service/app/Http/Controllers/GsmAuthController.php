@@ -27,6 +27,7 @@ class GsmAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|string',
+            'remember_me' => 'boolean|nullable',
         ]);
 
         if ($validator->fails()) {
@@ -60,7 +61,11 @@ class GsmAuthController extends Controller
         }
 
         // No OTP required - login immediately
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Set token expiration based on remember me choice
+        $rememberMe = $request->boolean('remember_me', false);
+        $tokenName = $rememberMe ? 'auth-token-remember' : 'auth-token-session';
+        
+        $token = $user->createToken($tokenName, [], $rememberMe ? now()->addDays(30) : now()->addHours(24))->plainTextToken;
 
         // Get staff system role for staff users
         $systemRole = null;
@@ -135,6 +140,7 @@ class GsmAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
             'otp_code' => 'required|string|size:6',
+            'remember_me' => 'boolean|nullable',
         ]);
 
         if ($validator->fails()) {
@@ -179,8 +185,11 @@ class GsmAuthController extends Controller
         // Mark OTP as used
         $otp->markAsUsed();
 
-        // Create token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Create token with expiration based on remember me choice
+        $rememberMe = $request->boolean('remember_me', false);
+        $tokenName = $rememberMe ? 'auth-token-remember' : 'auth-token-session';
+        
+        $token = $user->createToken($tokenName, [], $rememberMe ? now()->addDays(30) : now()->addHours(24))->plainTextToken;
 
         // Get staff system role for staff users
         $systemRole = null;

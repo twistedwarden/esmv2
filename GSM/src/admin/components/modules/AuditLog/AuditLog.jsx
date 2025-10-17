@@ -20,30 +20,6 @@ import { getScholarshipServiceUrl } from '../../../../config/api';
 
 const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'https://scholarship-gsph.up.railway.app/api';
 
-// Mock data generation function
-const generateMockAuditLogs = () => {
-    const actions = ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'];
-    const userRoles = ['Admin', 'User', 'Moderator', 'Reviewer'];
-    const resourceTypes = ['User', 'Application', 'Document', 'School', 'Student'];
-    const statuses = ['success', 'failed', 'error'];
-    const users = ['admin@example.com', 'user@example.com', 'moderator@example.com', 'reviewer@example.com'];
-    
-    return Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
-        action: actions[Math.floor(Math.random() * actions.length)],
-        user_email: users[Math.floor(Math.random() * users.length)],
-        user_role: userRoles[Math.floor(Math.random() * userRoles.length)],
-        description: `Sample audit log entry ${i + 1}`,
-        resource_type: resourceTypes[Math.floor(Math.random() * resourceTypes.length)],
-        resource_id: Math.floor(Math.random() * 1000) + 1,
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        old_values: i % 2 === 0 ? { field: 'old_value' } : null,
-        new_values: i % 2 === 0 ? { field: 'new_value' } : null,
-        metadata: { ip_address: '192.168.1.1', user_agent: 'Mozilla/5.0...' },
-        error_message: i % 3 === 0 ? 'Sample error message' : null
-    }));
-};
 
 const AuditLog = () => {
     const [logs, setLogs] = useState([]);
@@ -86,45 +62,91 @@ const AuditLog = () => {
     const fetchLogs = async () => {
         setLoading(true);
         
-        // Use mock data directly instead of making API calls
-        setLogs(generateMockAuditLogs());
-        setPagination({
-            current_page: 1,
-            last_page: 1,
-            per_page: 25,
-            total: 5,
-            from: 1,
-            to: 5
-        });
-        setLoading(false);
+        try {
+            const params = new URLSearchParams({
+                page: pagination.current_page,
+                per_page: pagination.per_page,
+                ...filters,
+                search: searchTerm
+            });
+
+            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs?${params}`);
+            
+            if (response.data.success) {
+                setLogs(response.data.data);
+                setPagination(response.data.pagination);
+            } else {
+                console.error('Failed to fetch audit logs:', response.data.message);
+                setLogs([]);
+            }
+        } catch (error) {
+            console.error('Error fetching audit logs:', error);
+            setLogs([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchFilterOptions = async () => {
-        // Use mock filter options directly instead of making API calls
-        setFilterOptions({
-            actions: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'],
-            user_roles: ['Admin', 'User', 'Moderator', 'Reviewer'],
-            resource_types: ['User', 'Application', 'Document', 'School', 'Student'],
-            statuses: ['success', 'failed', 'error', 'pending']
-        });
+        try {
+            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs/filter-options`);
+            
+            if (response.data.success) {
+                setFilterOptions(response.data.data);
+            } else {
+                console.error('Failed to fetch filter options:', response.data.message);
+                // Fallback to default options
+                setFilterOptions({
+                    actions: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'],
+                    user_roles: ['admin', 'staff', 'citizen', 'ps_rep'],
+                    resource_types: ['User', 'Application', 'Document', 'School', 'Student'],
+                    statuses: ['success', 'failed', 'error']
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching filter options:', error);
+            // Fallback to default options
+            setFilterOptions({
+                actions: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'],
+                user_roles: ['admin', 'staff', 'citizen', 'ps_rep'],
+                resource_types: ['User', 'Application', 'Document', 'School', 'Student'],
+                statuses: ['success', 'failed', 'error']
+            });
+        }
     };
 
     const fetchStatistics = async () => {
-        // Use mock statistics directly instead of making API calls
-        setStatistics({
-            total_logs: 1247,
-            by_status: {
-                success: 1156,
-                failed: 67,
-                error: 24
-            },
-            by_user_role: {
-                'Admin': 45,
-                'User': 892,
-                'Moderator': 234,
-                'Reviewer': 76
+        try {
+            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs/statistics`);
+            
+            if (response.data.success) {
+                setStatistics(response.data.data);
+            } else {
+                console.error('Failed to fetch statistics:', response.data.message);
+                // Fallback to default statistics
+                setStatistics({
+                    total_logs: 0,
+                    by_status: {
+                        success: 0,
+                        failed: 0,
+                        error: 0
+                    },
+                    by_user_role: {}
+                });
             }
-        });
+        } catch (error) {
+            console.error('Error fetching statistics:', error);
+            // Fallback to default statistics
+            setStatistics({
+                total_logs: 0,
+                by_status: {
+                    success: 0,
+                    failed: 0,
+                    error: 0
+                },
+                by_user_role: {}
+            });
+        }
     };
 
     const handleFilterChange = (key, value) => {
@@ -167,17 +189,32 @@ const AuditLog = () => {
     };
 
     const exportLogs = async () => {
-        // Export mock data directly instead of making API calls
-        const mockData = generateMockAuditLogs();
-        const blob = new Blob([JSON.stringify(mockData, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        try {
+            const params = new URLSearchParams({
+                ...filters,
+                search: searchTerm
+            });
+
+            const response = await axios.get(`${SCHOLARSHIP_API}/audit-logs/export?${params}`);
+            
+            if (response.data.success) {
+                const blob = new Blob([JSON.stringify(response.data.data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                console.error('Failed to export audit logs:', response.data.message);
+                alert('Failed to export audit logs. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error exporting audit logs:', error);
+            alert('Error exporting audit logs. Please try again.');
+        }
     };
 
     const getActionBadgeColor = (action) => {
