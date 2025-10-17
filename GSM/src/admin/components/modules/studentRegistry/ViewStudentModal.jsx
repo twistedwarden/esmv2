@@ -38,7 +38,10 @@ function ViewStudentModal({ isOpen, onClose, student }) {
         return () => { isCancelled = true; };
     }, [isOpen, student?.student_uuid]);
 
-    if (!isOpen) return null;
+    // Show modal when open
+    if (!isOpen) {
+        return null;
+    }
 
     const program = details?.program || '—';
     const courses = details?.course_registrations || details?.courses || [];

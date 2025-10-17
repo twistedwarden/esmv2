@@ -111,7 +111,10 @@ const SchoolAidDistribution = () => {
   };
 
   const renderTabContent = () => {
-    if (!activeTabConfig || !activeTabConfig.component) return null;
+    // Show tab content when active tab config is available
+    if (!activeTabConfig || !activeTabConfig.component) {
+      return null;
+    }
     
     const Component = activeTabConfig.component;
     const submoduleConfig = {

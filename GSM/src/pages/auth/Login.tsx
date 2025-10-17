@@ -30,43 +30,41 @@ export const Login: React.FC = () => {
 		}
 	}, [currentUser, isLoading, navigate, fromPath])
 
-	// Show loading skeleton while checking authentication
-	if (isLoading) {
-		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-				<div className="max-w-md w-full space-y-8">
-					{/* Header Skeleton */}
-					<div className="text-center">
-						<Skeleton variant="circular" width={48} height={48} className="mx-auto mb-4" />
-						<Skeleton variant="text" height={32} width={200} className="mx-auto" />
-					</div>
+	// Show loading skeleton while checking authentication OR don't render if already authenticated
+	if (isLoading || currentUser) {
+		if (isLoading) {
+			return (
+				<div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+					<div className="max-w-md w-full space-y-8">
+						{/* Header Skeleton */}
+						<div className="text-center">
+							<Skeleton variant="circular" width={48} height={48} className="mx-auto mb-4" />
+							<Skeleton variant="text" height={32} width={200} className="mx-auto" />
+						</div>
 
-					{/* Login Form Skeleton */}
-					<div className="bg-white rounded-lg shadow-lg p-6">
-						<div className="space-y-6">
-							<SkeletonInput />
-							<SkeletonInput />
-							<SkeletonButton width="100%" />
+						{/* Login Form Skeleton */}
+						<div className="bg-white rounded-lg shadow-lg p-6">
+							<div className="space-y-6">
+								<SkeletonInput />
+								<SkeletonInput />
+								<SkeletonButton width="100%" />
+							</div>
+						</div>
+
+						{/* Note Skeleton */}
+						<div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+							<Skeleton variant="text" height={16} className="mb-2" />
+							<Skeleton variant="text" height={16} width="90%" />
+						</div>
+
+						{/* Back Button Skeleton */}
+						<div className="text-center">
+							<SkeletonButton width={150} className="mx-auto" />
 						</div>
 					</div>
-
-					{/* Note Skeleton */}
-					<div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-						<Skeleton variant="text" height={16} className="mb-2" />
-						<Skeleton variant="text" height={16} width="90%" />
-					</div>
-
-					{/* Back Button Skeleton */}
-					<div className="text-center">
-						<SkeletonButton width={150} className="mx-auto" />
-					</div>
 				</div>
-			</div>
-		)
-	}
-
-	// Don't render login form if already authenticated
-	if (currentUser) {
+			)
+		}
 		return null
 	}
 

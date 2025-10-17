@@ -26,7 +26,8 @@ function RequireAdmin() {
 	const currentUser = useAuthStore(s => s.currentUser)
 	const isLoading = useAuthStore(s => s.isLoading)
 
-	// Show loading spinner while checking authentication
+	// CRITICAL: Always show loading spinner while isLoading is true
+	// This ensures we wait for initializeAuth() to complete before checking roles
 	if (isLoading) {
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
@@ -38,7 +39,7 @@ function RequireAdmin() {
 		)
 	}
 
-	// Redirect to login if not authenticated
+	// After loading completes, check if user is authenticated
 	if (!currentUser) {
 		return <Navigate to="/" replace state={{ from: location }} />
 	}
@@ -50,8 +51,19 @@ function RequireAdmin() {
 
 	// For staff users, they must have a system_role from scholarship service
 	if (currentUser.role === 'staff') {
+		// Log current user data for debugging
+		console.log('✅ Staff user authorization check:', {
+			user_id: currentUser.id,
+			role: currentUser.role,
+			system_role: currentUser.system_role,
+			department: currentUser.department,
+			position: currentUser.position,
+			isLoading: isLoading
+		});
+		
 		if (!currentUser.system_role) {
 			// Staff without system_role - show access denied
+			console.error('Staff user missing system_role. User data:', currentUser);
 			return (
 				<div className="min-h-screen flex items-center justify-center bg-gray-50">
 					<div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
@@ -64,9 +76,21 @@ function RequireAdmin() {
 						<p className="text-sm text-gray-500 mb-4">
 							You need to be registered as staff in the scholarship system to access this dashboard. Please contact your administrator.
 						</p>
+						<details className="mt-4 text-left">
+							<summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Debug Info (for developers)</summary>
+							<pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+								{JSON.stringify({ 
+									user_id: currentUser.id, 
+									role: currentUser.role,
+									system_role: currentUser.system_role,
+									department: currentUser.department,
+									position: currentUser.position
+								}, null, 2)}
+							</pre>
+						</details>
 						<button 
 							onClick={() => window.location.href = '/'}
-							className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+							className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4"
 						>
 							Return to Login
 						</button>
@@ -75,6 +99,7 @@ function RequireAdmin() {
 			)
 		}
 		// Staff with system_role can proceed
+		console.log('Staff user authorized with system_role:', currentUser.system_role);
 		return <AdminApp />
 	}
 

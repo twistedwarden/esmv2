@@ -32,7 +32,10 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     }
   }, [isOpen, secondsRemaining])
 
-  if (!isOpen) return null
+  // Show modal when open
+  if (!isOpen) {
+    return null
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">

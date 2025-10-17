@@ -10,7 +10,10 @@ const UserActionModal = ({
     onPermanentDelete,
     isLoading 
 }) => {
-    if (!isOpen || !user) return null;
+    // Show modal when open and user is available
+    if (!isOpen || !user) {
+        return null;
+    }
 
     const isActive = user.is_active;
 

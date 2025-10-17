@@ -92,21 +92,46 @@ class AuthController extends Controller
     {
         $user = $request->user();
         
+        $userData = [
+            'id' => $user->id,
+            'citizen_id' => $user->citizen_id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'middle_name' => $user->middle_name,
+            'extension_name' => $user->extension_name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+            'assigned_school_id' => $user->assigned_school_id,
+        ];
+
+        // If user is staff, fetch their staff details from scholarship service
+        if ($user->role === 'staff') {
+            try {
+                $scholarshipServiceUrl = env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8002');
+                
+                $response = \Illuminate\Support\Facades\Http::timeout(5)
+                    ->get($scholarshipServiceUrl . '/api/staff/user/' . $user->id);
+                
+                if ($response->successful()) {
+                    $staffData = $response->json();
+                    
+                    if (isset($staffData['success']) && $staffData['success'] && isset($staffData['data'])) {
+                        $userData['system_role'] = $staffData['data']['system_role'] ?? null;
+                        $userData['department'] = $staffData['data']['department'] ?? null;
+                        $userData['position'] = $staffData['data']['position'] ?? null;
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to fetch staff details: ' . $e->getMessage());
+                // Continue without staff details - frontend will handle missing system_role
+            }
+        }
+        
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'citizen_id' => $user->citizen_id,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'middle_name' => $user->middle_name,
-                    'extension_name' => $user->extension_name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'is_active' => $user->is_active,
-                    'assigned_school_id' => $user->assigned_school_id,
-                ]
+                'user' => $userData
             ]
         ]);
     }
@@ -162,7 +187,7 @@ class AuthController extends Controller
         // Generate citizen ID
         $citizenId = 'CC' . date('Y') . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
 
-        // Create user with email_verified_at = null (unverified)
+        // Create user with email_verified_at = now (verified) and status = active
         $user = User::create([
             'citizen_id' => $citizenId,
             'first_name' => $request->firstName,
@@ -178,40 +203,39 @@ class AuthController extends Controller
             'barangay' => $request->barangay,
             'password' => Hash::make($request->regPassword),
             'role' => 'citizen',
-            'email_verified_at' => null, // Email verification pending
-            'status' => 'pending_verification',
-            'email_verification_token' => Str::random(60),
+            'email_verified_at' => now(), // Email verified immediately
+            'status' => 'active', // Set to active immediately
+            'email_verification_token' => null, // No token needed
         ]);
 
-        // Generate and send OTP via Brevo
-        try {
-            $otp = OtpVerification::generateOtp($user->id, 'email_verification');
-            $userName = trim($user->first_name . ' ' . $user->last_name);
-            
-            $this->brevoService->sendOtpEmail(
-                $user->email,
-                $userName,
-                $otp->otp_code,
-                $otp->expires_at
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to send OTP email: ' . $e->getMessage());
-            // Continue registration even if email fails
-        }
+        // No OTP required - user is immediately active
+
+        // Create authentication token for automatic login
+        $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful. Please check your email for OTP verification code.',
+            'message' => 'Registration successful! You are now logged in.',
             'data' => [
                 'user' => [
                     'id' => $user->id,
                     'citizen_id' => $user->citizen_id,
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'extension_name' => $user->extension_name,
                     'email' => $user->email,
+                    'mobile' => $user->mobile,
+                    'birthdate' => $user->birthdate,
+                    'address' => $user->address,
+                    'house_number' => $user->house_number,
+                    'street' => $user->street,
+                    'barangay' => $user->barangay,
+                    'role' => $user->role,
                     'status' => $user->status,
                 ],
-                'requires_otp' => true
+                'token' => $token,
+                'requires_otp' => false
             ]
         ], 201);
     }

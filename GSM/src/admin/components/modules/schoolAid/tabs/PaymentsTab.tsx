@@ -322,7 +322,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   const renderProcessingProgress = (application: ScholarshipApplication) => {
     const processingState = processingStates[application.id];
-    if (!processingState?.isProcessing) return null;
+    // Show processing progress when processing
+    if (!processingState?.isProcessing) {
+      return null;
+    }
 
     return (
       <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">

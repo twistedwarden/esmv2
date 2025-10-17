@@ -28,7 +28,10 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Show modal when open
+  if (!isOpen) {
+    return null
+  };
 
   const sizeClasses = {
     sm: 'max-w-md',

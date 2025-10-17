@@ -81,6 +81,9 @@ Route::prefix('public')->group(function () {
     Route::get('/staff/verify/{userId}', [StaffController::class, 'verifyStaff']);
 });
 
+// Staff endpoints for auth service to fetch staff details
+Route::get('/staff/user/{userId}', [StaffController::class, 'getStaffByUserId']);
+
 // Public student routes (must be before protected students group to avoid conflicts)
 Route::get('/students/statistics', [StudentController::class, 'getStatistics']);
 Route::get('/students', [StudentController::class, 'index']);

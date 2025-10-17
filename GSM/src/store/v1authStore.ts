@@ -17,6 +17,8 @@ export type AuthUser = {
 	barangay?: string
 	role: UserRole
 	system_role?: 'interviewer' | 'reviewer' | 'administrator' | 'coordinator'
+	department?: string
+	position?: string
 	is_active: boolean
 }
 
@@ -86,6 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 		// Validate token with backend
 		try {
+			console.log('🔍 Fetching user data from:', `${API_BASE_URL}/user`)
 			const response = await fetch(`${API_BASE_URL}/user`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
@@ -94,6 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 			})
 
 			const data = await response.json()
+			console.log('📡 User API response:', data)
 
 			if (data.success) {
 				const userData = {
@@ -113,6 +117,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 					role: data.data.user.role,
 					// Use system_role from API if available, otherwise fallback to stored data
 					system_role: data.data.user.system_role || fallbackUserData?.system_role,
+					department: data.data.user.department || fallbackUserData?.department,
+					position: data.data.user.position || fallbackUserData?.position,
 					is_active: data.data.user.is_active,
 				};
 				
@@ -208,6 +214,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     barangay: user.barangay,
                     role: user.role,
                     system_role: user.system_role,
+                    department: user.department,
+                    position: user.position,
                     is_active: user.status === 'active',
                 };
                 
@@ -274,13 +282,53 @@ register: async (userData: any, captchaToken?: string | null) => {
 			}
 
 			if (data.success) {
-				set({ error: null })
-				
-				// Trigger notification for new user registration
-				// This will be handled by the notification context
-				window.dispatchEvent(new CustomEvent('userRegistered'));
-				
-				return true
+				// Check if user is immediately logged in (no OTP required)
+				if (data.data.token && data.data.user) {
+					const { user, token } = data.data
+					const userData = {
+						id: String(user.id),
+						citizen_id: user.citizen_id ?? '',
+						email: user.email,
+						first_name: user.first_name,
+						last_name: user.last_name,
+						middle_name: user.middle_name,
+						extension_name: user.extension_name,
+						mobile: user.mobile,
+						birthdate: user.birthdate,
+						address: user.address,
+						house_number: user.house_number,
+						street: user.street,
+						barangay: user.barangay,
+						role: user.role,
+						system_role: user.system_role,
+						department: user.department,
+						position: user.position,
+						is_active: user.status === 'active',
+					};
+					
+					// Save user data to localStorage for API service
+					localStorage.setItem('user_data', JSON.stringify(userData));
+					
+					set({ 
+						currentUser: userData, 
+						token, 
+						error: null 
+					})
+					localStorage.setItem('auth_token', token)
+					
+					// Trigger notification for new user registration
+					window.dispatchEvent(new CustomEvent('userRegistered'));
+					
+					return true
+				} else {
+					// OTP required (legacy flow)
+					set({ error: null })
+					
+					// Trigger notification for new user registration
+					window.dispatchEvent(new CustomEvent('userRegistered'));
+					
+					return true
+				}
 			} else {
 				set({ error: data.message || 'Registration failed' })
 				return false
@@ -475,6 +523,8 @@ googleRegister: async (code: string, additionalData: any, captchaToken?: string 
 					barangay: user.barangay,
 					role: user.role,
 					system_role: user.system_role,
+					department: user.department,
+					position: user.position,
 					is_active: user.is_active,
 				}
 				

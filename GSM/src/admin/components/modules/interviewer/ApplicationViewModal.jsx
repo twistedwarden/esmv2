@@ -18,7 +18,10 @@ import {
 function ApplicationViewModal({ isOpen, onClose, application }) {
   const [activeTab, setActiveTab] = useState('personal');
 
-  if (!isOpen || !application) return null;
+  // Show modal when open and application is available
+  if (!isOpen || !application) {
+    return null;
+  }
 
   const student = application.student;
   const school = application.school;

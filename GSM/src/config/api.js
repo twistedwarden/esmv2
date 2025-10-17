@@ -1,8 +1,8 @@
 // API Configuration
 export const API_CONFIG = {
     AUTH_SERVICE: {
-        // Local auth service
-        BASE_URL: 'http://localhost:8000',
+        // Production auth service
+        BASE_URL: 'https://auth-gsph.up.railway.app',
         ENDPOINTS: {
             LOGIN: '/api/login',
             LOGOUT: '/api/logout',
@@ -11,7 +11,7 @@ export const API_CONFIG = {
         }
     },
     SCHOLARSHIP_SERVICE: {
-        BASE_URL: 'http://localhost:8002',
+        BASE_URL: 'https://scholarship-gsph.up.railway.app',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
@@ -94,7 +94,7 @@ export const API_CONFIG = {
         }
     },
     MONITORING_SERVICE: {
-        BASE_URL: 'http://localhost:8004',
+        BASE_URL: 'https://monitoring-gsph.up.railway.app',
         ENDPOINTS: {
             HEALTH: '/api/health',
             METRICS: '/api/metrics',

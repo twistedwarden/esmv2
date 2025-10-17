@@ -119,6 +119,7 @@ export const GatewayLogin: React.FC = () => {
 		}
 	}, [currentUser, isLoading, navigate])
 
+<<<<<<< HEAD
   // Debug: Log environment variables on component render
   console.log('🔍 ENVIRONMENT DEBUG:', {
     VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -132,6 +133,8 @@ export const GatewayLogin: React.FC = () => {
   // Check if Google OAuth is properly configured
   const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
+=======
+>>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
   // Handle password-related errors as toast
   useEffect(() => {
     if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
@@ -140,8 +143,13 @@ export const GatewayLogin: React.FC = () => {
     }
   }, [error, clearError])
 
+<<<<<<< HEAD
   // Early returns must be after all hooks
   if (isLoading) {
+=======
+  // Show loading state when loading OR when user is authenticated (during navigation)
+  if (isLoading || currentUser) {
+>>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
 		return (
       <div className="min-h-screen bg-app flex flex-col">
         {/* Header Skeleton */}
@@ -205,6 +213,7 @@ export const GatewayLogin: React.FC = () => {
   )
 }
 
+<<<<<<< HEAD
   // Show loading state for authenticated users (they will be redirected by useEffect)
   if (currentUser) {
     return (
@@ -217,6 +226,8 @@ export const GatewayLogin: React.FC = () => {
     )
   }
 
+=======
+>>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 		setSubmitting(true)
@@ -402,12 +413,10 @@ export const GatewayLogin: React.FC = () => {
     setSubmitting(false)
     
     if (success) {
-      showNotification('Registration successful! Please check your email for OTP verification.', 'success')
-      setOtpEmail(registrationData.regEmail)
-      setOtpType('registration')
+      showNotification('Registration successful! You are now logged in.', 'success')
+      // User is automatically logged in, no need for OTP
       setShowRegister(false)
-      setShowOtp(true)
-      startOtpTimer()
+      // The useEffect will handle navigation based on user role
     } else {
       showNotification('Registration failed. Please try again.', 'error')
     }
@@ -728,6 +737,23 @@ export const GatewayLogin: React.FC = () => {
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Debug: Log environment variables on component render
+  console.log('🔍 ENVIRONMENT DEBUG:', {
+    VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    hasGoogleClientId: !!import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    clientIdLength: import.meta.env.VITE_GOOGLE_CLIENT_ID?.length || 0,
+    mode: import.meta.env.MODE,
+    dev: import.meta.env.DEV,
+    prod: import.meta.env.PROD,
+    allViteEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+  })
+  
+  // Check if Google OAuth is properly configured
+  const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+>>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
 	return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">
 				{/* Header */}
@@ -735,8 +761,8 @@ export const GatewayLogin: React.FC = () => {
         <div className="mx-auto px-6 max-w-7xl">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                <img src="/GSM_logo.png" alt="Logo" className="h-6 w-auto" />
+              <div className="flex items-center justify-center">
+                <img src="/GSM_logo.png" alt="Logo" className="h-14 w-auto" />
               </div>
               <h1 className="text-2xl font-bold">
                 <span className="text-secondary-600 dark:text-secondary-400">Go</span>

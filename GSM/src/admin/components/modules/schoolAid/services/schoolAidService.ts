@@ -1,7 +1,7 @@
 // School Aid Distribution Service
 import { ScholarshipApplication, PaymentRecord, ProcessingMetrics } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_AID_API_URL || 'http://localhost:8002/api';
+const API_BASE_URL = import.meta.env.VITE_AID_API_URL || 'https://aid-gsph.up.railway.app/api';
 
 class SchoolAidService {
   // Applications

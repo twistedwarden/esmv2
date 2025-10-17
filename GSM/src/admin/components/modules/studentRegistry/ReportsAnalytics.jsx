@@ -221,7 +221,10 @@ function ReportsAnalytics() {
     };
 
     const renderReportContent = () => {
-        if (!reportData) return null;
+        // Show report content when report data is available
+        if (!reportData) {
+            return null;
+        }
 
         switch (selectedReport) {
             case 'demographics':

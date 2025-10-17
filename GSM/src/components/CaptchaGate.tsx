@@ -19,7 +19,10 @@ const CaptchaGate: React.FC<CaptchaGateProps> = ({ onVerified, size = 'normal', 
     onVerified(val)
   }
 
-  if (!siteKey) return null
+  // Show captcha when site key is available
+  if (!siteKey) {
+    return null
+  }
 
   return (
     <div className={className}>

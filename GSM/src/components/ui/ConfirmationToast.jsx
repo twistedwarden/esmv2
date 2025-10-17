@@ -11,7 +11,10 @@ const ConfirmationToast = ({
   onConfirm, 
   onCancel 
 }) => {
-  if (!isVisible) return null;
+  // Show toast when visible
+  if (!isVisible) {
+    return null;
+  }
 
   const getIcon = () => {
     switch (type) {

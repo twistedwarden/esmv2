@@ -59,34 +59,51 @@ class GsmAuthController extends Controller
             ], 401);
         }
 
-        // Generate and send OTP for login verification
-        try {
-            $otp = OtpVerification::generateOtp($user->id, 'login');
-            $userName = trim($user->first_name . ' ' . $user->last_name);
-            
-            $this->brevoService->sendLoginOtpEmail(
-                $user->email,
-                $userName,
-                $otp->otp_code,
-                $otp->expires_at
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send OTP. Please try again.',
-                'data' => null,
-                'timestamp' => now()->format('Y-m-d H:i:s'),
-            ], 500);
+        // No OTP required - login immediately
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Get staff details for staff users
+        $staffData = null;
+        if ($user->role === 'staff') {
+            $staffData = $this->getStaffSystemRole($user->id);
+        }
+
+        $userData = [
+            'id' => $user->id,
+            'citizen_id' => $user->citizen_id,
+            'email' => $user->email,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'middle_name' => $user->middle_name,
+            'extension_name' => $user->extension_name,
+            'mobile' => $user->mobile,
+            'birthdate' => $user->birthdate,
+            'address' => $user->address,
+            'house_number' => $user->house_number,
+            'street' => $user->street,
+            'barangay' => $user->barangay,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+        ];
+
+        // Merge staff data if available
+        if ($staffData) {
+            $userData['system_role'] = $staffData['system_role'];
+            $userData['department'] = $staffData['department'];
+            $userData['position'] = $staffData['position'];
+        } else {
+            $userData['system_role'] = null;
+            $userData['department'] = null;
+            $userData['position'] = null;
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'OTP sent to your email. Please verify to complete login.',
+            'message' => 'Login successful',
             'data' => [
-                'email' => $user->email,
-                'requires_otp' => true,
-                'expires_in' => 600 // 10 minutes
+                'user' => $userData,
+                'token' => $token,
+                'requires_otp' => false
             ],
             'timestamp' => now()->format('Y-m-d H:i:s'),
         ]);
@@ -177,34 +194,46 @@ class GsmAuthController extends Controller
         // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        // Get staff system role for staff users
-        $systemRole = null;
+        // Get staff details for staff users
+        $staffData = null;
         if ($user->role === 'staff') {
-            $systemRole = $this->getStaffSystemRole($user->id);
+            $staffData = $this->getStaffSystemRole($user->id);
+        }
+
+        $userData = [
+            'id' => $user->id,
+            'citizen_id' => $user->citizen_id,
+            'email' => $user->email,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'middle_name' => $user->middle_name,
+            'extension_name' => $user->extension_name,
+            'mobile' => $user->mobile,
+            'birthdate' => $user->birthdate,
+            'address' => $user->address,
+            'house_number' => $user->house_number,
+            'street' => $user->street,
+            'barangay' => $user->barangay,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+        ];
+
+        // Merge staff data if available
+        if ($staffData) {
+            $userData['system_role'] = $staffData['system_role'];
+            $userData['department'] = $staffData['department'];
+            $userData['position'] = $staffData['position'];
+        } else {
+            $userData['system_role'] = null;
+            $userData['department'] = null;
+            $userData['position'] = null;
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'citizen_id' => $user->citizen_id,
-                    'email' => $user->email,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'middle_name' => $user->middle_name,
-                    'extension_name' => $user->extension_name,
-                    'mobile' => $user->mobile,
-                    'birthdate' => $user->birthdate,
-                    'address' => $user->address,
-                    'house_number' => $user->house_number,
-                    'street' => $user->street,
-                    'barangay' => $user->barangay,
-                    'role' => $user->role,
-                    'system_role' => $systemRole,
-                    'is_active' => $user->is_active,
-                ],
+                'user' => $userData,
                 'token' => $token
             ],
             'timestamp' => now()->format('Y-m-d H:i:s'),
@@ -212,25 +241,30 @@ class GsmAuthController extends Controller
     }
 
     /**
-     * Get staff system role from scholarship service
+     * Get staff details from scholarship service
      */
     private function getStaffSystemRole($userId)
     {
         try {
-            $scholarshipServiceUrl = config('services.scholarship_service.url', 'http://localhost:8001');
+            $scholarshipServiceUrl = env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8002');
             
-            $response = \Illuminate\Support\Facades\Http::timeout(10)
-                ->get("{$scholarshipServiceUrl}/api/public/staff/verify/{$userId}");
+            $response = \Illuminate\Support\Facades\Http::timeout(5)
+                ->get("{$scholarshipServiceUrl}/api/staff/user/{$userId}");
             
             if ($response->successful()) {
                 $data = $response->json();
-                if ($data['success'] && isset($data['data']['system_role'])) {
-                    return $data['data']['system_role'];
+                if ($data['success'] && isset($data['data'])) {
+                    // Return full staff data array
+                    return [
+                        'system_role' => $data['data']['system_role'] ?? null,
+                        'department' => $data['data']['department'] ?? null,
+                        'position' => $data['data']['position'] ?? null,
+                    ];
                 }
             }
         } catch (\Exception $e) {
             // Log error but don't fail login
-            \Illuminate\Support\Facades\Log::warning('Failed to fetch staff system role', [
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch staff details from scholarship service', [
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
