@@ -170,7 +170,7 @@ export const Navbar: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
                   <span>Welcome,</span>
-                  <span className="font-medium text-orange-600">{currentUser.name}</span>
+                  <span className="font-medium text-orange-600">{currentUser.first_name} {currentUser.last_name}</span>
                 </div>
                 {currentUser.role === 'admin' && (
                   <Link
