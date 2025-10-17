@@ -282,10 +282,16 @@ class UserManagementController extends Controller
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
+                
+                $errorData = $response->json();
+                $errorMessage = $errorData['message'] ?? 'Failed to create user in auth service';
+                $errors = $errorData['errors'] ?? [];
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create user in auth service',
-                    'errors' => $response->json('errors', [])
+                    'message' => $errorMessage,
+                    'errors' => $errors,
+                    'details' => $response->body()
                 ], $response->status());
             }
 

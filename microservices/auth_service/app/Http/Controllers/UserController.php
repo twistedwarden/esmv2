@@ -284,6 +284,8 @@ class UserController extends Controller
     public function createUser(Request $request): JsonResponse
     {
         try {
+            \Log::info('Creating user with data:', $request->all());
+            
             $validated = $request->validate([
                 'citizen_id' => 'required|string|unique:users,citizen_id',
                 'email' => 'required|email|unique:users,email',
@@ -302,12 +304,16 @@ class UserController extends Controller
                 'assigned_school_id' => 'nullable|integer',
             ]);
 
+            \Log::info('Validation passed, creating user');
+
             $user = User::create([
                 ...$validated,
                 'password' => bcrypt($validated['password']),
                 'is_active' => true,
                 'status' => 'active',
             ]);
+
+            \Log::info('User created successfully', ['user_id' => $user->id]);
 
             return response()->json([
                 'success' => true,
@@ -326,7 +332,47 @@ class UserController extends Controller
                 ],
                 'message' => 'User created successfully'
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('User creation validation failed', [
+                'errors' => $e->errors(),
+                'request' => $request->all()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Database error creating user', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'request' => $request->all()
+            ]);
+            
+            // Check for duplicate entry errors
+            if ($e->getCode() == 23000) {
+                $message = 'A user with this citizen ID or email already exists';
+                if (str_contains($e->getMessage(), 'citizen_id')) {
+                    $message = 'A user with this citizen ID already exists';
+                } elseif (str_contains($e->getMessage(), 'email')) {
+                    $message = 'A user with this email already exists';
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => $message
+                ], 409);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ], 500);
         } catch (\Exception $e) {
+            \Log::error('Error creating user', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create user: ' . $e->getMessage()
