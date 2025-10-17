@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import notificationService from '../../services/notificationService';
 import axios from 'axios';
+import { getScholarshipServiceUrl } from '../../config/api';
 
 interface NotificationCounts {
   scholarship: {
@@ -62,7 +63,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const fetchNotificationCounts = async () => {
     setIsLoading(true);
     try {
-      const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
+      const SCHOLARSHIP_API = getScholarshipServiceUrl('/api');
       
       // Fetch scholarship application counts
       let scholarshipApplications = 0;

@@ -1,8 +1,10 @@
 import { scholarshipApiService } from './scholarshipApiService';
 
+import { getScholarshipServiceUrl } from '../config/api';
+
 class StudentRegistrationService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
+    this.baseURL = getScholarshipServiceUrl('/api');
   }
 
   /**

@@ -4,8 +4,9 @@ import axios from 'axios';
 import UserActionModal from './UserActionModal';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import { LoadingUsers } from '../../ui/LoadingSpinner';
+import { getScholarshipServiceUrl } from '../../../../config/api';
 
-const SCHOLARSHIP_API = import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api';
+const SCHOLARSHIP_API = getScholarshipServiceUrl('/api');
 
 const UserManagement = () => {
     const [users, setUsers] = useState({
@@ -19,6 +20,7 @@ const UserManagement = () => {
     });
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedRole, setSelectedRole] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -78,6 +80,13 @@ const UserManagement = () => {
         fetchSchools();
     }, []);
 
+    // Refetch users when status filter changes
+    useEffect(() => {
+        if (selectedStatus !== undefined) {
+            fetchUsers();
+        }
+    }, [selectedStatus]);
+
     // Filter schools based on search term
     useEffect(() => {
         if (schoolSearchTerm) {
@@ -94,7 +103,7 @@ const UserManagement = () => {
 
     useEffect(() => {
         filterUsers();
-    }, [selectedRole, searchTerm, users]);
+    }, [selectedRole, selectedStatus, searchTerm, users]);
 
     // Auto-generate ID when role changes
     useEffect(() => {
@@ -106,8 +115,12 @@ const UserManagement = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            console.log('Fetching users from:', `${SCHOLARSHIP_API}/users`);
-            const response = await axios.get(`${SCHOLARSHIP_API}/users`);
+            const params = {};
+            if (selectedStatus !== 'all') {
+                params.status = selectedStatus;
+            }
+            console.log('Fetching users from:', `${SCHOLARSHIP_API}/users`, 'with params:', params);
+            const response = await axios.get(`${SCHOLARSHIP_API}/users`, { params });
             console.log('Users API response:', response.data);
             
             if (response.data.success) {
@@ -234,6 +247,7 @@ const UserManagement = () => {
             allUsers = (users.ssc_education_affairs || []).map(u => ({ ...u, roleType: 'SSC - Education Affairs' }));
         }
 
+        // Filter by search term
         if (searchTerm) {
             allUsers = allUsers.filter(user => 
                 user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -242,6 +256,8 @@ const UserManagement = () => {
                 user.citizen_id?.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
+
+        // Status filtering is now handled server-side in fetchUsers()
 
         setFilteredUsers(allUsers);
     };
@@ -863,6 +879,19 @@ const UserManagement = () => {
                             <option value="ssc_city_council">SSC - City Council</option>
                             <option value="ssc_budget_dept">SSC - Budget Department</option>
                             <option value="ssc_education_affairs">SSC - Education Affairs</option>
+                        </select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <UserCheck size={18} className="text-gray-600 dark:text-gray-400" />
+                        <select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
                         </select>
                     </div>
                 </div>

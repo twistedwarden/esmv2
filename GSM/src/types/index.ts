@@ -77,7 +77,7 @@ export interface StatusCheckData {
   remarks?: string;
 }
 
-export type UserRole = 'admin' | 'student' | 'staff' | 'ssc';
+export type UserRole = 'admin' | 'student' | 'staff' | 'ssc' | 'ssc_city_council' | 'ssc_budget_dept' | 'ssc_education_affairs' | 'ssc_hrd' | 'ssc_social_services' | 'ssc_accounting' | 'ssc_treasurer' | 'ssc_qcydo' | 'ssc_planning_dept' | 'ssc_schools_division' | 'ssc_qcu' | 'ssc_chairperson';
 
 export interface School {
   school_id: string;

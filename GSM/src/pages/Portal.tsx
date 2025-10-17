@@ -88,6 +88,17 @@ export const Portal: React.FC = () => {
   const [showHumanVerification, setShowHumanVerification] = useState(false);
   const currentUser = useAuthStore(s => s.currentUser);
 
+  // Redirect SSC users to admin dashboard
+  useEffect(() => {
+    if (currentUser) {
+      const roleStr = String(currentUser.role);
+      if (roleStr === 'admin' || roleStr === 'staff' || roleStr.startsWith('ssc')) {
+        navigate('/admin', { replace: true });
+        return;
+      }
+    }
+  }, [currentUser, navigate]);
+
   // Check for existing applications on component mount
   useEffect(() => {
     const checkExistingApplications = async () => {

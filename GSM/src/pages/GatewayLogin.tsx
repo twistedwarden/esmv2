@@ -100,7 +100,7 @@ export const GatewayLogin: React.FC = () => {
 	useEffect(() => {
 		if (!isLoading && currentUser) {
 	      const roleStr = String(currentUser.role)
-	      if (roleStr === 'admin' || roleStr === 'staff' || roleStr === 'ssc') navigate('/admin', { replace: true })
+	      if (roleStr === 'admin' || roleStr === 'staff' || roleStr.startsWith('ssc')) navigate('/admin', { replace: true })
 	      else if (roleStr === 'ps_rep') navigate('/partner-school', { replace: true })
       else navigate('/portal', { replace: true })
 		}
@@ -183,7 +183,7 @@ export const GatewayLogin: React.FC = () => {
 			setShowLoginSplash(true)
 			setTimeout(() => {
           const role = String(useAuthStore.getState().currentUser?.role)
-          if (role === 'admin' || role === 'staff') navigate('/admin', { replace: true })
+          if (role === 'admin' || role === 'staff' || role.startsWith('ssc')) navigate('/admin', { replace: true })
           else if (role === 'ps_rep') navigate('/partner-school', { replace: true })
 				else navigate('/portal', { replace: true })
 			}, 1500) // Show splash for 1.5 seconds

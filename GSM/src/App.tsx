@@ -44,7 +44,7 @@ function RequireAdmin() {
 	}
 
 	// Check role-based access
-	if (currentUser.role === 'admin' || currentUser.role === 'ssc') {
+	if (currentUser.role === 'admin' || currentUser.role === 'ssc' || String(currentUser.role).startsWith('ssc')) {
 		return <AdminApp />
 	}
 

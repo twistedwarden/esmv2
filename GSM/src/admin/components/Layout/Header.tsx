@@ -57,7 +57,7 @@ function Header({ onToggleSidebar, breadcrumb = ['Dashboard'] }: HeaderProps) {
 						<User className='w-4 h-4' />
 						<span>{currentUser ? getFullName(currentUser) : ''}</span>
 						<span className='text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full'>
-							{currentUser?.role}
+							{currentUser?.role?.startsWith('ssc') ? 'SSC' : currentUser?.role}
 						</span>
 					</div>
 					

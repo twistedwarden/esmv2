@@ -1,4 +1,5 @@
 // Utility functions for soft delete functionality
+import { getScholarshipServiceUrl } from '../config/api';
 
 /**
  * Soft delete an item by moving it to archived state
@@ -10,7 +11,7 @@
  */
 export const softDeleteItem = async (category, itemId, reason = 'No reason provided', deletedBy = 'System') => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api'}/archived/soft-delete`, {
+    const response = await fetch(`${getScholarshipServiceUrl('/api')}/archived/soft-delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,7 +45,7 @@ export const softDeleteItem = async (category, itemId, reason = 'No reason provi
  */
 export const restoreItem = async (category, itemId) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api'}/archived/${category}/${itemId}/restore`, {
+    const response = await fetch(`${getScholarshipServiceUrl('/api')}/archived/${category}/${itemId}/restore`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +73,7 @@ export const restoreItem = async (category, itemId) => {
  */
 export const permanentDeleteItem = async (category, itemId) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_SCHOLARSHIP_API_URL || 'http://localhost:8001/api'}/archived/${category}/${itemId}`, {
+    const response = await fetch(`${getScholarshipServiceUrl('/api')}/archived/${category}/${itemId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

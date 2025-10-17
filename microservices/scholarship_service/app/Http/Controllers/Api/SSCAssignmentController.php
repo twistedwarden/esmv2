@@ -17,8 +17,7 @@ class SSCAssignmentController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $assignments = SSCMemberAssignment::with('user')
-                ->where('is_active', true)
+            $assignments = SSCMemberAssignment::where('is_active', true)
                 ->orderBy('created_at', 'desc')
                 ->get();
 

@@ -27,7 +27,7 @@ function App() {
 
 	// Auto-redirect SSC members to SSC Management
 	React.useEffect(() => {
-		if (currentUser?.role === 'ssc') {
+		if (currentUser?.role === 'ssc' || String(currentUser?.role).startsWith('ssc_')) {
 			setActiveItem('scholarship-ssc')
 		}
 	}, [currentUser])

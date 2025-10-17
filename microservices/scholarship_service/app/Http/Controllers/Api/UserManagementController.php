@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
+use App\Models\SSCMemberAssignment;
 use App\Services\AuthServiceClient;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class UserManagementController extends Controller
     {
         try {
             $role = $request->query('role');
-            $status = $request->query('status', 'active');
+            $status = $request->query('status', 'all');
             
             Log::info('Fetching users from auth service', [
                 'auth_service_url' => $this->authServiceUrl,
@@ -63,7 +64,9 @@ class UserManagementController extends Controller
                     'staff' => [],
                     'admins' => [],
                     'ps_reps' => [],
-                    'ssc_members' => [],
+                    'ssc_city_council' => [],
+                    'ssc_budget_dept' => [],
+                    'ssc_education_affairs' => [],
                 ];
                 
                 foreach ($users as $user) {
@@ -81,10 +84,15 @@ class UserManagementController extends Controller
                         case 'ps_rep':
                             $categorizedUsers['ps_reps'][] = $user;
                             break;
+                        case 'ssc':
                         case 'ssc_city_council':
+                            $categorizedUsers['ssc_city_council'][] = $user;
+                            break;
                         case 'ssc_budget_dept':
+                            $categorizedUsers['ssc_budget_dept'][] = $user;
+                            break;
                         case 'ssc_education_affairs':
-                            $categorizedUsers['ssc_members'][] = $user;
+                            $categorizedUsers['ssc_education_affairs'][] = $user;
                             break;
                         default:
                             Log::warning('Unknown user role', ['role' => $user['role'], 'user_id' => $user['id']]);
@@ -97,7 +105,9 @@ class UserManagementController extends Controller
                     'staff_count' => count($categorizedUsers['staff']),
                     'admins_count' => count($categorizedUsers['admins']),
                     'ps_reps_count' => count($categorizedUsers['ps_reps']),
-                    'ssc_members_count' => count($categorizedUsers['ssc_members'])
+                    'ssc_city_council_count' => count($categorizedUsers['ssc_city_council']),
+                    'ssc_budget_dept_count' => count($categorizedUsers['ssc_budget_dept']),
+                    'ssc_education_affairs_count' => count($categorizedUsers['ssc_education_affairs'])
                 ]);
                 
                 return response()->json([
@@ -296,6 +306,11 @@ class UserManagementController extends Controller
                 ]);
             }
 
+            // If role is SSC, create SSC assignment
+            if (in_array($validated['role'], ['ssc', 'ssc_city_council', 'ssc_budget_dept', 'ssc_education_affairs']) && isset($user['id'])) {
+                $this->createSSCAssignment($user['id'], $validated['role']);
+            }
+
 
             return response()->json([
                 'success' => true,
@@ -460,6 +475,142 @@ class UserManagementController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create SSC assignment for a user
+     */
+    private function createSSCAssignment(int $userId, string $role): void
+    {
+        try {
+            // Map the role to ssc_role and review_stage based on your requirements
+            $roleMapping = [
+                'ssc' => ['ssc_role' => 'chairperson', 'review_stage' => 'final_approval'],
+                'ssc_city_council' => ['ssc_role' => 'city_council', 'review_stage' => 'document_verification'],
+                'ssc_budget_dept' => ['ssc_role' => 'budget_department', 'review_stage' => 'financial_review'],
+                'ssc_education_affairs' => ['ssc_role' => 'education_affairs', 'review_stage' => 'academic_review'],
+            ];
+
+            if (!isset($roleMapping[$role])) {
+                Log::warning('Unknown SSC role for assignment', ['role' => $role, 'user_id' => $userId]);
+                return;
+            }
+
+            $mapping = $roleMapping[$role];
+
+            // Check if assignment already exists
+            $existingAssignment = \App\Models\SSCMemberAssignment::where('user_id', $userId)
+                ->where('is_active', true)
+                ->first();
+
+            if ($existingAssignment) {
+                Log::info('SSC assignment already exists', ['user_id' => $userId, 'role' => $role]);
+                return;
+            }
+
+            // Create new SSC assignment
+            \App\Models\SSCMemberAssignment::create([
+                'user_id' => $userId,
+                'ssc_role' => $mapping['ssc_role'],
+                'review_stage' => $mapping['review_stage'],
+                'is_active' => true,
+                'assigned_at' => now(),
+            ]);
+
+            Log::info('SSC assignment created successfully', [
+                'user_id' => $userId,
+                'role' => $role,
+                'ssc_role' => $mapping['ssc_role'],
+                'review_stage' => $mapping['review_stage']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating SSC assignment', [
+                'user_id' => $userId,
+                'role' => $role,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Activate a user
+     */
+    public function activateUser(Request $request, $id): JsonResponse
+    {
+        try {
+            Log::info('Activating user', ['user_id' => $id]);
+
+            $response = Http::timeout(10)
+                ->put("{$this->authServiceUrl}/api/users/{$id}/activate");
+
+            if ($response->successful()) {
+                Log::info('User activated successfully', ['user_id' => $id]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User activated successfully'
+                ]);
+            } else {
+                Log::error('Failed to activate user', [
+                    'user_id' => $id,
+                    'status' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to activate user: ' . $response->body()
+                ], $response->status());
+            }
+        } catch (\Exception $e) {
+            Log::error('Error activating user', [
+                'user_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error activating user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Permanently delete a user
+     */
+    public function permanentDeleteUser(Request $request, $id): JsonResponse
+    {
+        try {
+            Log::info('Permanently deleting user', ['user_id' => $id]);
+
+            $response = Http::timeout(10)
+                ->delete("{$this->authServiceUrl}/api/users/{$id}/permanent");
+
+            if ($response->successful()) {
+                Log::info('User permanently deleted successfully', ['user_id' => $id]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User permanently deleted successfully'
+                ]);
+            } else {
+                Log::error('Failed to permanently delete user', [
+                    'user_id' => $id,
+                    'status' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to permanently delete user: ' . $response->body()
+                ], $response->status());
+            }
+        } catch (\Exception $e) {
+            Log::error('Error permanently deleting user', [
+                'user_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error permanently deleting user: ' . $e->getMessage()
             ], 500);
         }
     }

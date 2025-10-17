@@ -66,7 +66,7 @@ const allSidebarItems = [
 ];
 
 // Function to get translated sidebar items based on user role
-export const getSidebarItems = (userRole, userSystemRole = null, t = null) => {
+export const getSidebarItems = (userRole, userSystemRole, t = null) => {
     // If no translation function provided, use the service directly
     if (!t) {
         try {
@@ -84,7 +84,7 @@ export const getSidebarItems = (userRole, userSystemRole = null, t = null) => {
         }
     }
     // SSC members only see Scholarship module and Settings
-    if (userRole === 'ssc') {
+    if (userRole === 'ssc' || String(userRole).startsWith('ssc_')) {
         return [
             { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
             {

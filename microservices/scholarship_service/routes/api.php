@@ -306,6 +306,8 @@ Route::prefix('users')->middleware(['auth.auth_service'])->group(function () {
     Route::post('/', [App\Http\Controllers\Api\UserManagementController::class, 'createUser']);
     Route::put('/{id}', [App\Http\Controllers\Api\UserManagementController::class, 'updateUser']);
     Route::delete('/{id}', [App\Http\Controllers\Api\UserManagementController::class, 'deleteUser']);
+    Route::put('/{id}/activate', [App\Http\Controllers\Api\UserManagementController::class, 'activateUser']);
+    Route::delete('/{id}/permanent', [App\Http\Controllers\Api\UserManagementController::class, 'permanentDeleteUser']);
 });
 
 // Audit Log routes (protected by authentication - admin only)
