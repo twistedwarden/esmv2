@@ -59,34 +59,39 @@ class GsmAuthController extends Controller
             ], 401);
         }
 
-        // Generate and send OTP for login verification
-        try {
-            $otp = OtpVerification::generateOtp($user->id, 'login');
-            $userName = trim($user->first_name . ' ' . $user->last_name);
-            
-            $this->brevoService->sendLoginOtpEmail(
-                $user->email,
-                $userName,
-                $otp->otp_code,
-                $otp->expires_at
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send OTP. Please try again.',
-                'data' => null,
-                'timestamp' => now()->format('Y-m-d H:i:s'),
-            ], 500);
+        // No OTP required - login immediately
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Get staff system role for staff users
+        $systemRole = null;
+        if ($user->role === 'staff') {
+            $systemRole = $this->getStaffSystemRole($user->id);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'OTP sent to your email. Please verify to complete login.',
+            'message' => 'Login successful',
             'data' => [
-                'email' => $user->email,
-                'requires_otp' => true,
-                'expires_in' => 600 // 10 minutes
+                'user' => [
+                    'id' => $user->id,
+                    'citizen_id' => $user->citizen_id,
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'extension_name' => $user->extension_name,
+                    'mobile' => $user->mobile,
+                    'birthdate' => $user->birthdate,
+                    'address' => $user->address,
+                    'house_number' => $user->house_number,
+                    'street' => $user->street,
+                    'barangay' => $user->barangay,
+                    'role' => $user->role,
+                    'system_role' => $systemRole,
+                    'is_active' => $user->is_active,
+                ],
+                'token' => $token,
+                'requires_otp' => false
             ],
             'timestamp' => now()->format('Y-m-d H:i:s'),
         ]);

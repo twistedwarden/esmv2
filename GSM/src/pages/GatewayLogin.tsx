@@ -119,6 +119,14 @@ export const GatewayLogin: React.FC = () => {
 		}
 	}, [currentUser, isLoading, navigate])
 
+  // Handle password-related errors as toast
+  useEffect(() => {
+    if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
+      displayToast(error, 'error')
+      clearError() // Clear the error from store since we're showing it as toast
+    }
+  }, [error, clearError])
+
   // Show loading state when loading OR when user is authenticated (during navigation)
   if (isLoading || currentUser) {
 		return (
@@ -706,14 +714,6 @@ export const GatewayLogin: React.FC = () => {
   
   // Check if Google OAuth is properly configured
   const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
-
-  // Handle password-related errors as toast
-  useEffect(() => {
-    if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
-      displayToast(error, 'error')
-      clearError() // Clear the error from store since we're showing it as toast
-    }
-  }, [error, clearError])
 
 	return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">

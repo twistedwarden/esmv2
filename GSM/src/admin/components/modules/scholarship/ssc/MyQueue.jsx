@@ -91,7 +91,10 @@ function MyQueue() {
     };
 
     const stage = stageMapping[status];
-    if (!stage) return null;
+    // Show content when stage is available
+    if (!stage) {
+        return null;
+    }
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>

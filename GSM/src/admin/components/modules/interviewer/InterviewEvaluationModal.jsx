@@ -145,7 +145,10 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
     </div>
   );
 
-  if (!isOpen || !interview) return null;
+  // Show modal when open and interview is available
+  if (!isOpen || !interview) {
+    return null;
+  }
 
   const student = interview.application?.student;
   const application = interview.application;

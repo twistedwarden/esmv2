@@ -12,7 +12,10 @@ function ConfirmationModal({
     type = 'danger', // 'danger', 'warning', 'info'
     isLoading = false
 }) {
-    if (!isOpen) return null;
+    // Show modal when open
+    if (!isOpen) {
+        return null;
+    }
 
     const getTypeStyles = () => {
         switch (type) {

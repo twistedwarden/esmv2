@@ -145,7 +145,10 @@ export const AnimatedModal = ({
   className = '',
   ...props 
 }) => {
-  if (!isOpen) return null;
+  // Show modal when open
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <motion.div

@@ -149,7 +149,10 @@ function AddStudentModal({ isOpen, onClose, onStudentAdded }) {
         onClose();
     };
 
-    if (!isOpen) return null;
+    // Show modal when open
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

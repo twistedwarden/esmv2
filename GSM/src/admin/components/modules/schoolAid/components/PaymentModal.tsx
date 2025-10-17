@@ -149,7 +149,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const renderTimeline = () => {
-    if (!application) return null;
+    // Show timeline when application is available
+    if (!application) {
+      return null;
+    }
 
     const timelineEvents = [
       {
@@ -222,7 +225,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const renderPaymentDetails = () => {
-    if (!application || mode !== 'process') return null;
+    // Show payment details when application is available and mode is process
+    if (!application || mode !== 'process') {
+      return null;
+    }
 
     return (
       <div className="space-y-4">
@@ -292,7 +298,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     );
   };
 
-  if (!isOpen || !application) return null;
+  // Show modal when open and application is available
+  if (!isOpen || !application) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
