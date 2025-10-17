@@ -13,10 +13,10 @@ This prompt helps you quickly switch between local development and production AP
 ```typescript
 export const API_CONFIG = {
   BASE_URL: "http://localhost:8000",
-  AUTH_SERVICE: "http://localhost:8001",
-  SCHOLARSHIP_SERVICE: "http://localhost:8002",
-  AID_SERVICE: "http://localhost:8003",
-  MONITORING_SERVICE: "http://localhost:8004",
+  AUTH_SERVICE: "http://localhost:8000",
+  SCHOLARSHIP_SERVICE: "http://localhost:8001",
+  AID_SERVICE: "http://localhost:8002",
+  MONITORING_SERVICE: "http://localhost:8003",
 };
 ```
 
@@ -67,7 +67,7 @@ const isLocalhost =
 
 export const API_CONFIG = {
   BASE_URL: isLocalhost ? "http://localhost:8000" : "https://api.gsph.com",
-  AUTH_SERVICE: isLocalhost ? "http://localhost:8001" : "https://auth.gsph.com",
+  AUTH_SERVICE: isLocalhost ? "http://localhost:8000" : "https://auth.gsph.com",
   // ... other services
 };
 ```
@@ -93,7 +93,7 @@ npm run dev
 | Service     | Local | Production           |
 | ----------- | ----- | -------------------- |
 | Main API    | :8000 | api.gsph.com         |
-| Auth        | :8001 | auth.gsph.com        |
-| Scholarship | :8002 | scholarship.gsph.com |
-| Aid         | :8003 | aid.gsph.com         |
-| Monitoring  | :8004 | monitoring.gsph.com  |
+| Auth        | :8000 | auth.gsph.com        |
+| Scholarship | :8001 | scholarship.gsph.com |
+| Aid         | :8002 | aid.gsph.com         |
+| Monitoring  | :8003 | monitoring.gsph.com  |

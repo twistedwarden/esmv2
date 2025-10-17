@@ -122,7 +122,70 @@ microservices/
       migrations/
 ```
 
-## Troubleshooting
+## Service Ports Reference
+
+| Service | Port | URL | Purpose |
+|---------|------|-----|---------|
+| Frontend | 5173 | http://localhost:5173 | React Vite dev server |
+| Auth Service | 8000 | http://127.0.0.1:8000 | User authentication & OAuth |
+| Scholarship Service | 8001 | http://127.0.0.1:8001 | Scholarship management |
+| Aid Service | 8002 | http://127.0.0.1:8002 | Financial aid distribution |
+| Monitoring Service | 8003 | http://127.0.0.1:8003 | System monitoring & logs |
+
+## Debugging & Troubleshooting
+
+### Quick Debug Commands
+```bash
+# Check all services health
+node scripts/check-services.js
+
+# Check port availability
+node scripts/check-ports.js
+
+# Validate environment files
+node scripts/validate-env.js
+
+# Restart specific service
+node scripts/restart-service.js auth
+
+# Start all services with debug logging
+start_services_debug.bat
+```
+
+### Common Issues
+
+**405 Method Not Allowed**
+- Cause: Port configuration mismatch
+- Fix: Ensure auth service runs on port 8000, not 8001
+- Check: `GSM/src/config/api.js` uses `http://localhost:8000`
+
+**React Hooks Error**
+- Cause: Early returns before hooks or conditional hook calls
+- Fix: Move all `useState`/`useEffect` to component top
+- See: `DEBUGGING_GUIDE.md` for detailed examples
+
+**Service Won't Start**
+- Check: `node scripts/check-ports.js`
+- Kill processes: `netstat -ano | findstr :PORT` then `taskkill /PID PID /F`
+- Restart: `node scripts/restart-service.js <service-name>`
+
+**Environment Issues**
+- Validate: `node scripts/validate-env.js`
+- Copy examples: `cp .env.example .env` in each service
+- Generate keys: `php artisan key:generate` in Laravel services
+
+### Debugging Tools
+- **Health Check**: `scripts/check-services.js` - Tests all service connectivity
+- **Port Check**: `scripts/check-ports.js` - Verifies port availability
+- **Env Validation**: `scripts/validate-env.js` - Checks environment files
+- **Service Restart**: `scripts/restart-service.js` - Restarts individual services
+- **API Tests**: `tests/api-tests.http` - REST Client test collection
+- **VS Code Debug**: `.vscode/launch.json` - Debug configurations
+
+### Detailed Troubleshooting
+See `DEBUGGING_GUIDE.md` for comprehensive troubleshooting guide.
+
+## Troubleshooting (Legacy)
 - Frontend cannot reach API: verify Laravel runs on `127.0.0.1:8000` and CORS includes `http://localhost:5173`.
 - PHP extension errors: enable `pdo_sqlite`/`pdo_mysql` in `php.ini` as needed.
 - Migrations fail: confirm DB connection and file permissions; for SQLite ensure `database/database.sqlite` exists and is writable.

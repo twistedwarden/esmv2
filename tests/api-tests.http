@@ -1,0 +1,185 @@
+### ESM v2 API Test Collection
+### Use with REST Client extension in VS Code
+
+### Variables
+@baseUrl = http://127.0.0.1:8000
+@frontendUrl = http://localhost:5173
+
+### ========================================
+### AUTH SERVICE TESTS
+### ========================================
+
+### Auth Service Health Check
+GET {{baseUrl}}/api/health
+
+### Auth Service Info
+GET {{baseUrl}}/api
+
+### Test Login (will require OTP)
+POST {{baseUrl}}/api/login
+Content-Type: application/json
+
+{
+  "username": "test@example.com",
+  "password": "password123"
+}
+
+### Test Google OAuth Callback
+POST {{baseUrl}}/api/auth/google
+Content-Type: application/json
+
+{
+  "code": "test_google_code"
+}
+
+### Test User Registration
+POST {{baseUrl}}/api/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "middleName": "Middle",
+  "suffix": "Jr",
+  "birthdate": "1990-01-01",
+  "regEmail": "test@example.com",
+  "mobile": "09123456789",
+  "address": "123 Test Street",
+  "houseNumber": "123",
+  "street": "Test Street",
+  "barangay": "Test Barangay",
+  "regPassword": "password123",
+  "confirmPassword": "password123"
+}
+
+### Test Send OTP
+POST {{baseUrl}}/api/send-otp
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+### Test Verify OTP
+POST {{baseUrl}}/api/verify-otp
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "otp": "123456",
+  "type": "email_verification"
+}
+
+### Test Request Login OTP
+POST {{baseUrl}}/api/request-login-otp
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+### Test Login with OTP
+POST {{baseUrl}}/api/login-with-otp
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "otp": "123456"
+}
+
+### ========================================
+### SCHOLARSHIP SERVICE TESTS
+### ========================================
+
+### Scholarship Service Health Check
+GET http://127.0.0.1:8001/api/health
+
+### Get Public Schools
+GET http://127.0.0.1:8001/api/public/schools
+
+### Get Scholarship Categories
+GET http://127.0.0.1:8001/api/public/scholarship-categories
+
+### Get Document Types
+GET http://127.0.0.1:8001/api/public/document-types
+
+### Get Required Documents
+GET http://127.0.0.1:8001/api/public/required-documents
+
+### ========================================
+### AID SERVICE TESTS
+### ========================================
+
+### Aid Service Health Check
+GET http://127.0.0.1:8002/api/health
+
+### Get Aid Distribution
+GET http://127.0.0.1:8002/api/aid-distribution
+
+### Get Aid Applications
+GET http://127.0.0.1:8002/api/aid-applications
+
+### ========================================
+### MONITORING SERVICE TESTS
+### ========================================
+
+### Monitoring Service Health Check
+GET http://127.0.0.1:8003/api/health
+
+### Get Metrics
+GET http://127.0.0.1:8003/api/metrics
+
+### Get Logs
+GET http://127.0.0.1:8003/api/logs
+
+### ========================================
+### FRONTEND TESTS
+### ========================================
+
+### Frontend Health Check
+GET {{frontendUrl}}
+
+### Frontend with API Test
+GET {{frontendUrl}}/api/health
+
+### ========================================
+### CORS TESTS
+### ========================================
+
+### Test CORS Preflight
+OPTIONS {{baseUrl}}/api/login
+Origin: {{frontendUrl}}
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type
+
+### Test CORS with Origin
+GET {{baseUrl}}/api/health
+Origin: {{frontendUrl}}
+
+### ========================================
+### ERROR HANDLING TESTS
+### ========================================
+
+### Test 404 Error
+GET {{baseUrl}}/api/nonexistent
+
+### Test 405 Error (wrong method)
+GET {{baseUrl}}/api/login
+
+### Test 422 Error (validation)
+POST {{baseUrl}}/api/login
+Content-Type: application/json
+
+{
+  "username": "",
+  "password": ""
+}
+
+### Test 500 Error (server error)
+POST {{baseUrl}}/api/login
+Content-Type: application/json
+
+{
+  "username": "error@test.com",
+  "password": "error"
+}

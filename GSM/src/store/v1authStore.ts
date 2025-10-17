@@ -38,7 +38,7 @@ type AuthState = {
 	updateCurrentUser: (userData: Partial<AuthUser>) => void
 }
 
-const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || 'https://auth-gsph.up.railway.app/api'
+const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
 // Utility function to construct full name from name components
 export const getFullName = (user: AuthUser): string => {

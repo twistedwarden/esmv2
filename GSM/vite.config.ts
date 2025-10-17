@@ -6,6 +6,10 @@ export default defineConfig(() => {
   return {
     plugins: [react()],
     base: '/',
+    define: {
+      // Switch between 'local' and 'production'
+      __API_ENV__: JSON.stringify("local"), // or 'production'
+    },
     server: {
       port: 5173,
       host: 'localhost',

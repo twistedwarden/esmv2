@@ -221,7 +221,7 @@ const PartnerSchoolDashboard = () => {
     setIsChangingPassword(true);
     
     try {
-      const response = await fetch(`https://auth-gsph.up.railway.app/api/change-password`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api'}/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

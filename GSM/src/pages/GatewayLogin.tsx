@@ -119,6 +119,28 @@ export const GatewayLogin: React.FC = () => {
 		}
 	}, [currentUser, isLoading, navigate])
 
+  // Debug: Log environment variables on component render
+  console.log('🔍 ENVIRONMENT DEBUG:', {
+    VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    hasGoogleClientId: !!import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    dev: import.meta.env.DEV,
+    prod: import.meta.env.PROD,
+    allViteEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+  })
+  
+  // Check if Google OAuth is properly configured
+  const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+  // Handle password-related errors as toast
+  useEffect(() => {
+    if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
+      displayToast(error, 'error')
+      clearError() // Clear the error from store since we're showing it as toast
+    }
+  }, [error, clearError])
+
+  // Early returns must be after all hooks
   if (isLoading) {
 		return (
       <div className="min-h-screen bg-app flex flex-col">
@@ -183,7 +205,17 @@ export const GatewayLogin: React.FC = () => {
   )
 }
 
-  if (currentUser) return null
+  // Show loading state for authenticated users (they will be redirected by useEffect)
+  if (currentUser) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    )
+  }
 
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -606,7 +638,7 @@ export const GatewayLogin: React.FC = () => {
     } else {
       // Handle registration OTP verification
       try {
-        const res = await fetch('https://auth-gsph.up.railway.app/api/verify-otp', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api'}/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -676,7 +708,7 @@ export const GatewayLogin: React.FC = () => {
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('https://auth-gsph.up.railway.app/api/send-otp', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api'}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpEmail })
@@ -695,28 +727,6 @@ export const GatewayLogin: React.FC = () => {
       showNotification('Network error. Please try again.', 'error')
     }
   }
-
-  // Debug: Log environment variables on component render
-  console.log('🔍 ENVIRONMENT DEBUG:', {
-    VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    hasGoogleClientId: !!import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    clientIdLength: import.meta.env.VITE_GOOGLE_CLIENT_ID?.length || 0,
-    mode: import.meta.env.MODE,
-    dev: import.meta.env.DEV,
-    prod: import.meta.env.PROD,
-    allViteEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
-  })
-  
-  // Check if Google OAuth is properly configured
-  const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
-
-  // Handle password-related errors as toast
-  useEffect(() => {
-    if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
-      displayToast(error, 'error')
-      clearError() // Clear the error from store since we're showing it as toast
-    }
-  }, [error, clearError])
 
 	return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">

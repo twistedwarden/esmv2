@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
     AUTH_SERVICE: {
-        // Production auth service
+        // Local auth service
         BASE_URL: 'http://localhost:8000',
         ENDPOINTS: {
             LOGIN: '/api/login',
@@ -11,7 +11,7 @@ export const API_CONFIG = {
         }
     },
     SCHOLARSHIP_SERVICE: {
-        BASE_URL: 'http://localhost:8001',
+        BASE_URL: 'http://localhost:8002',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
@@ -83,6 +83,22 @@ export const API_CONFIG = {
             APPLICATION_SCHEDULE_INTERVIEW: (id) => `/api/applications/${id}/schedule-interview`,
             APPLICATION_SCHEDULE_INTERVIEW_AUTO: (id) => `/api/applications/${id}/schedule-interview-auto`,
             APPLICATION_COMPLETE_INTERVIEW: (id) => `/api/applications/${id}/complete-interview`
+        }
+    },
+    AID_SERVICE: {
+        BASE_URL: 'http://localhost:8003',
+        ENDPOINTS: {
+            HEALTH: '/api/health',
+            AID_DISTRIBUTION: '/api/aid-distribution',
+            AID_APPLICATIONS: '/api/aid-applications'
+        }
+    },
+    MONITORING_SERVICE: {
+        BASE_URL: 'http://localhost:8004',
+        ENDPOINTS: {
+            HEALTH: '/api/health',
+            METRICS: '/api/metrics',
+            LOGS: '/api/logs'
         }
     }
 };
