@@ -119,22 +119,6 @@ export const GatewayLogin: React.FC = () => {
 		}
 	}, [currentUser, isLoading, navigate])
 
-<<<<<<< HEAD
-  // Debug: Log environment variables on component render
-  console.log('🔍 ENVIRONMENT DEBUG:', {
-    VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    hasGoogleClientId: !!import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-    dev: import.meta.env.DEV,
-    prod: import.meta.env.PROD,
-    allViteEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
-  })
-  
-  // Check if Google OAuth is properly configured
-  const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
-
-=======
->>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
   // Handle password-related errors as toast
   useEffect(() => {
     if (error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('invalid credentials'))) {
@@ -143,13 +127,8 @@ export const GatewayLogin: React.FC = () => {
     }
   }, [error, clearError])
 
-<<<<<<< HEAD
-  // Early returns must be after all hooks
-  if (isLoading) {
-=======
   // Show loading state when loading OR when user is authenticated (during navigation)
   if (isLoading || currentUser) {
->>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
 		return (
       <div className="min-h-screen bg-app flex flex-col">
         {/* Header Skeleton */}
@@ -213,21 +192,6 @@ export const GatewayLogin: React.FC = () => {
   )
 }
 
-<<<<<<< HEAD
-  // Show loading state for authenticated users (they will be redirected by useEffect)
-  if (currentUser) {
-    return (
-      <div className="min-h-screen bg-app flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting...</p>
-        </div>
-      </div>
-    )
-  }
-
-=======
->>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
 	const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 		setSubmitting(true)
@@ -737,8 +701,6 @@ export const GatewayLogin: React.FC = () => {
     }
   }
 
-<<<<<<< HEAD
-=======
   // Debug: Log environment variables on component render
   console.log('🔍 ENVIRONMENT DEBUG:', {
     VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -753,7 +715,6 @@ export const GatewayLogin: React.FC = () => {
   // Check if Google OAuth is properly configured
   const isGoogleOAuthConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
->>>>>>> c0e58e3b19f0ca255ed093518ab551b6e316f5f3
 	return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">
 				{/* Header */}
