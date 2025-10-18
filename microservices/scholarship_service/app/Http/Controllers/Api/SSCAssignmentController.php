@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\SSCMemberAssignment;
+use App\Models\SscMemberAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +17,7 @@ class SSCAssignmentController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $assignments = SSCMemberAssignment::where('is_active', true)
+            $assignments = SscMemberAssignment::where('is_active', true)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -41,7 +41,7 @@ class SSCAssignmentController extends Controller
     public function getUserAssignments(int $userId): JsonResponse
     {
         try {
-            $assignments = SSCMemberAssignment::where('user_id', $userId)
+            $assignments = SscMemberAssignment::where('user_id', $userId)
                 ->where('is_active', true)
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -82,7 +82,7 @@ class SSCAssignmentController extends Controller
             }
 
             // Check if user already has an active assignment for this role
-            $existingAssignment = SSCMemberAssignment::where('user_id', $request->user_id)
+            $existingAssignment = SscMemberAssignment::where('user_id', $request->user_id)
                 ->where('ssc_role', $request->ssc_role)
                 ->where('is_active', true)
                 ->first();
@@ -94,7 +94,7 @@ class SSCAssignmentController extends Controller
                 ], 400);
             }
 
-            $assignment = SSCMemberAssignment::create([
+            $assignment = SscMemberAssignment::create([
                 'user_id' => $request->user_id,
                 'ssc_role' => $request->ssc_role,
                 'review_stage' => $request->review_stage,
@@ -122,7 +122,7 @@ class SSCAssignmentController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
-            $assignment = SSCMemberAssignment::find($id);
+            $assignment = SscMemberAssignment::find($id);
             
             if (!$assignment) {
                 return response()->json([
@@ -167,7 +167,7 @@ class SSCAssignmentController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $assignment = SSCMemberAssignment::find($id);
+            $assignment = SscMemberAssignment::find($id);
             
             if (!$assignment) {
                 return response()->json([

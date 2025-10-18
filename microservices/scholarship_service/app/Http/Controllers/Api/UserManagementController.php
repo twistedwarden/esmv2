@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Models\SSCMemberAssignment;
+use App\Models\SscMemberAssignment;
 use App\Services\AuthServiceClient;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
@@ -507,7 +507,7 @@ class UserManagementController extends Controller
             $mapping = $roleMapping[$role];
 
             // Check if assignment already exists
-            $existingAssignment = \App\Models\SSCMemberAssignment::where('user_id', $userId)
+            $existingAssignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
                 ->where('is_active', true)
                 ->first();
 
@@ -517,7 +517,7 @@ class UserManagementController extends Controller
             }
 
             // Create new SSC assignment
-            \App\Models\SSCMemberAssignment::create([
+            \App\Models\SscMemberAssignment::create([
                 'user_id' => $userId,
                 'ssc_role' => $mapping['ssc_role'],
                 'review_stage' => $mapping['review_stage'],

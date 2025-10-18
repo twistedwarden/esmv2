@@ -2051,10 +2051,10 @@ class ScholarshipApplicationController extends Controller
 
             // Role-based filtering - only show applications user can review
             if ($userId) {
-                $userRoles = \App\Models\SSCMemberAssignment::getUserRoles($userId)
+                $userRoles = \App\Models\SscMemberAssignment::getUserRoles($userId)
                     ->pluck('ssc_role')->toArray();
                 
-                $allowedRoles = \App\Models\SSCMemberAssignment::STAGE_ROLE_MAPPING[$stage] ?? [];
+                $allowedRoles = \App\Models\SscMemberAssignment::STAGE_ROLE_MAPPING[$stage] ?? [];
                 
                 // If user doesn't have appropriate role, return empty results
                 if (!array_intersect($userRoles, $allowedRoles)) {
@@ -2140,7 +2140,7 @@ class ScholarshipApplicationController extends Controller
             }
 
             // Get user's assigned roles and stages
-            $userAssignments = \App\Models\SSCMemberAssignment::getUserRoles($userId);
+            $userAssignments = \App\Models\SscMemberAssignment::getUserRoles($userId);
             
             if ($userAssignments->isEmpty()) {
                 return response()->json([
@@ -2930,7 +2930,7 @@ class ScholarshipApplicationController extends Controller
             $userId = $authUser['id'];
 
             // Get user's active SSC role assignments
-            $assignments = \App\Models\SSCMemberAssignment::where('user_id', $userId)
+            $assignments = \App\Models\SscMemberAssignment::where('user_id', $userId)
                 ->where('is_active', true)
                 ->get();
 
@@ -3024,7 +3024,7 @@ class ScholarshipApplicationController extends Controller
     public function getSSCMemberAssignments(Request $request): JsonResponse
     {
         try {
-            $assignments = \App\Models\SSCMemberAssignment::with([])
+            $assignments = \App\Models\SscMemberAssignment::with([])
                 ->orderBy('ssc_role')
                 ->orderBy('is_active', 'desc')
                 ->get();
@@ -3158,7 +3158,7 @@ class ScholarshipApplicationController extends Controller
             }
 
             // Check if user has permission for this stage
-            $userAssignment = \App\Models\SSCMemberAssignment::where('user_id', $userId)
+            $userAssignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
                 ->where('review_stage', $stage)
                 ->where('is_active', true)
                 ->first();
