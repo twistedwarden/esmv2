@@ -22,7 +22,9 @@ export const config = {
     useKeyFile: process.env.DIALOGFLOW_USE_KEY_FILE !== 'false',
     credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
     // Fallback mode for development
-    enableFallbackMode: process.env.DIALOGFLOW_FALLBACK_MODE === 'true'
+    enableFallbackMode: process.env.DIALOGFLOW_FALLBACK_MODE === 'true',
+    // Intent configuration
+    intentsFile: path.join(__dirname, '../../dialogflow_intents.json')
   },
   
   // CORS configuration
