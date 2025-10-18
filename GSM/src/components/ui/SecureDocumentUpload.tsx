@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, X, AlertCircle, CheckCircle, Clock, Shield, Trash2 } from 'lucide-react';
 import { validateUploadFile, formatFileSize, getFileTypeIcon, type FileValidationResult } from '../../utils/fileValidation';
+import { API_CONFIG, getScholarshipServiceUrl } from '../../config/api';
 
 export interface SecureDocumentUploadProps {
   documentTypeId: string | number;
@@ -101,7 +102,9 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
       formData.append('application_id', applicationId.toString());
       formData.append('document_type_id', documentTypeId.toString());
 
-      const response = await fetch('/api/forms/upload-document', {
+      const uploadUrl = getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.FORM_UPLOAD_DOCUMENT);
+      
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,

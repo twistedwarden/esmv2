@@ -238,10 +238,19 @@ Route::get('/test-simple', function () {
     return 'Simple test works';
 });
 
-// Public document upload route (for frontend compatibility)
-Route::post('/upload-document', function (Request $request) {
-    return response()->json(['message' => 'Upload endpoint is working', 'data' => $request->all()]);
+// Public test upload route (for testing only)
+Route::post('/test-upload', function (Request $request) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Test upload endpoint is working',
+        'data' => [
+            'has_file' => $request->hasFile('file'),
+            'all_keys' => array_keys($request->all()),
+            'headers' => $request->headers->all()
+        ]
+    ]);
 });
+
 
 // School routes
 Route::prefix('schools')->group(function () {
