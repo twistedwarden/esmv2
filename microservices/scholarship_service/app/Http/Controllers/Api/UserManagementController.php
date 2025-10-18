@@ -495,7 +495,7 @@ class UserManagementController extends Controller
             $roleMapping = [
                 'ssc' => ['ssc_role' => 'chairperson', 'review_stage' => 'final_approval'],
                 'ssc_city_council' => ['ssc_role' => 'city_council', 'review_stage' => 'document_verification'],
-                'ssc_budget_dept' => ['ssc_role' => 'budget_department', 'review_stage' => 'financial_review'],
+                'ssc_budget_dept' => ['ssc_role' => 'budget_dept', 'review_stage' => 'financial_review'],
                 'ssc_education_affairs' => ['ssc_role' => 'education_affairs', 'review_stage' => 'academic_review'],
             ];
 
@@ -506,13 +506,14 @@ class UserManagementController extends Controller
 
             $mapping = $roleMapping[$role];
 
-            // Check if assignment already exists
+            // Check if assignment already exists for this specific ssc_role
             $existingAssignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
+                ->where('ssc_role', $mapping['ssc_role'])
                 ->where('is_active', true)
                 ->first();
 
             if ($existingAssignment) {
-                Log::info('SSC assignment already exists', ['user_id' => $userId, 'role' => $role]);
+                Log::info('SSC assignment already exists for this role', ['user_id' => $userId, 'role' => $role, 'ssc_role' => $mapping['ssc_role']]);
                 return;
             }
 
