@@ -2316,12 +2316,19 @@ class ScholarshipApplicationController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to submit document verification', [
                 'exception' => $e->getMessage(),
+                'exception_trace' => $e->getTraceAsString(),
                 'application_id' => $application->id,
+                'application_status' => $application->status,
+                'reviewer_id' => $reviewerId ?? null,
+                'request_data' => $request->all(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to submit document verification',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
