@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chat-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+        .bot-message {
+            background-color: #e9ecef;
+            color: #333;
+            margin-right: 20%;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .input-container button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .input-container button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .test-buttons {
+            margin-bottom: 20px;
+        }
+        .test-buttons button {
+            margin: 5px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-buttons button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Chatbot Debug Test</h1>
+        <p>This tool will help diagnose issues with your JironAI chatbot.</p>
+
+        <div id="status" class="status info">
+            Ready to test chatbot functionality
+        </div>
+
+        <div class="test-buttons">
+            <button onclick="testHealth()">Test API Health</button>
+            <button onclick="testAuth()">Test Authentication</button>
+            <button onclick="testChat()">Test Chat Message</button>
+            <button onclick="clearChat()">Clear Chat</button>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="message bot-message">
+                <strong>JironAI:</strong> Hello! I'm ready to help you test the chatbot. Click the test buttons above to diagnose any issues.
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let sessionId = 'test-session-' + Date.now();
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        function addMessage(content, type = 'bot-message') {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function clearChat() {
+            document.getElementById('chatContainer').innerHTML = `
+                <div class="message bot-message">
+                    <strong>JironAI:</strong> Chat cleared. Ready for new messages.
+                </div>
+            `;
+        }
+
+        async function testHealth() {
+            updateStatus('Testing API health...', 'info');
+            addMessage('<strong>System:</strong> Testing API health endpoint...', 'bot-message');
+
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('✅ API is healthy', 'success');
+                    addMessage(`<strong>System:</strong> API Health Check Passed<br>Status: ${data.status}<br>Service: ${data.service}<br>Version: ${data.version}`, 'bot-message');
+                } else {
+                    updateStatus('❌ API health check failed', 'error');
+                    addMessage(`<strong>System:</strong> API Health Check Failed<br>Status: ${response.status}<br>Error: ${data.error || 'Unknown error'}`, 'error-message');
+                }
+            } catch (error) {
+                updateStatus('❌ Cannot connect to API', 'error');
+                addMessage(`<strong>System:</strong> Connection Error<br>Error: ${error.message}<br><br>Possible causes:<br>• API server is not running<br>• Wrong port (should be 5000)<br>• CORS issues`, 'error-message');
+            }
+        }
+
+        async function testAuth() {
+            updateStatus('Testing authentication...', 'info');
+            addMessage('<strong>System:</strong> Testing Dialogflow authentication...', 'bot-message');
+
+            try {
+                const response = await fetch(`${API_BASE}/chat/test-auth`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    updateStatus('✅ Authentication successful', 'success');
+                    addMessage(`<strong>System:</strong> Authentication Test Passed<br>Reply: ${data.reply}<br>Session ID: ${data.sessionId}`, 'bot-message');
+                } else {
+                    updateStatus('❌ Authentication failed', 'error');
+                    addMessage(`<strong>System:</strong> Authentication Test Failed<br>Error: ${data.error || 'Unknown error'}<br>Message: ${data.message || 'No message'}`, 'error-message');
+                }
+            } catch (error) {
+                updateStatus('❌ Authentication test failed', 'error');
+                addMessage(`<strong>System:</strong> Authentication Test Error<br>Error: ${error.message}`, 'error-message');
+            }
+        }
+
+        async function testChat() {
+            const testMessage = 'Hello, how are you?';
+            updateStatus('Testing chat message...', 'info');
+            addMessage(`<strong>You:</strong> ${testMessage}`, 'user-message');
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: testMessage,
+                        sessionId: sessionId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('✅ Chat message sent successfully', 'success');
+                    addMessage(`<strong>JironAI:</strong> ${data.reply}`, 'bot-message');
+                } else {
+                    updateStatus('❌ Chat message failed', 'error');
+                    addMessage(`<strong>System:</strong> Chat Error<br>Status: ${response.status}<br>Error: ${data.error || 'Unknown error'}<br>Message: ${data.message || 'No message'}`, 'error-message');
+                }
+            } catch (error) {
+                updateStatus('❌ Chat test failed', 'error');
+                addMessage(`<strong>System:</strong> Chat Test Error<br>Error: ${error.message}`, 'error-message');
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            addMessage(`<strong>You:</strong> ${message}`, 'user-message');
+            input.value = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: sessionId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addMessage(`<strong>JironAI:</strong> ${data.reply}`, 'bot-message');
+                } else {
+                    addMessage(`<strong>System:</strong> Error: ${data.error || 'Unknown error'}`, 'error-message');
+                }
+            } catch (error) {
+                addMessage(`<strong>System:</strong> Connection Error: ${error.message}`, 'error-message');
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Auto-run health check on page load
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

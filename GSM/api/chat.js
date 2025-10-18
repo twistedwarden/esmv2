@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 
 // Load environment variables (optional; used for language only)
 dotenv.config();
@@ -11,13 +11,16 @@ dotenv.config();
 // Load service account JSON from local file instead of .env
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const serviceAccount = JSON.parse(readFileSync(`${__dirname}/bpmproject-51620-16f5485edbe4.json`, 'utf8'));
+
+// Use the correct service account file name
+const serviceAccountPath = join(__dirname, 'bpmproject-51620-442af2875f18.json');
+const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
 const projectId = process.env.DIALOGFLOW_PROJECT_ID || 'bpmproject-51620';
 const languageCode = process.env.DIALOGFLOW_LANGUAGE_CODE || 'en';
 
 const sessionClient = new dialogflow.SessionsClient({
-  keyFilename: path.join(__dirname, './bpmproject-51620-16f5485edbe4.json'),
+  credentials: serviceAccount,
 });
 
 function buildFallback(message) {
@@ -60,7 +63,7 @@ export default async function handler(req, res) {
 
 		console.log('Sending request to Dialogflow...');
 		try {
-			const [response] = await sessionsClient.detectIntent(request);
+			const [response] = await sessionClient.detectIntent(request);
 			const result = response.queryResult;
 			console.log('Dialogflow response:', result.fulfillmentText);
 			
@@ -78,6 +81,21 @@ export default async function handler(req, res) {
 		}
 	} catch (err) {
 		console.error('Chat handler error:', err);
-		return res.status(500).json({ error: err.message });
+		
+		// Provide more specific error messages
+		let errorMessage = 'Something went wrong. Please try again.';
+		
+		if (err.message.includes('ENOENT')) {
+			errorMessage = 'Service account file not found. Please check the configuration.';
+		} else if (err.message.includes('credentials')) {
+			errorMessage = 'Authentication error. Please check your Google Cloud credentials.';
+		} else if (err.message.includes('network') || err.message.includes('timeout')) {
+			errorMessage = 'Network error. Please check your internet connection and try again.';
+		}
+		
+		return res.status(500).json({ 
+			error: errorMessage,
+			details: process.env.NODE_ENV === 'development' ? err.message : undefined
+		});
 	}
 } 

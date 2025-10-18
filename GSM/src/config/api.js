@@ -53,6 +53,13 @@ export const API_CONFIG = {
             SCHOLARSHIP_CATEGORIES: '/api/scholarship-categories',
             SCHOLARSHIP_CATEGORY: (id) => `/api/scholarship-categories/${id}`,
             
+            // Scholarship programs
+            SCHOLARSHIP_PROGRAMS: '/api/scholarship-programs',
+            SCHOLARSHIP_PROGRAM: (id) => `/api/scholarship-programs/${id}`,
+            SCHOLARSHIP_PROGRAMS_STATISTICS: '/api/scholarship-programs/statistics',
+            SCHOLARSHIP_PROGRAM_TOGGLE_STATUS: (id) => `/api/scholarship-programs/${id}/toggle-status`,
+            SCHOLARSHIP_PROGRAM_UPDATE_STATS: (id) => `/api/scholarship-programs/${id}/update-stats`,
+            
             // Form integration
             FORM_NEW_APPLICATION: '/api/forms/new-application',
             FORM_RENEWAL_APPLICATION: '/api/forms/renewal-application',
