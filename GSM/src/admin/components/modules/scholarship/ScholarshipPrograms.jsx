@@ -49,7 +49,10 @@ function ScholarshipPrograms() {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         per_page: 50
       });
-      setPrograms(response.data || []);
+      console.log('Scholarship programs response:', response);
+      // Handle both nested and flat response structures
+      const programsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setPrograms(programsData);
     } catch (e) {
       setError('Failed to load scholarship programs');
       console.error('Error loading programs:', e);
@@ -61,9 +64,20 @@ function ScholarshipPrograms() {
   const loadStatistics = async () => {
     try {
       const stats = await scholarshipApiService.getProgramStatistics();
-      setStatistics(stats);
+      // Ensure we have valid statistics even if API returns unexpected structure
+      if (stats && typeof stats === 'object') {
+        setStatistics({
+          total_programs: stats.total_programs || 0,
+          active_programs: stats.active_programs || 0,
+          total_recipients: stats.total_recipients || 0,
+          total_budget: stats.total_budget || 0,
+          budget_used: stats.budget_used || 0,
+          budget_utilization_percentage: stats.budget_utilization_percentage || 0
+        });
+      }
     } catch (e) {
       console.error('Error loading statistics:', e);
+      // Keep default statistics if API fails
     }
   };
 

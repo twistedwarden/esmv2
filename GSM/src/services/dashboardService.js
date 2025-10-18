@@ -13,7 +13,7 @@ class DashboardService {
    */
   async getDashboardOverview() {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/overview`, {
         method: 'GET',
         headers: {
@@ -54,7 +54,7 @@ class DashboardService {
    */
   async getApplicationTrends(period = 'monthly') {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/trends?period=${period}`, {
         method: 'GET',
         headers: {
@@ -92,7 +92,7 @@ class DashboardService {
    */
   async getStatusDistribution() {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/status-distribution`, {
         method: 'GET',
         headers: {
@@ -126,7 +126,7 @@ class DashboardService {
    */
   async getSSCWorkflow() {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/ssc-workflow`, {
         method: 'GET',
         headers: {
@@ -160,7 +160,7 @@ class DashboardService {
    */
   async getScholarshipCategories() {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/scholarship-categories`, {
         method: 'GET',
         headers: {
@@ -194,7 +194,7 @@ class DashboardService {
    */
   async getRecentActivities(limit = 10) {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/recent-activities?limit=${limit}`, {
         method: 'GET',
         headers: {
@@ -248,7 +248,7 @@ class DashboardService {
    */
   async getTopSchools() {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/top-schools`, {
         method: 'GET',
         headers: {
@@ -321,7 +321,7 @@ class DashboardService {
    */
   async exportDashboardReport(format = 'csv') {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${AUTH_API_BASE_URL}/api/dashboard/export?format=${format}`, {
         method: 'POST',
         headers: {

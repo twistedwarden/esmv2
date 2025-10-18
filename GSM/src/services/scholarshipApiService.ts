@@ -299,7 +299,7 @@ class ScholarshipApiService {
     const url = getScholarshipServiceUrl(endpoint);
     
     // Get auth token from localStorage
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -658,7 +658,7 @@ class ScholarshipApiService {
 
   async uploadDocument(documentData: FormData): Promise<Document> {
     // Get authentication token from localStorage
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     
     // Debug logging
     console.log('Upload token check:', token ? 'Token found' : 'No token found');
@@ -757,7 +757,7 @@ class ScholarshipApiService {
   }
 
   async viewDocument(id: number): Promise<string> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const response = await fetch(
       getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENT_VIEW(id)),
       {
@@ -774,7 +774,7 @@ class ScholarshipApiService {
   }
 
   async downloadDocument(id: number): Promise<Blob> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const response = await fetch(
       getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENT_DOWNLOAD(id)),
       {
@@ -1346,7 +1346,17 @@ class ScholarshipApiService {
 
   // Get all scholarship programs
   async getScholarshipPrograms(params?: any): Promise<{ data: ScholarshipProgram[]; meta?: any }> {
-    const queryParams = new URLSearchParams(params).toString();
+    // Filter out undefined values to prevent "undefined" string in URL
+    const filteredParams: Record<string, string> = {};
+    if (params) {
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          filteredParams[key] = String(params[key]);
+        }
+      });
+    }
+    
+    const queryParams = new URLSearchParams(filteredParams).toString();
     const endpoint = queryParams 
       ? `${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAMS}?${queryParams}`
       : API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_PROGRAMS;
