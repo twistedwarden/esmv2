@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('applications', function (Blueprint $table) {
+        Schema::table('scholarship_applications', function (Blueprint $table) {
             $table->softDeletes();
             $table->string('deleted_by')->nullable();
             $table->text('deletion_reason')->nullable();
@@ -23,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('applications', function (Blueprint $table) {
+        Schema::table('scholarship_applications', function (Blueprint $table) {
             $table->dropSoftDeletes();
             $table->dropColumn(['deleted_by', 'deletion_reason']);
         });
