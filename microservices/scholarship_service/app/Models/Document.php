@@ -4,28 +4,37 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Document extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
-        'name',
-        'original_name',
-        'path',
-        'type',
-        'size',
-        'mime_type',
+        'student_id',
         'application_id',
-        'user_id',
-        'deleted_by',
-        'deletion_reason',
+        'document_type_id',
+        'file_name',
+        'file_path',
+        'file_size',
+        'mime_type',
+        'status',
+        'verification_notes',
+        'verified_by',
+        'verified_at',
     ];
 
     protected $casts = [
-        'size' => 'integer',
+        'file_size' => 'integer',
+        'verified_at' => 'datetime',
     ];
+
+    /**
+     * Get the student that owns the document.
+     */
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
 
     /**
      * Get the application that owns the document.
@@ -36,10 +45,50 @@ class Document extends Model
     }
 
     /**
-     * Get the user that owns the document.
+     * Get the document type.
      */
-    public function user()
+    public function documentType()
     {
-        return $this->belongsTo(\App\Models\User::class, 'user_id');
+        return $this->belongsTo(DocumentType::class);
+    }
+
+    /**
+     * Get the user who verified the document.
+     */
+    public function verifier()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'verified_by');
+    }
+
+    /**
+     * Verify the document.
+     */
+    public function verify($notes = null, $userId = null)
+    {
+        $this->status = 'verified';
+        $this->verification_notes = $notes;
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->save();
+    }
+
+    /**
+     * Reject the document.
+     */
+    public function reject($notes, $userId = null)
+    {
+        $this->status = 'rejected';
+        $this->verification_notes = $notes;
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->save();
+    }
+
+    /**
+     * Get the virus scan log for this document.
+     */
+    public function virusScanLog()
+    {
+        return $this->hasOne(FileSecurityLog::class, 'document_id');
     }
 }
