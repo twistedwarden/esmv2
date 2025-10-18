@@ -579,37 +579,36 @@ class UserController extends Controller
                 ], 404);
             }
 
-            // Check if user is already inactive
-            if (!$user->is_active) {
+            // Check if user is already soft deleted
+            if ($user->trashed()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User is already inactive. Use permanent delete to remove completely.',
+                    'message' => 'User is already archived. Use permanent delete to remove completely.',
                     'requires_permanent_delete' => true
                 ], 400);
             }
 
-            // Soft delete by deactivating the user
+            // Soft delete the user
             $user->update([
-                'is_active' => false,
-                'status' => 'deactivated'
+                'deleted_by' => auth()->user()->email ?? 'system',
+                'deletion_reason' => 'User deletion request'
             ]);
+            $user->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'User deactivated successfully. Delete again to permanently remove.',
+                'message' => 'User archived successfully. Use restore to recover or permanent delete to remove completely.',
                 'data' => [
                     'id' => $user->id,
                     'email' => $user->email,
                     'name' => trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ' ' . ($user->extension_name ?? '')),
-                    'is_active' => $user->is_active,
-                    'status' => $user->status,
-                    'deactivated_at' => now()
+                    'deleted_at' => now()
                 ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to deactivate user: ' . $e->getMessage()
+                'message' => 'Failed to archive user: ' . $e->getMessage()
             ], 500);
         }
     }

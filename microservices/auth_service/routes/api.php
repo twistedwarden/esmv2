@@ -8,6 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ArchivedDataController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,4 +93,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard/recent-activities', [DashboardController::class, 'getRecentActivities']);
     Route::get('/dashboard/top-schools', [DashboardController::class, 'getTopSchools']);
     Route::post('/dashboard/export', [DashboardController::class, 'exportReport']);
+    
+    // Archived data routes
+    Route::get('/archived/users', [ArchivedDataController::class, 'getArchivedUsers']);
+    Route::get('/archived/users/count', [ArchivedDataController::class, 'getArchivedUsersCount']);
+    Route::get('/archived/users/{userId}', [ArchivedDataController::class, 'getArchivedUserDetails']);
+    Route::post('/archived/users/{userId}/restore', [ArchivedDataController::class, 'restoreUser']);
+    Route::delete('/archived/users/{userId}', [ArchivedDataController::class, 'permanentDeleteUser']);
 });

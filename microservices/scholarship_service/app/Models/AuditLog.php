@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 
 class AuditLog extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -26,6 +27,8 @@ class AuditLog extends Model
         'status',
         'error_message',
         'metadata',
+        'deleted_by',
+        'deletion_reason',
     ];
 
     protected $casts = [

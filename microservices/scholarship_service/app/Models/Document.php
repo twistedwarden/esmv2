@@ -4,101 +4,42 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Document extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'student_id',
-        'application_id',
-        'document_type_id',
-        'file_name',
-        'file_path',
-        'file_size',
+        'name',
+        'original_name',
+        'path',
+        'type',
+        'size',
         'mime_type',
-        'status',
-        'verification_notes',
-        'verified_by',
-        'verified_at',
-        'virus_scan_log_id',
+        'application_id',
+        'user_id',
+        'deleted_by',
+        'deletion_reason',
     ];
 
     protected $casts = [
-        'file_size' => 'integer',
-        'verified_at' => 'datetime',
+        'size' => 'integer',
     ];
 
-    // Relationships
-    public function student(): BelongsTo
+    /**
+     * Get the application that owns the document.
+     */
+    public function application()
     {
-        return $this->belongsTo(Student::class);
+        return $this->belongsTo(ScholarshipApplication::class, 'application_id');
     }
 
-    public function application(): BelongsTo
+    /**
+     * Get the user that owns the document.
+     */
+    public function user()
     {
-        return $this->belongsTo(ScholarshipApplication::class);
-    }
-
-    public function documentType(): BelongsTo
-    {
-        return $this->belongsTo(DocumentType::class);
-    }
-
-    public function virusScanLog(): BelongsTo
-    {
-        return $this->belongsTo(VirusScanLog::class);
-    }
-
-    // Scopes
-    public function scopeByStatus($query, $status)
-    {
-        return $query->where('status', $status);
-    }
-
-    public function scopeVerified($query)
-    {
-        return $query->where('status', 'verified');
-    }
-
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
-
-    public function scopeRejected($query)
-    {
-        return $query->where('status', 'rejected');
-    }
-
-    public function scopeByType($query, $documentTypeId)
-    {
-        return $query->where('document_type_id', $documentTypeId);
-    }
-
-    // Methods
-    public function verify($notes = null, $verifiedBy = null): bool
-    {
-        $this->update([
-            'status' => 'verified',
-            'verification_notes' => $notes,
-            'verified_by' => $verifiedBy ?? auth()->id(),
-            'verified_at' => now(),
-        ]);
-
-        return true;
-    }
-
-    public function reject($notes = null, $verifiedBy = null): bool
-    {
-        $this->update([
-            'status' => 'rejected',
-            'verification_notes' => $notes,
-            'verified_by' => $verifiedBy ?? auth()->id(),
-            'verified_at' => now(),
-        ]);
-
-        return true;
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
 }

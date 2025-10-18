@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class ScholarshipApplication extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'application_number',
@@ -46,6 +47,8 @@ class ScholarshipApplication extends Model
         'ssc_stage_status',
         'all_required_stages_completed',
         'ready_for_final_approval_at',
+        'deleted_by',
+        'deletion_reason',
     ];
 
     protected $casts = [
