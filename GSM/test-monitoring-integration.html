@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Service Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Education Monitoring Service Integration Test</h1>
+    
+    <div class="test-section info">
+        <h3>Test Configuration</h3>
+        <p><strong>Monitoring Service URL:</strong> <span id="monitoring-url">https://monitoring-gsph.up.railway.app</span></p>
+        <p><strong>Scholarship Service URL:</strong> <span id="scholarship-url">https://scholarship-gsph.up.railway.app</span></p>
+    </div>
+
+    <div class="test-section">
+        <h3>1. Test Monitoring Service Health</h3>
+        <button onclick="testMonitoringHealth()">Test Health</button>
+        <div id="health-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Test Scholarship Service Connection</h3>
+        <button onclick="testScholarshipConnection()">Test Connection</button>
+        <div id="scholarship-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Test Education Metrics</h3>
+        <button onclick="testEducationMetrics()">Get Metrics</button>
+        <div id="metrics-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Test Student Trends</h3>
+        <button onclick="testStudentTrends()">Get Trends</button>
+        <div id="trends-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Test Program Effectiveness</h3>
+        <button onclick="testProgramEffectiveness()">Get Effectiveness</button>
+        <div id="program-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>6. Test School Performance</h3>
+        <button onclick="testSchoolPerformance()">Get Performance</button>
+        <div id="school-result"></div>
+    </div>
+
+    <script>
+        const MONITORING_API = 'https://monitoring-gsph.up.railway.app/api';
+        const SCHOLARSHIP_API = 'https://scholarship-gsph.up.railway.app/api';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                }
+
+                return data;
+            } catch (error) {
+                console.error('Request failed:', error);
+                throw error;
+            }
+        }
+
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.className = `test-section ${isError ? 'error' : 'success'}`;
+            element.innerHTML = `
+                <h4>${isError ? 'Error' : 'Success'}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        async function testMonitoringHealth() {
+            try {
+                const result = await makeRequest(`${MONITORING_API}/health`);
+                displayResult('health-result', result);
+            } catch (error) {
+                displayResult('health-result', { error: error.message }, true);
+            }
+        }
+
+        async function testScholarshipConnection() {
+            try {
+                const result = await makeRequest(`${MONITORING_API}/test-scholarship-connection`);
+                displayResult('scholarship-result', result);
+            } catch (error) {
+                displayResult('scholarship-result', { error: error.message }, true);
+            }
+        }
+
+        async function testEducationMetrics() {
+            try {
+                const result = await makeRequest(`${MONITORING_API}/education-metrics`);
+                displayResult('metrics-result', result);
+            } catch (error) {
+                displayResult('metrics-result', { error: error.message }, true);
+            }
+        }
+
+        async function testStudentTrends() {
+            try {
+                const result = await makeRequest(`${MONITORING_API}/student-trends`);
+                displayResult('trends-result', result);
+            } catch (error) {
+                displayResult('trends-result', { error: error.message }, true);
+            }
+        }
+
+        async function testProgramEffectiveness() {
+            try {
+                const result = await makeRequest(`${MONITORING_API}/program-effectiveness`);
+                displayResult('program-result', result);
+            } catch (error) {
+                displayResult('program-result', { error: error.message }, true);
+            }
+        }
+
+        async function testSchoolPerformance() {
+            try {
+                const result = await makeRequest(`${MONITORING_API}/school-performance`);
+                displayResult('school-result', result);
+            } catch (error) {
+                displayResult('school-result', { error: error.message }, true);
+            }
+        }
+
+        // Auto-run health check on page load
+        window.onload = function() {
+            testMonitoringHealth();
+        };
+    </script>
+</body>
+</html>

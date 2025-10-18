@@ -98,8 +98,12 @@ export const API_CONFIG = {
         BASE_URL: 'https://monitoring-gsph.up.railway.app',
         ENDPOINTS: {
             HEALTH: '/api/health',
-            METRICS: '/api/metrics',
-            LOGS: '/api/logs'
+            EDUCATION_METRICS: '/api/education-metrics',
+            STUDENT_TRENDS: '/api/student-trends',
+            PROGRAM_EFFECTIVENESS: '/api/program-effectiveness',
+            SCHOOL_PERFORMANCE: '/api/school-performance',
+            GENERATE_REPORT: '/api/generate-report',
+            TEST_SCHOLARSHIP_CONNECTION: '/api/test-scholarship-connection'
         }
     }
 };
@@ -126,6 +130,11 @@ export const getServiceUrl = (service, endpoint) => {
 // Helper function to check if a service is available
 export const isServiceAvailable = (service) => {
     return !!API_CONFIG[service];
+};
+
+// Helper function to get full API URL for monitoring service
+export const getMonitoringServiceUrl = (endpoint) => {
+    return `${API_CONFIG.MONITORING_SERVICE.BASE_URL}${endpoint}`;
 };
 
 // Legacy helper function for backward compatibility

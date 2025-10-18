@@ -78,76 +78,7 @@ const ArchivedOverview = () => {
       }
     } catch (error) {
       console.error('Error fetching archived data:', error);
-      
-      // Fallback to mock data if API fails
-      const mockData = {
-        users: [
-          {
-            id: 1,
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            role: 'citizen',
-            deletedAt: '2024-01-15T10:30:00Z',
-            deletedBy: 'Admin User',
-            reason: 'Account closure request'
-          },
-          {
-            id: 2,
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-            role: 'staff',
-            deletedAt: '2024-01-14T14:20:00Z',
-            deletedBy: 'System Admin',
-            reason: 'Inactive account cleanup'
-          }
-        ],
-        applications: [
-          {
-            id: 1,
-            applicantName: 'Alice Johnson',
-            scholarshipType: 'Merit Scholarship',
-            status: 'rejected',
-            deletedAt: '2024-01-13T09:15:00Z',
-            deletedBy: 'Admin User',
-            reason: 'Duplicate application'
-          }
-        ],
-        documents: [
-          {
-            id: 1,
-            name: 'Transcript_2023.pdf',
-            type: 'transcript',
-            size: '2.5 MB',
-            deletedAt: '2024-01-12T16:45:00Z',
-            deletedBy: 'System Admin',
-            reason: 'File corruption'
-          }
-        ],
-        logs: [
-          {
-            id: 1,
-            action: 'User Login',
-            user: 'test@example.com',
-            deletedAt: '2024-01-11T11:30:00Z',
-            deletedBy: 'System Admin',
-            reason: 'Data retention policy'
-          }
-        ]
-      };
-
-      setArchivedData(mockData);
-      
-      // Update category counts
-      setCategories(prevCategories => 
-        prevCategories.map(category => ({
-          ...category,
-          count: category.id === 'all' 
-            ? Object.values(mockData).flat().length
-            : mockData[category.id]?.length || 0
-        }))
-      );
-      
-      showError('Using offline data - API connection failed');
+      showError('Failed to load archived data. Please try again.');
     } finally {
       setLoading(false);
     }
