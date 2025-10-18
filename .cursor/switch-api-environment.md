@@ -28,7 +28,7 @@ export const API_CONFIG = {
   AUTH_SERVICE: "https://auth-gsph.up.railway.app",
   SCHOLARSHIP_SERVICE: "https://scholarship-gsph.up.railway.app",
   AID_SERVICE: "https://aid.gsph.com",
-  MONITORING_SERVICE: "https://monitoring.gsph.com",
+  MONITORING_SERVICE: "https://monitoring-gsph.up.railway.app",
 };
 ```
 

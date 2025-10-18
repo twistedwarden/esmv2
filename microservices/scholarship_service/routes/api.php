@@ -36,6 +36,7 @@ use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\InterviewEvaluationController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\ArchivedDataController;
+use App\Http\Controllers\AcademicRecordController;
 
 // Public staff interviewers endpoint (temporarily for debugging)
 Route::get('/staff/interviewers', [StaffController::class, 'getInterviewers']);
@@ -217,6 +218,17 @@ Route::prefix('documents')->middleware(['auth.auth_service'])->group(function ()
     
     // Document security endpoints
     Route::get('/{document}/scan-status', [DocumentController::class, 'getScanStatus']);
+});
+
+// Academic Records routes
+Route::prefix('academic-records')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/', [AcademicRecordController::class, 'index']);
+    Route::post('/', [AcademicRecordController::class, 'store']);
+    Route::get('/student/{studentId}', [AcademicRecordController::class, 'getByStudent']);
+    Route::get('/student/{studentId}/current', [AcademicRecordController::class, 'getCurrentRecord']);
+    Route::get('/{id}', [AcademicRecordController::class, 'show']);
+    Route::put('/{id}', [AcademicRecordController::class, 'update']);
+    Route::delete('/{id}', [AcademicRecordController::class, 'destroy']);
 });
 
 // Virus scan monitoring routes (admin only)
